@@ -29,19 +29,14 @@ jobs:
     - name: Build
       run: make build
 
-    - name: Check env
-      run: ls -lahR
-
     - name: Upload a Linux Build Artifact
       uses: actions/upload-artifact@master
       with:
         name: gop
         path: ./workdir/gop
-        target: gop
 
     - name: Upload a Windows Build Artifact
       uses: actions/upload-artifact@master
       with:
         name: gop.exe
         path: ./workdir/gop.exe
-        target: gop.exe
