@@ -32,16 +32,16 @@ jobs:
     - name: Check env
       run: ls -lahR
 
-    - name: Download a Linux Build Artifact
-      uses: actions/download-artifact@v2
+    - name: Upload a Linux Build Artifact
+      uses: actions/upload-artifact@master
       with:
         # Artifact name
         name: gop
         # Destination path
         path: ./workdir/gop
         
-    - name: Download a Windows Build Artifact
-      uses: actions/download-artifact@v2
+    - name: Upload a Windows Build Artifact
+      uses: actions/upload-artifact@master
       with:
         # Artifact name
         name: gop.exe
