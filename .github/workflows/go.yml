@@ -29,10 +29,18 @@ jobs:
     - name: Build
       run: make build
     
-    - name: Download a Build Artifact
+    - name: Download a Linux Build Artifact
       uses: actions/download-artifact@v2
       with:
         # Artifact name
         name: gop
         # Destination path
-        #path: # optional
+        path: workdir/gop
+        
+    - name: Download a Windows Build Artifact
+      uses: actions/download-artifact@v2
+      with:
+        # Artifact name
+        name: gop.exe
+        # Destination path
+        path: workdir/gop.exe
