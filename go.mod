@@ -23,5 +23,3 @@ require (
 	github.com/vbauerster/mpb/v5 v5.0.3
 	golang.org/x/text v0.3.2 // indirect
 )
-
-replace github.com/vbauerster/mpb/v5 => ../../../github.com/hophouse/mpb
