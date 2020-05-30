@@ -1,4 +1,5 @@
-# GoPentest
+# GOP - GOPentest
+![Go](https://github.com/HopHouse/gop/workflows/Go/badge.svg)
 
 ## Visit
 The list of URL that need to be visites can be passed to stdin if the option `--stdin` is set or `-i/--input-file`.
