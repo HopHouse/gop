@@ -29,6 +29,9 @@ jobs:
     - name: Build
       run: make build
     
+    - name: Check env
+      run: ls -lahR
+
     - name: Download a Linux Build Artifact
       uses: actions/download-artifact@v2
       with:
