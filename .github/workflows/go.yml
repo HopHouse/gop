@@ -38,7 +38,7 @@ jobs:
         # Artifact name
         name: gop
         # Destination path
-        path: workdir/gop
+        path: ./workdir/gop
         
     - name: Download a Windows Build Artifact
       uses: actions/download-artifact@v2
@@ -46,4 +46,4 @@ jobs:
         # Artifact name
         name: gop.exe
         # Destination path
-        path: workdir/gop.exe
+        path: ./workdir/gop.exe
