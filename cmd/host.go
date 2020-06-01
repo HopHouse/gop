@@ -22,18 +22,18 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"os"
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/hophouse/gop/gopVisit"
+	"github.com/hophouse/gop/gopHost"
 )
 
-// visitCmd represents the visit command
-var visitCmd = &cobra.Command{
-	Use:   "visit",
-	Short: "Visit supplied URLs.",
-	Long: "Visit supplied URLs.",
+// hostCmd represents the host command
+var hostCmd = &cobra.Command{
+	Use:   "host",
+	Short: "Resolve hostname to get the IP address.",
+	Long: "Resolve hostname to get the IP address.",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		var err error
 
@@ -63,13 +63,12 @@ var visitCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gopvisit.RunVisitCmd(reader, proxyOption)
+		gophost.RunHostCmd(reader)
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(visitCmd)
+	rootCmd.AddCommand(hostCmd)
 
-	visitCmd.PersistentFlags().StringVarP(&inputFileOption ,"input-file", "i", "", "Use the specified cookie.")
-	visitCmd.PersistentFlags().StringVarP(&proxyOption ,"proxy", "p", "", "Use this proxy to visit the pages.")
+	hostCmd.PersistentFlags().StringVarP(&inputFileOption ,"input-file", "i", "", "Use the specified cookie.")
 }
