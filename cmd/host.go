@@ -27,6 +27,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/hophouse/gop/gopHost"
+	"github.com/hophouse/gop/utils"
 )
 
 // hostCmd represents the host command
@@ -34,6 +35,9 @@ var hostCmd = &cobra.Command{
 	Use:   "host",
 	Short: "Resolve hostname to get the IP address.",
 	Long: "Resolve hostname to get the IP address.",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		utils.NewLoggerStdout()
+	},
 	PreRun: func(cmd *cobra.Command, args []string) {
 		var err error
 
