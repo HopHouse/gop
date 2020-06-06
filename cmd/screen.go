@@ -24,6 +24,7 @@ package cmd
 import (
 	"os"
 	"fmt"
+    "path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/hophouse/gop/utils"
@@ -56,7 +57,8 @@ var screenCmd = &cobra.Command{
 				fmt.Println("[!] Cannot use stdin and input-file at the same time.")
 				os.Exit(2)
 			}
-			reader, err = os.Open(inputFileOption)
+            
+			reader, err = os.Open(filepath.Join("..", inputFileOption))
 			if err != nil {
 				panic(err)
 			}
