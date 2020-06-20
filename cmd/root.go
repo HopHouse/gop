@@ -43,6 +43,7 @@ var (
 	reader *os.File
 	hostOption string
 	portOption string
+	concurrencyOption int
 )
 
 

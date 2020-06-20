@@ -14,6 +14,7 @@ import (
     "github.com/chromedp/cdproto/network"
     "github.com/chromedp/cdproto/cdp"
     "github.com/chromedp/chromedp"
+    "github.com/gobuffalo/packr"
 )
 
 type Screenshot struct {
@@ -21,7 +22,7 @@ type Screenshot struct {
     RequestStatus string
 }
 
-// Take screenshot of the pages
+// Take screenshot of the pages.
 func TakeScreenShot(url string, directory string, cookie string, proxy string) () {
     defer utils.ScreenshotBar.Done()
 
@@ -89,6 +90,7 @@ func TakeScreenShot(url string, directory string, cookie string, proxy string) (
     utils.Log.Println("[+] Took a screenshot of ", url, " - ", filename)
 }
 
+// Compute the filename based on the URL.
 func GetScreenshotFileName(url string) string {
     filename := strings.ReplaceAll(url, ":", "_")
     filename = strings.ReplaceAll(filename, "/", "")
@@ -166,4 +168,52 @@ func fullScreenshot(urlstr string, cookie string, quality int64, res *[]byte) ch
 			return nil
 		}),
 	}
+}
+
+// Create the HTML page that references all the taken screenshots.
+func GetScreenshotHTML(sl []Screenshot) string {
+    var html_code string
+
+    box := packr.NewBox("./template")
+
+    html_header, err := box.FindString("base_header.html")
+    if err != nil {
+        utils.Log.Fatal(err)
+    }
+
+    html_code += html_header
+
+    for _, item := range sl {
+        filename := "./screenshots/" + GetScreenshotFileName(item.Url)
+
+        utils.Log.Println(filename)
+        html_code += fmt.Sprintf("<div class=\"col-md-4\">\n")
+        html_code += fmt.Sprintf("  <div class=\"card mb-4 shadow-sm\">\n")
+
+        // Screenshot
+        html_code += fmt.Sprintf("    <img class=\"bd-placeholder-img card-img-top\" width=\"100%%\" height=\"225\" focusable=\"false\" src=\"%s\" />\n", filename)
+        html_code += fmt.Sprintf("    <div class=\"card-body\">\n")
+
+        // Request
+        html_code += fmt.Sprintf("      <p class=\"card-text\">%s</p>\n", item.Url)
+        html_code += fmt.Sprintf("      <div class=\"d-flex justify-content-between align-items-center\">\n")
+        html_code += fmt.Sprintf("        <div class=\"btn-group\">\n")
+        // Visit
+        html_code += fmt.Sprintf("          <a href=\"%s\"><button type=\"button\" class=\"btn btn-sm btn-outline-secondary\">Visit</button></a>", item.Url)
+        html_code += fmt.Sprintf("        </div>\n")
+        html_code += fmt.Sprintf("      </div>\n")
+        html_code += fmt.Sprintf("    </div>\n")
+        html_code += fmt.Sprintf("  </div>\n")
+        html_code += fmt.Sprintf("</div>\n")
+        html_code += fmt.Sprintf("\n\n")
+    }
+
+    html_footer, err := box.FindString("base_footer.html")
+    if err != nil {
+        utils.Log.Fatal(err)
+    }
+
+    html_code += html_footer
+
+    return html_code
 }

@@ -17,6 +17,8 @@ var (
     Internal_ressources []Ressource
     External_ressources []Ressource
     URLVisited []string
+    ScreenshotList []screenshot.Screenshot
+    ConcurrencyChan chan struct{}
 )
 
 func InitCrawler() (*colly.Collector) {
@@ -26,6 +28,9 @@ func InitCrawler() (*colly.Collector) {
     Internal_ressources = make([]Ressource, 0)
     External_ressources = make([]Ressource, 0)
     URLVisited = make([]string, 0)
+    ScreenshotList = make([]screenshot.Screenshot, 0)
+    ConcurrencyChan = make(chan struct{}, *GoCrawlerOptions.ConcurrencyPtr)
+
 
     t := http.Transport{
         TLSClientConfig:&tls.Config{InsecureSkipVerify: true},
@@ -121,7 +126,20 @@ func defineCallBacks(c *colly.Collector) () {
         // Take a screenshot if the option was set
         if (*GoCrawlerOptions.ScreenshotPtr == true) {
             utils.ScreenshotBar.Add(1)
-            go screenshot.TakeScreenShot(r.Request.URL.String(), "screenshots/", *GoCrawlerOptions.CookiePtr, *GoCrawlerOptions.ProxyPtr)
+
+            go func() {
+                ConcurrencyChan <- struct{}{}
+
+                screenshot.TakeScreenShot(r.Request.URL.String(), "screenshots/", *GoCrawlerOptions.CookiePtr, *GoCrawlerOptions.ProxyPtr)
+
+                // Add screenshot to list
+                ScreenshotList = append(ScreenshotList, screenshot.Screenshot{
+                    Url: r.Request.URL.String(),
+                    RequestStatus: "Uknown",
+                })
+
+                <- ConcurrencyChan
+            } ()
         }
     })
 

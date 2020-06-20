@@ -42,7 +42,7 @@ var activeCrawlerCmd = &cobra.Command{
 	Short: "Active crawling will visit the supplied Website found link, script and style sheet inside it.",
 	Long: "Active crawling will visit the supplied Website found link, script and style sheet inside it.",
     PreRun: func(cmd *cobra.Command, args []string) {
-        gopactivecrawler.NewOptions(&UrlOption, LogFile, &reportOption, &recursiveOption, &screenshotOption, &cookieOption, &proxyOption, &delayOption)
+        gopactivecrawler.NewOptions(&UrlOption, LogFile, &reportOption, &recursiveOption, &screenshotOption, &cookieOption, &proxyOption, &delayOption, &concurrencyOption)
 
         // Screenshots directory and HTML page
         if screenshotOption == true {
@@ -70,5 +70,6 @@ func init() {
 	activeCrawlerCmd.PersistentFlags().BoolVarP(&screenshotOption ,"screenshot", "s", false, "Take a screenshot on each visited link.")
 	activeCrawlerCmd.PersistentFlags().StringVarP(&cookieOption ,"cookie", "c", "", "Use the specified cookie.")
 	activeCrawlerCmd.PersistentFlags().StringVarP(&proxyOption ,"proxy", "p", "", "Use the specified proxy.")
-	activeCrawlerCmd.PersistentFlags().IntVarP(&delayOption ,"delay", "", 0, "Use this delay in seconds between each requests.")
+    activeCrawlerCmd.PersistentFlags().IntVarP(&delayOption ,"delay", "", 0, "Use this delay in seconds between each requests.")
+	activeCrawlerCmd.PersistentFlags().IntVarP(&concurrencyOption ,"concurrency", "t", 10, "Thread used to take screenshot.")
 }

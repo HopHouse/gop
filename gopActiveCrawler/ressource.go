@@ -2,9 +2,9 @@ package gopactivecrawler
 
 import (
     "fmt"
-    "strings"
 	"os"
-	"sync"
+    "sync"
+    "net/url"
 
     "github.com/hophouse/gop/utils"
 	"github.com/gookit/color"
@@ -22,15 +22,24 @@ func CreateRessource(urlReference string, script string, kind string) (isInterna
     ressource.Url = script
     ressource.Type = kind
 
+    scriptUrl, err := url.Parse(script)
+    if err != nil {
+        utils.Log.Println(err)
+    }
+
     // Define if it is secure
-    if strings.HasPrefix(script, "https") {
+    if scriptUrl.Scheme == "https" {
         ressource.Secure = true
     } else {
         ressource.Secure = false
     }
 
     // Define if its an internal or external script
-    if strings.HasPrefix(script, urlReference) {
+    urlReferenceUrl, err := url.Parse(urlReference)
+    if err != nil {
+        utils.Log.Println(err)
+    }
+    if scriptUrl.Host == urlReferenceUrl.Host {
         isInternal = true
     }
     return isInternal, ressource

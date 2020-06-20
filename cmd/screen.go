@@ -33,7 +33,6 @@ import (
 
 var (
 	timeoutOption int
-	concurrencyOption int
 )
 
 // screenCmd represents the screen command
@@ -57,7 +56,7 @@ var screenCmd = &cobra.Command{
 				fmt.Println("[!] Cannot use stdin and input-file at the same time.")
 				os.Exit(2)
 			}
-            
+
 			reader, err = os.Open(filepath.Join("..", inputFileOption))
 			if err != nil {
 				panic(err)
@@ -71,7 +70,7 @@ var screenCmd = &cobra.Command{
 		}
 
 		// Create a specific log file for the screenshots
-		utils.CreateOutputDir("screenshot")
+		utils.CreateOutputDir("screenshots")
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		gopscreen.RunScreenCmd(reader, proxyOption, concurrencyOption, timeoutOption, delayOption)
