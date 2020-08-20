@@ -1,8 +1,32 @@
 # GOP - GOPentest
 ![Go](https://github.com/HopHouse/gop/workflows/Go/badge.svg)
 
+```
+GoPentest provide a help performing some pentest tasks.
+
+Usage:
+  GoPentest [command]
+
+Available Commands:
+  crawler     Crawler command to crawl passively or actively a domain or a website.
+  help        Help about any command
+  host        Resolve hostname to get the IP address.
+  proxy       Set up a proxy to use
+  screenshot  Take screenshots of the supplied URLs. The program will take the stdin if no input file is passed as argument.
+  serve       Serve a specific directory through an HTTP server.
+  visit       Visit supplied URLs.
+
+Flags:
+  -h, --help                      help for GoPentest
+  -l, --logfile string            Set a custom log file. (default "logs.txt")
+  -D, --output-directory string   Use the following directory to output results.
+  -u, --url string                URL to test.
+
+Use "GoPentest [command] --help" for more information about a command.
+```
+
 ## Visit
-The list of URL that need to be visites can be passed to stdin if the option `--stdin` is set or `-i/--input-file`.
+The list of URL that needs to be visited can be passed to stdin if the option `--stdin` is set or `-i/--input-file`.
 ### Proxy
 If the proxy option is set, please use set the following option "Suppress Burp error messages in browser". If it is not done, all the response will have the status code `200 OK`. The option can be enabled in `Proxy -> Options -> Miscellaneous`.
 
