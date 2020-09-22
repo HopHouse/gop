@@ -13,6 +13,7 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gocolly/colly v1.2.0
 	github.com/gookit/color v1.2.4
+	github.com/gorilla/mux v1.8.0
 	github.com/jroimartin/gocui v0.4.0
 	github.com/kennygrant/sanitize v1.2.4 // indirect
 	github.com/mattn/go-runewidth v0.0.8 // indirect
@@ -20,6 +21,7 @@ require (
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/spf13/cobra v1.0.0
 	github.com/temoto/robotstxt v1.1.1 // indirect
+	github.com/urfave/negroni v1.0.0
 	github.com/vbauerster/mpb/v5 v5.0.3
 	golang.org/x/text v0.3.2 // indirect
 )
