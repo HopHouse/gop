@@ -2,10 +2,10 @@
 ![Go](https://github.com/HopHouse/gop/workflows/Go/badge.svg)
 
 ```
-GoPentest provides a toolbox to do pentest tasks.
+GOP provide a help performing some pentest tasks.
 
 Usage:
-  GoPentest [command]
+  gop [command]]
 
 Available Commands:
   crawler     Crawler command to crawl passively or actively a domain or a website.
@@ -14,15 +14,16 @@ Available Commands:
   proxy       Set up a proxy to use
   screenshot  Take screenshots of the supplied URLs. The program will take the stdin if no input file is passed as argument.
   serve       Serve a specific directory through an HTTP server.
+  shell       Set up a shell either reverse or bind.
   visit       Visit supplied URLs.
 
 Flags:
-  -h, --help                      help for GoPentest
+  -h, --help                      help for gop
   -l, --logfile string            Set a custom log file. (default "logs.txt")
   -D, --output-directory string   Use the following directory to output results.
   -u, --url string                URL to test.
 
-Use "GoPentest [command] --help" for more information about a command.
+Use "gop [command] --help" for more information about a command.
 ```
 
 ## Visit
@@ -42,8 +43,10 @@ Generate the CA.
 openssl req -new -x509 -sha256 -key ca.key -out ca.crt -days 3650
 ```
 
-## CI/CD
+## Serve
+This command will serve file through a HTTP Web server. A few authentication methods can be added with the option `--auth`. The HTTP `Basic` and `NTLM` authentication are included.
 
+## CI/CD
 .gitlab-co.yml file.
 ```
 image: golang:1.10

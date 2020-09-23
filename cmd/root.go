@@ -34,24 +34,23 @@ var (
 )
 
 var (
-    proxyOption string
+	proxyOption         string
 	directoryNameOption string
-	logFileNameOption string
-	directoryName string
-	inputFileOption string
-    stdinOption bool
-	reader *os.File
-	hostOption string
-	portOption string
-	concurrencyOption int
+	logFileNameOption   string
+	directoryName       string
+	inputFileOption     string
+	stdinOption         bool
+	reader              *os.File
+	hostOption          string
+	portOption          string
+	concurrencyOption   int
 )
-
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "GoPentest",
-	Short: "GoPentest provide a help performing some pentest tasks.",
-	Long: "GoPentest provide a help performing some pentest tasks.",
+	Use:   "gop",
+	Short: "GOP provides a toolbox to do pentest tasks.",
+	Long:  "GOP provide a help performing some pentest tasks.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// If an output directory is specified, check if it exists and then move to it
 		if directoryNameOption != "" {
@@ -79,6 +78,6 @@ func Execute() {
 }
 
 func init() {
-    rootCmd.PersistentFlags().StringVarP(&logFileNameOption ,"logfile", "l", "logs.txt", "Set a custom log file.")
-    rootCmd.PersistentFlags().StringVarP(&directoryNameOption ,"output-directory", "D", "", "Use the following directory to output results.")
+	rootCmd.PersistentFlags().StringVarP(&logFileNameOption, "logfile", "l", "logs.txt", "Set a custom log file.")
+	rootCmd.PersistentFlags().StringVarP(&directoryNameOption, "output-directory", "D", "", "Use the following directory to output results.")
 }
