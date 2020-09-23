@@ -2,7 +2,7 @@
 ![Go](https://github.com/HopHouse/gop/workflows/Go/badge.svg)
 
 ```
-GoPentest provide a help performing some pentest tasks.
+GoPentest provides a toolbox to do pentest tasks.
 
 Usage:
   GoPentest [command]
