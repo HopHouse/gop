@@ -26,18 +26,18 @@ import (
 )
 
 var (
-    UrlOption string
+	UrlOption string
 )
 
 // crawlerCmd represents the crawler command
 var crawlerCmd = &cobra.Command{
-    Use:   "crawler",
-    Short: "Crawler command to crawl passively or actively a domain or a website.",
-    Long: "Crawler command to crawl passively or actively a domain or a website.",
+	Use:   "crawler",
+	Short: "Crawler command to crawl recursively or not a domain or a website.",
+	Long:  "Crawler command to crawl recursively or not a domain or a website.",
 }
 
 func init() {
-    rootCmd.AddCommand(crawlerCmd)
+	rootCmd.AddCommand(crawlerCmd)
 
 	rootCmd.PersistentFlags().StringVarP(&UrlOption, "url", "u", "", "URL to test.")
 	rootCmd.MarkFlagRequired("url")
