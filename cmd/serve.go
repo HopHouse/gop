@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+
 	gopserve "github.com/hophouse/gop/gopServe"
 	"github.com/hophouse/gop/utils"
 	"github.com/spf13/cobra"
@@ -17,7 +19,23 @@ var serveCmd = &cobra.Command{
 	Short: "Serve a specific directory through an HTTP server.",
 	Long:  "Serve a specific directory through an HTTP server.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		utils.NewLoggerStdout()
+		if authOption == "" {
+			utils.NewLoggerStdout()
+		} else {
+			// If an output directory is specified, check if it exists and then move to it
+			if directoryNameOption != "" {
+				if _, err := os.Stat(directoryNameOption); os.IsNotExist(err) {
+					utils.Log.Fatal("Specified directory by the option '-d' or '--directory', do not exists on the system.")
+				}
+				os.Chdir(directoryNameOption)
+			} else {
+				utils.CreateOutputDir(directoryNameOption)
+			}
+
+			// Init the logger and let close it later
+			utils.NewLogger(LogFile, logFileNameOption)
+			defer utils.CloseLogger(LogFile)
+		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		gopserve.RunServeCmd(hostOption, portOption, directoryServeOption, authOption)
