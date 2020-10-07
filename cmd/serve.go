@@ -36,6 +36,8 @@ var serveCmd = &cobra.Command{
 			utils.NewLogger(LogFile, logFileNameOption)
 			defer utils.CloseLogger(LogFile)
 		}
+
+		utils.Log.SetFlags(0)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		gopserve.RunServeCmd(hostOption, portOption, directoryServeOption, authOption)
