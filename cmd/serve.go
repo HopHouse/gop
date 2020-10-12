@@ -19,7 +19,7 @@ var serveCmd = &cobra.Command{
 	Short: "Serve a specific directory through an HTTP server.",
 	Long:  "Serve a specific directory through an HTTP server.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		if authOption == "" && logFileNameOption == "" {
+		if authOption == "" {
 			utils.NewLoggerStdout()
 		} else {
 			// If an output directory is specified, check if it exists and then move to it
