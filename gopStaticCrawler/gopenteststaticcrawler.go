@@ -1,4 +1,4 @@
-package gopactivecrawler
+package gopstaticcrawler
 
 import (
     "fmt"

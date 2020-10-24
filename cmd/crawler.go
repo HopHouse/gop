@@ -25,20 +25,26 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	UrlOption string
-)
-
 // crawlerCmd represents the crawler command
 var crawlerCmd = &cobra.Command{
 	Use:   "crawler",
 	Short: "Crawler command to crawl recursively or not a domain or a website.",
 	Long:  "Crawler command to crawl recursively or not a domain or a website.",
+	PreRun: func(cmd *cobra.Command, args []string) {
+    },
+    Run: func(cmd *cobra.Command, args []string) {
+    },
 }
 
 func init() {
 	rootCmd.AddCommand(crawlerCmd)
 
-	rootCmd.PersistentFlags().StringVarP(&UrlOption, "url", "u", "", "URL to test.")
-	rootCmd.MarkFlagRequired("url")
+	crawlerCmd.PersistentFlags().StringVarP(&UrlOption, "url", "u", "", "URL to test.")
+	crawlerCmd.MarkFlagRequired("url")
+	crawlerCmd.PersistentFlags().BoolVarP(&recursiveOption ,"recursive", "r", false, "Crawl the website recursively.")
+	crawlerCmd.PersistentFlags().BoolVarP(&screenshotOption ,"screenshot", "s", false, "Take a screenshot on each visited link.")
+	crawlerCmd.PersistentFlags().StringVarP(&cookieOption ,"cookie", "c", "", "Use the specified cookie.")
+	crawlerCmd.PersistentFlags().StringVarP(&proxyOption ,"proxy", "p", "", "Use the specified proxy.")
+	crawlerCmd.PersistentFlags().IntVarP(&delayOption ,"delay", "", 0, "Use this delay in seconds between each requests.")
+	crawlerCmd.PersistentFlags().IntVarP(&concurrencyOption ,"concurrency", "t", 10, "Thread used to take screenshot.")
 }

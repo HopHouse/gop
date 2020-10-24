@@ -1,4 +1,4 @@
-package gopactivecrawler
+package gopstaticcrawler
 
 import (
 	"strings"
@@ -89,9 +89,9 @@ func PrintRessourcesResume(ressourceType string, url string, ressources *[]Resso
 }
 
 func PrintStatistics(duration time.Duration, internal_ressources *[]Ressource, external_ressources *[]Ressource) () {
-    var counterStyle, counterScript, counterLink, counterUnknown int
+    var counterStyle, counterScript, counterLink, counterImage, counterUnknown int
 
-    counterStyle, counterScript, counterLink, counterUnknown = 0, 0, 0, 0
+    counterStyle, counterScript, counterLink, counterImage, counterUnknown = 0, 0, 0, 0, 0
     color.Printf("\n[+] Statistics\n")
     color.Printf(" -  Number of internal ressources: %s\n", Cyan(len(*internal_ressources)))
     for _, item := range *internal_ressources {
@@ -102,16 +102,19 @@ func PrintStatistics(duration time.Duration, internal_ressources *[]Ressource, e
                 counterScript += 1
             case "style":
                 counterStyle += 1
+            case "image":
+                counterImage += 1
             default:
                 counterUnknown += 1
         }
     }
-    color.Printf("    - Number of link:    %s\n", Cyan(counterLink))
-    color.Printf("    - Number of script:  %s\n", Cyan(counterScript))
-    color.Printf("    - Number of style:   %s\n", Cyan(counterStyle))
-    color.Printf("    - Number of unknown: %s\n", Cyan(counterUnknown))
+    color.Printf("    - Number of links:    %s\n", Cyan(counterLink))
+    color.Printf("    - Number of scripts:  %s\n", Cyan(counterScript))
+    color.Printf("    - Number of styles:   %s\n", Cyan(counterStyle))
+    color.Printf("    - Number of images:   %s\n", Cyan(counterImage))
+    color.Printf("    - Number of unknowns: %s\n", Cyan(counterUnknown))
 
-    counterStyle, counterScript, counterLink, counterUnknown = 0, 0, 0, 0
+    counterStyle, counterScript, counterLink, counterImage, counterUnknown = 0, 0, 0, 0, 0
     color.Printf("\n -  Number of external ressources: %s\n", Cyan(len(*external_ressources)))
     for _, item := range *external_ressources {
         switch item.Type {
@@ -121,14 +124,17 @@ func PrintStatistics(duration time.Duration, internal_ressources *[]Ressource, e
                 counterScript += 1
             case "style":
                 counterStyle += 1
+            case "image":
+                counterImage += 1
             default:
                 counterUnknown += 1
         }
     }
-    color.Printf("    - Number of link:    %s\n", Cyan(counterLink))
-    color.Printf("    - Number of script:  %s\n", Cyan(counterScript))
-    color.Printf("    - Number of style:   %s\n", Cyan(counterStyle))
-    color.Printf("    - Number of unknown: %s\n", Cyan(counterUnknown))
+    color.Printf("    - Number of links:    %s\n", Cyan(counterLink))
+    color.Printf("    - Number of scripts:  %s\n", Cyan(counterScript))
+    color.Printf("    - Number of styles:   %s\n", Cyan(counterStyle))
+    color.Printf("    - Number of images:   %s\n", Cyan(counterImage))
+    color.Printf("    - Number of unknowns: %s\n", Cyan(counterUnknown))
 
     color.Printf("\n -  Execution time: %s\n", Cyan(duration))
 }

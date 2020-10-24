@@ -44,6 +44,12 @@ var (
 	hostOption          string
 	portOption          string
 	concurrencyOption   int
+	UrlOption 			string
+    recursiveOption 	bool
+    screenshotOption 	bool
+    cookieOption 		string
+    delayOption 		int
+    reportOption 		bool
 )
 
 // rootCmd represents the base command when called without any subcommands

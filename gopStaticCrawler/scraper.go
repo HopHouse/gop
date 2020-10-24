@@ -1,4 +1,4 @@
-package gopactivecrawler
+package gopstaticcrawler
 
 import (
     "net/http"
@@ -38,7 +38,7 @@ func InitCrawler() (*colly.Collector) {
 
     // Trust all certificates
     c.WithTransport(&t)
-	t.DisableKeepAlives = true
+    t.DisableKeepAlives = true
 
     // Set user-agent
     userAgent := "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0"
@@ -87,10 +87,10 @@ func VisiteURL(visited *[]string, c *colly.Collector, Url string) () {
 
     // Check if the page will logout and potentialy remove the token passed in parameter
     if *GoCrawlerOptions.CookiePtr != "" {
-       if strings.Contains(Url, "logout") || strings.Contains(Url, "deconnexion") {
-           utils.Log.Printf("[-] This URL %s might contains a logout URL that may invalidate the session cookie. It will not be proceeded.", Url)
-           return
-       }
+        if strings.Contains(Url, "logout") || strings.Contains(Url, "deconnexion") {
+            utils.Log.Printf("[-] This URL %s might contains a logout URL that may invalidate the session cookie. It will not be proceeded.", Url)
+            return
+        }
 
     }
     c.Visit(cleanedUrl)
@@ -143,7 +143,7 @@ func defineCallBacks(c *colly.Collector) () {
         }
     })
 
-    c.OnHTML("a[href]", func(e *colly.HTMLElement) {
+    c.OnHTML("a[href]", func (e *colly.HTMLElement) {
         original_link := e.Attr("href")
         link := e.Attr("href")
         url := e.Request.URL
@@ -153,110 +153,97 @@ func defineCallBacks(c *colly.Collector) () {
             return
         }
 
-        var domain string = strings.Join(strings.Split(url.String(), "/")[:3], "/")
-        if (strings.HasPrefix(link, "/")) {
-            if (strings.HasSuffix(url.String(), "/")) {
-                link = domain + link[1:]
-            } else {
-                link = domain + link
-            }
-            utils.Log.Printf("[*] Modified %s. Transformed from %s on %s\n", link, original_link, url)
-        }
+        getAbsoluteURL(&link, original_link, url)
+        treatRessource(link, url)
 
-        if (strings.HasPrefix(url.String(), " ")) {
-            link = link[1:]
-            utils.Log.Printf("[*] Modified %s. Removed space from %s on %s\n", link, original_link, url)
-        }
-
-        var isAdded bool
-
-        isInternal, ressource := CreateRessource(*GoCrawlerOptions.UrlPtr, link, "link")
-        if (isInternal == true) {
-            isAdded = AddRessourceIfDoNotExists(&Internal_ressources, ressource)
-            if (*GoCrawlerOptions.RecursivePtr == true) {
-                utils.Log.Printf("[+] Adding for visit %s\n", link)
-                VisiteURL(&URLVisited, c, link)
-            }
-        } else {
-            isAdded = AddRessourceIfDoNotExists(&External_ressources, ressource)
-        }
-
-        if (isAdded == true) {
-            PrintNewRessourceFound("link", link)
-        }
     })
 
-    c.OnHTML("script[src]", func(e *colly.HTMLElement) {
-        original_script := e.Attr("src")
-        script := e.Attr("src")
-        url := e.Request.URL
+    c.OnHTML("script[src]", TreatScriptSrc)
 
-        if (strings.HasPrefix(script, "javascript:void")) {
-            utils.Log.Printf("[-] Not using this script %s from %s\n", script, url)
-            return
-        }
+    c.OnHTML("link[href]", TreatLinkHref)
 
-        var domain string = strings.Join(strings.Split(url.String(), "/")[:3], "/")
-        if (strings.HasPrefix(script, "/")) {
-            if (strings.HasSuffix(url.String(), "/")) {
-                script = domain + script[1:]
-            } else {
-                script = domain + script
-            }
-            utils.Log.Printf("[*] Modified script for URL for %s. Transformed from %s to %s\n", url, original_script, script)
-        }
-
-        var isAdded bool
-
-        isInternal, ressource := CreateRessource(url.String(), script, "script")
-
-        if (isInternal == true) {
-            isAdded = AddRessourceIfDoNotExists(&Internal_ressources, ressource)
-        } else {
-            isAdded = AddRessourceIfDoNotExists(&External_ressources, ressource)
-        }
-
-        if (isAdded == true) {
-            PrintNewRessourceFound("script", script)
-        }
-    })
-
-    c.OnHTML("link[href]", func(e *colly.HTMLElement) {
-        original_style := e.Attr("href")
-        style := e.Attr("href")
-        url := e.Request.URL
-
-        var domain string = strings.Join(strings.Split(url.String(), "/")[:3], "/")
-        if (strings.HasPrefix(style, "/")) {
-            if (strings.HasSuffix(style, "/")) {
-                style = domain + style[1:]
-            } else {
-                style = domain + style
-            }
-            utils.Log.Printf("[*] Modified script for URL for %s. Transformed from %s to %s\n", url, original_style, style)
-        }
-
-        var isAdded bool
-        isInternal, ressource := CreateRessource(url.String(), style, "style")
-        if (isInternal == true) {
-            isAdded = AddRessourceIfDoNotExists(&Internal_ressources, ressource)
-        } else {
-            isAdded = AddRessourceIfDoNotExists(&External_ressources, ressource)
-        }
-
-        if (isAdded){
-            PrintNewRessourceFound("style file", style)
-        }
-    })
-
-	// Set error handler
-	c.OnError(func(r *colly.Response, err error) {
-		utils.Log.Println("Request URL:", r.Request.URL, "failed with response:", r.StatusCode, "\nError:", err)
+    // Set error handler
+    c.OnError(func(r *colly.Response, err error) {
+        utils.Log.Println("Request URL:", r.Request.URL, "failed with response:", r.StatusCode, "\nError:", err)
         defer utils.CrawlerBar.Done()
-	})
+    })
 
     c.OnScraped(func(r *colly.Response) {
         utils.Log.Printf("[+] Finished sending ressources to %s\n", r.Request.URL)
         defer utils.CrawlerBar.Done()
     })
+}
+
+func TreatScriptSrc(e *colly.HTMLElement) {
+    original_item := e.Attr("src")
+    item := e.Attr("src")
+    url := e.Request.URL
+
+    if (strings.HasPrefix(item, "javascript:void")) {
+        utils.Log.Printf("[-] Not using this script %s from %s\n", item, url)
+        return
+    }
+
+    getAbsoluteURL(&item, original_item, url)
+    treatRessource(item, url)
+}
+
+func TreatLinkHref(e *colly.HTMLElement) {
+    original_item := e.Attr("href")
+    item := e.Attr("href")
+    url := e.Request.URL
+
+    getAbsoluteURL(&item, original_item, url)
+
+    treatRessource(item, url)
+}
+
+// Tranform relative path to absolute path if needed and return url
+func getAbsoluteURL(item *string, original_item string, url *url.URL) {
+    var domain string = strings.Join(strings.Split(url.String(), "/")[:3], "/")
+    if (strings.HasPrefix(*item, "/")) {
+        if (strings.HasSuffix(url.String(), "/")) {
+            *item = domain + (*item)[1:]
+        } else {
+            *item = domain + *item
+        }
+        utils.Log.Printf("[*] Modified item for URL for %s. Transformed from %s to %s\n", url, original_item, *item)
+    }
+
+    if (strings.HasPrefix(url.String(), " ")) {
+            *item = (*item)[1:]
+            utils.Log.Printf("[*] Modified %s. Removed space from %s on %s\n", *item, original_item, url)
+        }
+
+
+}
+
+// Treat url, classify what the ressource is and add to the internal or
+// external scope
+func treatRessource(item string, url *url.URL) {
+    var isAdded bool
+    var scriptKind = "unknown"
+
+    if strings.HasSuffix(item, ".js") {
+        scriptKind = "script"
+    }
+
+    if strings.HasSuffix(item, ".png") || strings.HasSuffix(item, ".jpg") {
+        scriptKind = "image"
+    }
+
+    if strings.HasSuffix(item, ".css") {
+        scriptKind = "style"
+    }
+
+    isInternal, ressource := CreateRessource(url.String(), item, scriptKind)
+    if (isInternal == true) {
+        isAdded = AddRessourceIfDoNotExists(&Internal_ressources, ressource)
+    } else {
+        isAdded = AddRessourceIfDoNotExists(&External_ressources, ressource)
+    }
+
+    if (isAdded){
+        PrintNewRessourceFound(scriptKind, scriptKind)
+    }
 }
