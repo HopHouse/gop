@@ -154,8 +154,18 @@ func defineCallBacks(c *colly.Collector) () {
         }
 
         getAbsoluteURL(&link, original_link, url)
-        treatRessource(link, url)
 
+	var isAdded bool
+	isInternal, ressource := CreateRessource(url.String(), link, "link")
+	if (isInternal == true) {
+	    isAdded = AddRessourceIfDoNotExists(&Internal_ressources, ressource)
+	} else {
+	    isAdded = AddRessourceIfDoNotExists(&External_ressources, ressource)
+	}
+
+	if (isAdded){
+	    PrintNewRessourceFound("link", "link")
+	}
     })
 
     c.OnHTML("script[src]", TreatScriptSrc)
@@ -224,15 +234,17 @@ func treatRessource(item string, url *url.URL) {
     var isAdded bool
     var scriptKind = "unknown"
 
-    if strings.HasSuffix(item, ".js") {
+    file := strings.Split(item, "?")[0]
+
+    if strings.HasSuffix(file, ".js") || strings.HasSuffix(file, ".jsf"){
         scriptKind = "script"
     }
 
-    if strings.HasSuffix(item, ".png") || strings.HasSuffix(item, ".jpg") {
+    if strings.HasSuffix(file, ".png") || strings.HasSuffix(file, ".jpg") || strings.HasSuffix(file, ".ico") {
         scriptKind = "image"
     }
 
-    if strings.HasSuffix(item, ".css") {
+    if strings.HasSuffix(file, ".css") {
         scriptKind = "style"
     }
 
