@@ -22,6 +22,9 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"os"
+
+	gopdynamiccrawler "github.com/hophouse/gop/gopDynamicCrawler"
 	"github.com/spf13/cobra"
 )
 
@@ -31,9 +34,21 @@ var crawlerCmd = &cobra.Command{
 	Short: "Crawler command to crawl recursively or not a domain or a website.",
 	Long:  "Crawler command to crawl recursively or not a domain or a website.",
 	PreRun: func(cmd *cobra.Command, args []string) {
-    },
-    Run: func(cmd *cobra.Command, args []string) {
-    },
+		gopdynamiccrawler.NewOptions(&UrlOption, LogFile, &reportOption, &recursiveOption, &screenshotOption, &cookieOption, &proxyOption, &delayOption, &concurrencyOption)
+
+		// Screenshots directory and HTML page
+		if screenshotOption == true {
+			if _, err := os.Stat("screenshots"); os.IsNotExist(err) {
+				os.Mkdir("screenshots", 0600)
+			}
+		}
+
+		// Print Options
+		gopdynamiccrawler.PrintOptions(&gopdynamiccrawler.GoCrawlerOptions)
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		gopdynamiccrawler.RunCrawlerCmd()
+	},
 }
 
 func init() {
@@ -41,10 +56,10 @@ func init() {
 
 	crawlerCmd.PersistentFlags().StringVarP(&UrlOption, "url", "u", "", "URL to test.")
 	crawlerCmd.MarkFlagRequired("url")
-	crawlerCmd.PersistentFlags().BoolVarP(&recursiveOption ,"recursive", "r", false, "Crawl the website recursively.")
-	crawlerCmd.PersistentFlags().BoolVarP(&screenshotOption ,"screenshot", "s", false, "Take a screenshot on each visited link.")
-	crawlerCmd.PersistentFlags().StringVarP(&cookieOption ,"cookie", "c", "", "Use the specified cookie.")
-	crawlerCmd.PersistentFlags().StringVarP(&proxyOption ,"proxy", "p", "", "Use the specified proxy.")
-	crawlerCmd.PersistentFlags().IntVarP(&delayOption ,"delay", "", 0, "Use this delay in seconds between each requests.")
-	crawlerCmd.PersistentFlags().IntVarP(&concurrencyOption ,"concurrency", "t", 10, "Thread used to take screenshot.")
+	crawlerCmd.PersistentFlags().BoolVarP(&recursiveOption, "recursive", "r", false, "Crawl the website recursively.")
+	crawlerCmd.PersistentFlags().BoolVarP(&screenshotOption, "screenshot", "s", false, "Take a screenshot on each visited link.")
+	crawlerCmd.PersistentFlags().StringVarP(&cookieOption, "cookie", "c", "", "Use the specified cookie.")
+	crawlerCmd.PersistentFlags().StringVarP(&proxyOption, "proxy", "p", "", "Use the specified proxy.")
+	crawlerCmd.PersistentFlags().IntVarP(&delayOption, "delay", "", 0, "Use this delay in seconds between each requests.")
+	crawlerCmd.PersistentFlags().IntVarP(&concurrencyOption, "concurrency", "t", 10, "Thread used to take screenshot.")
 }

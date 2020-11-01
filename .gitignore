@@ -53,3 +53,5 @@ external_ressources.tex
 Gopkg.lock
 *.png
 20*-GoCrawler/*
+gop
+gop.exe

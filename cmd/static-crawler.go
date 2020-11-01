@@ -22,49 +22,49 @@ THE SOFTWARE.
 package cmd
 
 import (
-    "os"
+	"os"
 
-    "github.com/hophouse/gop/gopStaticCrawler"
-    "github.com/spf13/cobra"
+	gopstaticcrawler "github.com/hophouse/gop/gopStaticCrawler"
+	"github.com/spf13/cobra"
 )
 
 // gopstaticcrawler represents the active command
 var staticCrawlerCmd = &cobra.Command{
-    Use:   "static-crawler",
-    Short: "The static crawler command will visit the supplied Website found link, script and style sheet inside it.",
-    Long: "The static crawler command will visit the supplied Website found link, script and style sheet inside it.",
-    PreRun: func(cmd *cobra.Command, args []string) {
-	gopstaticcrawler.NewOptions(&UrlOption, LogFile, &reportOption, &recursiveOption, &screenshotOption, &cookieOption, &proxyOption, &delayOption, &concurrencyOption)
+	Use:   "static-crawler",
+	Short: "The static crawler command will visit the supplied Website found link, script and style sheet inside it.",
+	Long:  "The static crawler command will visit the supplied Website found link, script and style sheet inside it.",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		gopstaticcrawler.NewOptions(&UrlOption, LogFile, &reportOption, &recursiveOption, &screenshotOption, &cookieOption, &proxyOption, &delayOption, &concurrencyOption)
 
-	// Screenshots directory and HTML page
-	if screenshotOption == true {
-	    if _, err := os.Stat("screenshots"); os.IsNotExist(err) {
-		os.Mkdir("screenshots", 0600)
-	    }
-	}
+		// Screenshots directory and HTML page
+		if screenshotOption == true {
+			if _, err := os.Stat("screenshots"); os.IsNotExist(err) {
+				os.Mkdir("screenshots", 0600)
+			}
+		}
 
-	// Print banner
-	gopstaticcrawler.PrintBanner()
+		// Print banner
+		gopstaticcrawler.PrintBanner()
 
-	// Print Options
-	gopstaticcrawler.PrintOptions(&gopstaticcrawler.GoCrawlerOptions)
-    },
-    Run: func(cmd *cobra.Command, args []string) {
-	gopstaticcrawler.RunCrawlerCmd()
-    },
+		// Print Options
+		gopstaticcrawler.PrintOptions(&gopstaticcrawler.GoCrawlerOptions)
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		gopstaticcrawler.RunCrawlerCmd()
+	},
 }
 
 func init() {
-    rootCmd.AddCommand(staticCrawlerCmd)
+	rootCmd.AddCommand(staticCrawlerCmd)
 
-    staticCrawlerCmd.PersistentFlags().StringVarP(&UrlOption, "url", "u", "", "URL to test.")
-    staticCrawlerCmd.MarkFlagRequired("url")
+	staticCrawlerCmd.PersistentFlags().StringVarP(&UrlOption, "url", "u", "", "URL to test.")
+	staticCrawlerCmd.MarkFlagRequired("url")
 
-    staticCrawlerCmd.PersistentFlags().BoolVarP(&reportOption ,"report", "", false, "Generate a report.")
-    staticCrawlerCmd.PersistentFlags().BoolVarP(&recursiveOption ,"recursive", "r", false, "Crawl the website recursively.")
-    staticCrawlerCmd.PersistentFlags().BoolVarP(&screenshotOption ,"screenshot", "s", false, "Take a screenshot on each visited link.")
-    staticCrawlerCmd.PersistentFlags().StringVarP(&cookieOption ,"cookie", "c", "", "Use the specified cookie.")
-    staticCrawlerCmd.PersistentFlags().StringVarP(&proxyOption ,"proxy", "p", "", "Use the specified proxy.")
-    staticCrawlerCmd.PersistentFlags().IntVarP(&delayOption ,"delay", "", 0, "Use this delay in seconds between each requests.")
-    staticCrawlerCmd.PersistentFlags().IntVarP(&concurrencyOption ,"concurrency", "t", 10, "Thread used to take screenshot.")
+	staticCrawlerCmd.PersistentFlags().BoolVarP(&reportOption, "report", "", false, "Generate a report.")
+	staticCrawlerCmd.PersistentFlags().BoolVarP(&recursiveOption, "recursive", "r", false, "Crawl the website recursively.")
+	staticCrawlerCmd.PersistentFlags().BoolVarP(&screenshotOption, "screenshot", "s", false, "Take a screenshot on each visited link.")
+	staticCrawlerCmd.PersistentFlags().StringVarP(&cookieOption, "cookie", "c", "", "Use the specified cookie.")
+	staticCrawlerCmd.PersistentFlags().StringVarP(&proxyOption, "proxy", "p", "", "Use the specified proxy.")
+	staticCrawlerCmd.PersistentFlags().IntVarP(&delayOption, "delay", "", 0, "Use this delay in seconds between each requests.")
+	staticCrawlerCmd.PersistentFlags().IntVarP(&concurrencyOption, "concurrency", "t", 10, "Thread used to take screenshot.")
 }
