@@ -147,7 +147,7 @@ func workerVisit() {
 			if i == "" {
 				continue
 			}
-			
+
 			if _, exist := uniqueResultsMap[i]; !exist {
 				uniqueResultsMap[i] = 1
 				uniqueResults = append(uniqueResults, i)
@@ -185,18 +185,6 @@ func visitUrlTask(url string, html *string) []chromedp.Action {
 	}
 
 	return actions
-}
-
-func unique(stringSlice []string) []string {
-	keys := make(map[string]bool)
-	list := []string{}
-	for _, entry := range stringSlice {
-		if _, value := keys[entry]; !value {
-			keys[entry] = true
-			list = append(list, entry)
-		}
-	}
-	return list
 }
 
 func TreatA(doc *goquery.Document) []string {
