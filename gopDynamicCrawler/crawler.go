@@ -66,13 +66,15 @@ func workerVisit() {
 
 	urlFailed := make([]string, 0)
 
+	nctx, ccancel := chromedp.NewContext(tctx)
+	defer ccancel()
+
 	for urlItem := range UrlChan {
-		ctx, ccancel := chromedp.NewContext(tctx)
-		defer ccancel()
 
 		// Retrieve the HTML
 		var html string
-		err := chromedp.Run(ctx, visitUrlTask(urlItem, &html)...)
+
+		err := chromedp.Run(nctx, visitUrlTask(urlItem, &html)...)
 		if err != nil {
 			utils.Log.Printf("[-] Error with chrome context for url %s", urlItem)
 
@@ -142,6 +144,10 @@ func workerVisit() {
 		uniqueResults := make([]string, 0)
 
 		for _, i := range results {
+			if i == "" {
+				continue
+			}
+			
 			if _, exist := uniqueResultsMap[i]; !exist {
 				uniqueResultsMap[i] = 1
 				uniqueResults = append(uniqueResults, i)
