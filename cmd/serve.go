@@ -11,6 +11,7 @@ import (
 var (
 	directoryServeOption string
 	authOption           string
+	realmOption          string
 )
 
 // serveCmd represents the serve command
@@ -40,7 +41,7 @@ var serveCmd = &cobra.Command{
 		utils.Log.SetFlags(0)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gopserve.RunServeCmd(hostOption, portOption, directoryServeOption, authOption)
+		gopserve.RunServeCmd(hostOption, portOption, directoryServeOption, authOption, realmOption)
 	},
 }
 
@@ -51,4 +52,5 @@ func init() {
 	serveCmd.PersistentFlags().StringVarP(&portOption, "Port", "P", "8000", "Define the proxy port.")
 	serveCmd.PersistentFlags().StringVarP(&directoryServeOption, "directory", "d", ".", "Directory to serve.")
 	serveCmd.PersistentFlags().StringVarP(&authOption, "auth", "a", "", "Add an authentication option to the server. Could be either \"Basic\" or \"NTLM\".")
+	serveCmd.PersistentFlags().StringVarP(&realmOption, "realm", "", "", "Realm used for the \"Basic\" authentication.")
 }
