@@ -42,8 +42,8 @@ func PrintBanner() {
 	color.Printf("\n")
 }
 
-func PrintNewRessourceFound(ressourceType string, link string) {
-	utils.Log.Printf("[+] [%s] %s\n", ressourceType, link)
+func PrintNewRessourceFound(isInternal, ressourceType, link string) {
+	utils.Log.Printf("[+] [%s] [%s] %s\n", isInternal, ressourceType, link)
 }
 
 func PrintRessourcesResume(ressourceType string, url string, ressources *[]Ressource) {

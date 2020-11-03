@@ -31,7 +31,6 @@ func InitCrawler() (*colly.Collector) {
     ScreenshotList = make([]screenshot.Screenshot, 0)
     ConcurrencyChan = make(chan struct{}, *GoCrawlerOptions.ConcurrencyPtr)
 
-
     t := http.Transport{
         TLSClientConfig:&tls.Config{InsecureSkipVerify: true},
     }
@@ -155,16 +154,15 @@ func defineCallBacks(c *colly.Collector) () {
 
         getAbsoluteURL(&link, original_link, url)
 
-	var isAdded bool
 	isInternal, ressource := CreateRessource(url.String(), link, "link")
 	if (isInternal == true) {
-	    isAdded = AddRessourceIfDoNotExists(&Internal_ressources, ressource)
+	    if isAdded := AddRessourceIfDoNotExists(&Internal_ressources, ressource); isAdded {
+            PrintNewRessourceFound("internal", "link", link)
+        }
 	} else {
-	    isAdded = AddRessourceIfDoNotExists(&External_ressources, ressource)
-	}
-
-	if (isAdded){
-	    PrintNewRessourceFound("link", "link")
+        if isAdded := AddRessourceIfDoNotExists(&External_ressources, ressource); isAdded {
+            PrintNewRessourceFound("external", "link", link)
+        }
 	}
     })
 
@@ -231,7 +229,6 @@ func getAbsoluteURL(item *string, original_item string, url *url.URL) {
 // Treat url, classify what the ressource is and add to the internal or
 // external scope
 func treatRessource(item string, url *url.URL) {
-    var isAdded bool
     var scriptKind = "unknown"
 
     file := strings.Split(item, "?")[0]
@@ -250,12 +247,12 @@ func treatRessource(item string, url *url.URL) {
 
     isInternal, ressource := CreateRessource(url.String(), item, scriptKind)
     if (isInternal == true) {
-        isAdded = AddRessourceIfDoNotExists(&Internal_ressources, ressource)
+        if isAdded := AddRessourceIfDoNotExists(&Internal_ressources, ressource); isAdded {
+            PrintNewRessourceFound("internal", scriptKind, item)
+        }
     } else {
-        isAdded = AddRessourceIfDoNotExists(&External_ressources, ressource)
-    }
-
-    if (isAdded){
-        PrintNewRessourceFound(scriptKind, scriptKind)
+        if isAdded:= AddRessourceIfDoNotExists(&External_ressources, ressource); isAdded{
+            PrintNewRessourceFound("external", scriptKind, item)
+        }
     }
 }

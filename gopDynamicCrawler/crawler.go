@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/chromedp/chromedp"
@@ -14,28 +15,31 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+type URLVisitedStruct struct {
+	sync.RWMutex
+	slice          []string
+}
+
 var (
 	Internal_ressources []gopstaticcrawler.Ressource
 	External_ressources []gopstaticcrawler.Ressource
-	URLVisited          []string
+	URLVisited          URLVisitedStruct
 	ScreenshotList      []screenshot.Screenshot
 	ScreenshotChan      chan struct{}
 	UrlChan             chan string
-	HtmlChan            chan *goquery.Document
 )
 
 func InitCrawler() {
 	// Define initial variables
 	Internal_ressources = make([]gopstaticcrawler.Ressource, 0)
 	External_ressources = make([]gopstaticcrawler.Ressource, 0)
-	URLVisited = make([]string, 0)
+	URLVisited.slice = make([]string, 0)
 	ScreenshotList = make([]screenshot.Screenshot, 0)
 	ScreenshotChan = make(chan struct{}, *GoCrawlerOptions.ConcurrencyPtr)
 	UrlChan = make(chan string)
-	HtmlChan = make(chan *goquery.Document)
 }
 
-func workerVisit(urlChan chan string, htmlChan chan *goquery.Document) {
+func workerVisit() {
 	// Trust all certificates
 	options := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.Flag("ignore-certificate-errors", "1"),
@@ -52,54 +56,108 @@ func workerVisit(urlChan chan string, htmlChan chan *goquery.Document) {
 	}
 
 	ctxBase, cancelBase := chromedp.NewExecAllocator(context.Background(), options...)
+	defer cancelBase()
 
 	ctx, cancel := chromedp.NewContext(ctxBase)
+	defer cancel()
 
 	tctx, tcancel := context.WithTimeout(ctx, 30*time.Second)
+	defer tcancel()
 
+	urlFailed := make([]string, 0)
 
-	for urlItem := range urlChan {
+	for urlItem := range UrlChan {
 		ctx, ccancel := chromedp.NewContext(tctx)
 		defer ccancel()
-
-		URLVisited = append(URLVisited, urlItem)
 
 		// Retrieve the HTML
 		var html string
 		err := chromedp.Run(ctx, visitUrlTask(urlItem, &html)...)
 		if err != nil {
-			utils.Log.Printf("Error with chrome context for url %s", urlItem)
-			utils.CrawlerBar.Done()
+			utils.Log.Printf("[-] Error with chrome context for url %s", urlItem)
+
+			// If an error was already spotted for this URL
+			alreadyPresent := false
+			for _, i := range urlFailed {
+				if i == urlItem {
+					alreadyPresent = true
+					break
+				}
+			}
+
+			if alreadyPresent {
+				utils.Log.Printf("[-] Error with chrome context for url %s for the second time. Giving up with this URL.", urlItem)
+				utils.CrawlerBar.Done()
+				continue
+			}
+
+			// If alreay proceed by an other goroutine
+			alreadyTreated := false
+			URLVisited.RLock()
+			for _, i := range URLVisited.slice {
+				if i == urlItem {
+					alreadyTreated = true
+					URLVisited.RUnlock()
+					break
+				}
+			}
+			URLVisited.RUnlock()
+
+			if alreadyTreated {
+				utils.Log.Printf("[-] Error with chrome context for url %s. URL already treated by an other goroutine.", urlItem)
+				utils.CrawlerBar.Done()
+				continue
+			}
+
+			// First time an error was get, so the url is submitted again
+			urlFailed = append(urlFailed, urlItem)
+			go func (){
+				UrlChan <- urlItem
+			}()
+
 			continue
 		}
+
+		URLVisited.Lock()
+		URLVisited.slice = append(URLVisited.slice, urlItem)
+		URLVisited.Unlock()
 
 		// Send it to the treat url
 		htmlReader := strings.NewReader(html)
 		doc, err := goquery.NewDocumentFromReader(htmlReader)
 		if err != nil {
-			utils.Log.Printf("Error parsing goquery document for url %s", urlItem)
+			utils.Log.Printf("[!] Error parsing goquery document for url %s", urlItem)
 			utils.CrawlerBar.Done()
 			continue
 		}
 
 		doc.Url, _ = url.Parse(urlItem)
 
-		utils.CrawlerBar.Add(1)
-		htmlChan <- doc
-		utils.CrawlerBar.Done()
-	}
+		results := make([]string, 0)
+		results = append(results, TreatA(goquery.CloneDocument(doc))...)
+		results = append(results, TreatLinkHref(goquery.CloneDocument(doc))...)
+		results = append(results, TreatScriptSrc(goquery.CloneDocument(doc))...)
 
-	defer cancelBase()
-	defer cancel()
-	defer tcancel()
-}
+		uniqueResultsMap := make(map[string]int)
+		uniqueResults := make([]string, 0)
 
-func workerParse(htmlChan chan *goquery.Document, urlChan chan string) {
-	for doc := range htmlChan {
-		TreatA(goquery.CloneDocument(doc))
-		TreatLinkHref(goquery.CloneDocument(doc))
-		TreatScriptSrc(goquery.CloneDocument(doc))
+		for _, i := range results {
+			if _, exist := uniqueResultsMap[i]; !exist {
+				uniqueResultsMap[i] = 1
+				uniqueResults = append(uniqueResults, i)
+			} else {
+				uniqueResultsMap[i]++
+			}
+		}
 
+		utils.CrawlerBar.Add(len(uniqueResults))
+
+		go func (){
+			for _, i := range uniqueResults {
+				UrlChan <- i
+			}
+		}()
+		
 		utils.CrawlerBar.Done()
 	}
 }
@@ -135,7 +193,9 @@ func unique(stringSlice []string) []string {
 	return list
 }
 
-func TreatA(doc *goquery.Document) {
+func TreatA(doc *goquery.Document) []string {
+	results := make([]string, 0)
+
 	doc.Find("a").Each(func(i int, s *goquery.Selection) {
 		original_link, ok := s.Attr("href")
 		if !ok {
@@ -147,7 +207,6 @@ func TreatA(doc *goquery.Document) {
 		}
 
 		link := getAbsoluteURL(original_link, doc.Url.String())
-
 		var isAdded bool
 
 		isInternal, ressource := gopstaticcrawler.CreateRessource(doc.Url.String(), link, "link")
@@ -159,27 +218,41 @@ func TreatA(doc *goquery.Document) {
 
 		if isAdded {
 			// Check if the page was already visited
-			for _, item := range URLVisited {
+			URLVisited.RLock()
+			for _, item := range URLVisited.slice {
 				if item == link {
+					//utils.Log.Printf("[*] Url %s already present", link)
+					URLVisited.RUnlock()
 					return
 				}
 			}
+			URLVisited.RUnlock()
 
 			// Check if the domain is the good one
 			linkUrl, _ := url.Parse(link)
 			if doc.Url.Host != linkUrl.Host {
+				//utils.Log.Printf("[*] Url %s is not the same domain", linkUrl.Host)
 				return
 			}
 
-			gopstaticcrawler.PrintNewRessourceFound("link", link)
-
-			UrlChan <- link
-			utils.CrawlerBar.Add(1)
+			if isInternal == true {
+				gopstaticcrawler.PrintNewRessourceFound("internal", "link", link)
+			} else {
+				gopstaticcrawler.PrintNewRessourceFound("external", "link", link)
+			}
 		}
+
+		if isAdded && isInternal {
+			results = append(results, link)
+		}
+		return
 	})
+	return results
 }
 
-func TreatScriptSrc(doc *goquery.Document) {
+func TreatScriptSrc(doc *goquery.Document) []string {
+	results := make([]string, 0)
+
 	url := doc.Url
 	doc.Find("script").Each(func(i int, s *goquery.Selection) {
 		original_item, exist := s.Attr("src")
@@ -188,16 +261,23 @@ func TreatScriptSrc(doc *goquery.Document) {
 		}
 
 		if strings.HasPrefix(original_item, "javascript:void") {
-			utils.Log.Printf("[-] Not using this script %s from %s\n", original_item, url)
+			//utils.Log.Printf("[-] Not using this script %s from %s\n", original_item, url)
 			return
 		}
 
 		item := getAbsoluteURL(original_item, url.String())
-		treatRessource(item, url)
+
+		result := treatRessource(item, url)
+		if item != "" {
+			results = append(results, result)
+		}
 	})
+
+	return results
 }
 
-func TreatLinkHref(doc *goquery.Document) {
+func TreatLinkHref(doc *goquery.Document) []string {
+	results := make([]string, 0)
 	doc.Find("link").Each(func(i int, s *goquery.Selection) {
 		original_item, ok := s.Attr("href")
 		if !ok {
@@ -207,8 +287,13 @@ func TreatLinkHref(doc *goquery.Document) {
 
 		item := getAbsoluteURL(original_item, url.String())
 
-		treatRessource(item, url)
+		result := treatRessource(item, url)
+		if item != "" {
+			results = append(results, result)
+		}
 	})
+
+	return results
 }
 
 // Tranform relative path to absolute path if needed and return url
@@ -241,7 +326,7 @@ func getAbsoluteURL(original_item string, urlItem string) string {
 
 // Treat url, classify what the ressource is and add urlto the internal or
 // external scope
-func treatRessource(item string, url *url.URL) {
+func treatRessource(item string, url *url.URL) (string) {
 	var isAdded bool
 	var scriptKind = "link"
 
@@ -268,20 +353,34 @@ func treatRessource(item string, url *url.URL) {
 
 	if isAdded {
 		// Check if the page was already visited
-		for _, i := range URLVisited {
+		URLVisited.RLock()
+		for _, i := range URLVisited.slice {
 			if i == item {
-				return
+				//utils.Log.Printf("Url %s already present", item)
+				URLVisited.RUnlock()
+				return ""
 			}
 		}
+		URLVisited.RUnlock()
 
 		// Check if the domain is the good one
 		itemUrl, _ := url.Parse(item)
 		if url.Host == itemUrl.Host {
-			return
+			//utils.Log.Printf("Url %s is not the same domain", item)
+			return ""
 		}
 
-		gopstaticcrawler.PrintNewRessourceFound(scriptKind, item)
-		UrlChan <- item
-		utils.CrawlerBar.Add(1)
+
+		if isInternal == true {
+			gopstaticcrawler.PrintNewRessourceFound("internal", scriptKind, item)
+		} else {
+			gopstaticcrawler.PrintNewRessourceFound("external", scriptKind, item)
+		}
 	}
+
+	if isAdded && isInternal {
+		return item
+	}
+	
+	return ""
 }

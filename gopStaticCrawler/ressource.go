@@ -14,11 +14,12 @@ type Ressource struct {
 	Url    string
 	Type   string
 	Secure bool
-	mutex  sync.Mutex
+	Internal bool
+	sync.RWMutex
 }
 
 func CreateRessource(urlReference string, script string, kind string) (isInternal bool, ressource Ressource) {
-	isInternal = false
+	ressource.Internal = false
 	ressource.Url = script
 	ressource.Type = kind
 
@@ -40,42 +41,47 @@ func CreateRessource(urlReference string, script string, kind string) (isInterna
 		utils.Log.Println(err)
 	}
 	if scriptUrl.Host == urlReferenceUrl.Host {
-		isInternal = true
+		ressource.Internal = true
 	}
-	return isInternal, ressource
+	return ressource.Internal, ressource
 }
 
 func (ressource Ressource) equal(newRessource Ressource) bool {
+	ressource.RLock()
 	if ressource.Url == newRessource.Url {
 		if ressource.Type == newRessource.Type {
 			if ressource.Secure == newRessource.Secure {
+				ressource.RUnlock()
 				return true
 			}
 		}
 	}
+	ressource.RUnlock()
 	return false
 }
 
 func AddRessourceIfDoNotExists(ressources *[]Ressource, ressource Ressource) bool {
 	for _, item := range *ressources {
 		if added := item.equal(ressource); added == true {
-			utils.Log.Println("[-] Ressource already present ", ressource.Url)
+			//utils.Log.Println("[-] Ressource already present ", ressource.Url)
 			return false
 		}
 	}
-	ressource.mutex.Lock()
+
 	*ressources = append(*ressources, ressource)
-	ressource.mutex.Unlock()
 	return true
 }
 
 func (ressource Ressource) ressourceString() string {
 	var result string
+	var secureString string
 	if ressource.Secure == true {
-		result = fmt.Sprintf("[%v] [%s] %s", color.FgGreen.Render("HTTPS"), ressource.Type, ressource.Url)
+		secureString = color.FgGreen.Render("HTTPS")
 	} else {
-		result = fmt.Sprintf("[%v] [%s] %s", color.FgRed.Render("HTTP"), ressource.Type, ressource.Url)
+		secureString = color.FgRed.Render("HTTP")
 	}
+
+	result = fmt.Sprintf("[%v] [%s] %s", secureString, ressource.Type, ressource.Url)
 	return result
 }
 
