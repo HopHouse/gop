@@ -25,16 +25,16 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
-	"github.com/hophouse/gop/gopHost"
+	gophost "github.com/hophouse/gop/gopHost"
 	"github.com/hophouse/gop/utils"
+	"github.com/spf13/cobra"
 )
 
 // hostCmd represents the host command
 var hostCmd = &cobra.Command{
 	Use:   "host",
 	Short: "Resolve hostname to get the IP address.",
-	Long: "Resolve hostname to get the IP address.",
+	Long:  "Resolve hostname to get the IP address.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		utils.NewLoggerStdout()
 	},
@@ -67,12 +67,13 @@ var hostCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gophost.RunHostCmd(reader)
+		gophost.RunHostCmd(reader, concurrencyOption)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(hostCmd)
 
-	hostCmd.PersistentFlags().StringVarP(&inputFileOption ,"input-file", "i", "", "Use the specified cookie.")
+	hostCmd.PersistentFlags().StringVarP(&inputFileOption, "input-file", "i", "", "Use the specified cookie.")
+	hostCmd.PersistentFlags().IntVarP(&concurrencyOption, "concurrency", "t", 10, "Thread used to take screenshot.")
 }
