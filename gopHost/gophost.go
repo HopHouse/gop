@@ -72,7 +72,7 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool) {
 			// format domain with availability data
 			available, err := checkAvailability(domain)
 			if err != nil {
-				fmt.Printf("Error trying to whois the domine. %s\n", err)
+				fmt.Printf("Error trying to whois the domaine. %s\n", err)
 			}
 			if available == true {
 				domain = fmt.Sprintf("[FREE] %s", domain)
@@ -90,7 +90,7 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool) {
 			// format domain with availability data
 			available, err := checkAvailability(domain)
 			if err != nil {
-				fmt.Printf("Error trying to whois the domine. %s\n", err)
+				fmt.Printf("Error trying to whois the domaine. %s\n", err)
 			}
 			if available == true {
 				domain = fmt.Sprintf("[FREE] %s", domain)
@@ -101,7 +101,7 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool) {
 				for _, domain := range elem.middleInformation {
 					available, err := checkAvailability(domain)
 					if err != nil {
-						fmt.Printf("Error trying to whois the domine. %s\n", err)
+						fmt.Printf("Error trying to whois the domaine. %s\n", err)
 					}
 					if available == true {
 						domain = fmt.Sprintf("[FREE] %s", domain)

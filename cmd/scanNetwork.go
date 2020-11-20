@@ -25,21 +25,21 @@ import (
 	"fmt"
 	"os"
 
-	gophost "github.com/hophouse/gop/gopHost"
-	"github.com/hophouse/gop/utils"
+	gopscannetwork "github.com/hophouse/gop/gopScanNetwork"
 	"github.com/spf13/cobra"
 )
 
-var petitPoucetOption bool
+var (
+	tcpScanOption  bool
+	udpScanOption  bool
+	onlyOpenOption bool
+)
 
-// hostCmd represents the host command
-var hostCmd = &cobra.Command{
-	Use:   "host",
-	Short: "Resolve hostname to get the IP address.",
-	Long:  "Resolve hostname to get the IP address.",
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		utils.NewLoggerStdout()
-	},
+// gopstaticcrawler represents the active command
+var scanNetworkCmd = &cobra.Command{
+	Use:   "network",
+	Short: "Port scan the network.",
+	Long:  "Port scan the network.",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		var err error
 
@@ -69,14 +69,17 @@ var hostCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gophost.RunHostCmd(reader, concurrencyOption, petitPoucetOption)
+		gopscannetwork.RunScanNetwork(reader, tcpScanOption, udpScanOption, portOption, onlyOpenOption, concurrencyOption)
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(hostCmd)
+	scanCmd.AddCommand(scanNetworkCmd)
 
-	hostCmd.PersistentFlags().StringVarP(&inputFileOption, "input-file", "i", "", "Specify domain names to check host.")
-	hostCmd.PersistentFlags().IntVarP(&concurrencyOption, "concurrency", "t", 10, "Number of thread used to check hosts.")
-	hostCmd.PersistentFlags().BoolVarP(&petitPoucetOption, "petit-poucet", "", false, "Activate the petit poucet option which display all the CNAMES during the resolve process.")
+	scanNetworkCmd.PersistentFlags().StringVarP(&inputFileOption, "input-file", "i", "", "Input file with the IP addresses to scan.")
+	scanNetworkCmd.PersistentFlags().BoolVarP(&tcpScanOption, "sT", "", true, "Scan with the TCP protocol.")
+	scanNetworkCmd.PersistentFlags().BoolVarP(&udpScanOption, "sU", "", false, "Scan with the UDP protocol.")
+	scanNetworkCmd.PersistentFlags().StringVarP(&portOption, "port", "p", "", "Ports to scan.")
+	scanNetworkCmd.PersistentFlags().BoolVarP(&onlyOpenOption, "open", "", false, "Display only open ports.")
+	scanNetworkCmd.PersistentFlags().IntVarP(&concurrencyOption, "concurrency", "t", 10, "Number of threads used to take to scan.")
 }
