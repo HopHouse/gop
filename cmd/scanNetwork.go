@@ -24,6 +24,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path"
 
 	gopscannetwork "github.com/hophouse/gop/gopScanNetwork"
 	"github.com/spf13/cobra"
@@ -56,7 +57,7 @@ var scanNetworkCmd = &cobra.Command{
 				fmt.Println("[!] Cannot use stdin and input-file at the same time.")
 				os.Exit(2)
 			}
-			reader, err = os.Open(inputFileOption)
+			reader, err = os.Open(path.Join("..", inputFileOption))
 			if err != nil {
 				panic(err)
 			}
@@ -77,8 +78,8 @@ func init() {
 	scanCmd.AddCommand(scanNetworkCmd)
 
 	scanNetworkCmd.PersistentFlags().StringVarP(&inputFileOption, "input-file", "i", "", "Input file with the IP addresses to scan.")
-	scanNetworkCmd.PersistentFlags().BoolVarP(&tcpScanOption, "sT", "", true, "Scan with the TCP protocol.")
-	scanNetworkCmd.PersistentFlags().BoolVarP(&udpScanOption, "sU", "", false, "Scan with the UDP protocol.")
+	scanNetworkCmd.PersistentFlags().BoolVarP(&tcpScanOption, "tcp", "", false, "Scan with the TCP protocol.")
+	scanNetworkCmd.PersistentFlags().BoolVarP(&udpScanOption, "udp", "", false, "Scan with the UDP protocol.")
 	scanNetworkCmd.PersistentFlags().StringVarP(&portOption, "port", "p", "", "Ports to scan.")
 	scanNetworkCmd.PersistentFlags().BoolVarP(&onlyOpenOption, "open", "", false, "Display only open ports.")
 	scanNetworkCmd.PersistentFlags().IntVarP(&concurrencyOption, "concurrency", "t", 10, "Number of threads used to take to scan.")

@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/hophouse/gop/utils"
 )
@@ -84,17 +85,18 @@ func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsStr
 
 	// Parse results
 	for _, item := range results {
+		w := tabwriter.NewWriter(os.Stdout, 4, 1, 4, ' ', 0)
 		fmt.Printf("[+] %s :\n", item.ip.String())
+
 		for _, service := range item.services {
-			if onlyOpen {
-				if service.status == "Open" {
-					fmt.Printf("\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
-				}
-			} else {
-				fmt.Printf("\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
+			if onlyOpen && service.status == "Open" {
+				fmt.Fprintf(w, "\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
+				break
 			}
+			fmt.Fprintf(w, "\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
 		}
 
+		w.Flush()
 	}
 }
 
