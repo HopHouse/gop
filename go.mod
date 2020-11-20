@@ -14,9 +14,11 @@ require (
 	github.com/gocolly/colly v1.2.0
 	github.com/gookit/color v1.2.4
 	github.com/gorilla/mux v1.8.0
+	github.com/hophouse/golang-whois v0.0.0-20201120134958-bb74bcadd4e1
 	github.com/jroimartin/gocui v0.4.0
 	github.com/kennygrant/sanitize v1.2.4 // indirect
 	github.com/mattn/go-runewidth v0.0.8 // indirect
+	github.com/miekg/dns v1.1.35
 	github.com/nsf/termbox-go v0.0.0-20200418040025-38ba6e5628f1 // indirect
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/spf13/cobra v1.0.0

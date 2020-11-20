@@ -30,6 +30,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var petitPoucetOption bool
+
 // hostCmd represents the host command
 var hostCmd = &cobra.Command{
 	Use:   "host",
@@ -67,7 +69,7 @@ var hostCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gophost.RunHostCmd(reader, concurrencyOption)
+		gophost.RunHostCmd(reader, concurrencyOption, petitPoucetOption)
 	},
 }
 
@@ -76,4 +78,5 @@ func init() {
 
 	hostCmd.PersistentFlags().StringVarP(&inputFileOption, "input-file", "i", "", "Use the specified cookie.")
 	hostCmd.PersistentFlags().IntVarP(&concurrencyOption, "concurrency", "t", 10, "Thread used to take screenshot.")
+	hostCmd.PersistentFlags().BoolVarP(&petitPoucetOption, "petit-poucet", "", false, "Activate the petit poucet option which display all the CNAMES during the resolve process.")
 }
