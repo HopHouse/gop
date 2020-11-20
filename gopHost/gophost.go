@@ -240,7 +240,6 @@ func checkAvailability(domain string) (bool, error) {
 	if len(whois.ParseDomainStatus(result)) == 0 {
 		// Check nameservers are associated
 		if len(whois.ParseNameServers(result)) == 0 {
-			fmt.Printf("< %s : %s \n", domain, whois.ParseNameServers(result))
 			return true, nil
 		}
 	}
