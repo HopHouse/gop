@@ -13,8 +13,9 @@ import (
 )
 
 type hostStruct struct {
-	ip       net.IP
-	services []serviceStruct
+	ip              net.IP
+	services        []serviceStruct
+	hasOpenServices bool
 }
 
 type serviceStruct struct {
@@ -29,7 +30,6 @@ func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsStr
 	workersChan := make(chan bool)
 	ipChan := make(chan net.IP, concurrency)
 	gatherChan := make(chan hostStruct)
-	results := make([]hostStruct, 0)
 
 	// Parse ports
 	ports := parsePortsOption(portsString)
@@ -44,30 +44,33 @@ func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsStr
 	defer close(workersChan)
 
 	// Run goroutine to gather results and add them to the result slice
-	go func(gatherChan chan hostStruct, results *[]hostStruct, workersChan chan bool) {
+	go func(gatherChan chan hostStruct, workersChan chan bool) {
 		for item := range gatherChan {
-			*results = append(*results, item)
+			printResult(item, onlyOpen)
 		}
 		workersChan <- true
-	}(gatherChan, &results, workersChan)
+	}(gatherChan, workersChan)
 
 	// Parse IP addresses
 	scanner := bufio.NewScanner(inputFile)
 	for scanner.Scan() {
-		ipAddr := net.ParseIP(scanner.Text())
-		if ipAddr == nil {
-			/*
-				// Let's try to parse it as CIDR
-				//ipAddr, ipNet, err := net.ParseCIDR(scanner.Text())
-				_, _, err := net.ParseCIDR(scanner.Text())
-				if err != nil {
-					break
-				}
-			*/
-			break
+		if !strings.Contains(scanner.Text(), "/") {
+			ipAddr := net.ParseIP(scanner.Text())
+			if ipAddr == nil {
+				break
+			}
+			ipChan <- ipAddr
+		} else {
+			ipAddrs, err := ipsFromCIDR(scanner.Text())
+			if err != nil {
+				break
+			}
+
+			for _, ipAddr := range ipAddrs {
+				ipChan <- net.ParseIP(ipAddr)
+			}
 		}
 
-		ipChan <- ipAddr
 	}
 	// Close IP chan
 	close(ipChan)
@@ -82,28 +85,34 @@ func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsStr
 
 	// Wait for the gather worker to finish
 	<-workersChan
+}
 
-	// Parse results
-	for _, item := range results {
-		w := tabwriter.NewWriter(os.Stdout, 4, 1, 4, ' ', 0)
-		fmt.Printf("[+] %s :\n", item.ip.String())
+func printResult(item hostStruct, onlyOpen bool) {
+	fmt.Printf("\n[+] %s :\n", item.ip.String())
 
-		for _, service := range item.services {
-			if onlyOpen && service.status == "Open" {
-				fmt.Fprintf(w, "\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
-				break
-			}
-			fmt.Fprintf(w, "\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
-		}
-
-		w.Flush()
+	if item.hasOpenServices == false {
+		fmt.Printf("    No open ports found\n")
+		return
 	}
+
+	w := tabwriter.NewWriter(os.Stdout, 4, 1, 4, ' ', 0)
+	for _, service := range item.services {
+		if strings.Compare(service.status, "Open") == 0 {
+			fmt.Fprintf(w, "\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
+		} else {
+			if onlyOpen == false {
+				fmt.Fprintf(w, "\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
+			}
+		}
+	}
+	w.Flush()
 }
 
 func scanWorker(ipChan chan net.IP, workersChan chan bool, gatherChan chan hostStruct, tcpOption bool, udpOtion bool, ports []int) {
 	for ipAddr := range ipChan {
 		host := hostStruct{
-			ip: ipAddr,
+			ip:              ipAddr,
+			hasOpenServices: false,
 		}
 
 		for _, portInt := range ports {
@@ -120,6 +129,7 @@ func scanWorker(ipChan chan net.IP, workersChan chan bool, gatherChan chan hostS
 				_, err := net.Dial("tcp", address)
 				if err == nil {
 					service.status = "Open"
+					host.hasOpenServices = true
 				}
 
 				host.services = append(host.services, service)
@@ -132,6 +142,7 @@ func scanWorker(ipChan chan net.IP, workersChan chan bool, gatherChan chan hostS
 				_, err := net.Dial("udp", address)
 				if err == nil {
 					service.status = "Open"
+					host.hasOpenServices = true
 				}
 
 				host.services = append(host.services, service)
@@ -179,4 +190,26 @@ func parsePortsOption(portsOption string) []int {
 		}
 	}
 	return result
+}
+
+func ipsFromCIDR(cidr string) ([]string, error) {
+	ip, ipnet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return nil, err
+	}
+
+	var ips []string
+	for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
+		ips = append(ips, ip.String())
+	}
+	return ips, nil
+}
+
+func inc(ip net.IP) {
+	for j := len(ip) - 1; j >= 0; j-- {
+		ip[j]++
+		if ip[j] > 0 {
+			break
+		}
+	}
 }
