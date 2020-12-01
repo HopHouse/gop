@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	whois "github.com/hophouse/golang-whois"
 	"github.com/miekg/dns"
@@ -27,6 +28,7 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool) {
 	domainsChan := make(chan string, concurrency)
 	gatherChan := make(chan register)
 	results := make([]register, 0)
+	//tldAvailability := make()
 
 	for i := 0; i < concurrency; i++ {
 		if !petitPoucet {
@@ -224,27 +226,44 @@ func checkAvailability(domain string) (bool, error) {
 
 	// take the domain
 	topDomain := strings.Split(domain, ".")
-	if len(topDomain) < 2 {
+	if len(topDomain) < 1 {
 		errorString := fmt.Sprintf("Top domain are not accepted : %v ", domain)
 		return false, errors.New(errorString)
 	}
-	domain = strings.Join(topDomain[len(topDomain)-2:], ".")
+	tldDomain := strings.Join(topDomain[len(topDomain)-2:], ".")
 
-	result, err := whois.GetWhois(domain)
-	if err != nil {
-		errorString := fmt.Sprintf("Error in whois lookup : %v ", err)
-		return false, errors.New(errorString)
+	// Avoid having the message %% Too many requests...
+	var result string
+	var err error
+	cpt := 1
+	for {
+		result, err = whois.GetWhoisTimeout(tldDomain, time.Second*5)
+		if err != nil {
+			errorString := fmt.Sprintf("Error in whois lookup : %v ", err)
+			return false, errors.New(errorString)
+		}
+
+		if strings.Contains(result, "Too many requests...") {
+			time.Sleep(time.Second * ((time.Duration)(cpt)))
+			cpt = cpt + 1
+			continue
+		} else {
+			break
+		}
 	}
 
 	// No Status on the domain
-	if len(whois.ParseDomainStatus(result)) == 0 {
-		// Check nameservers are associated
-		if len(whois.ParseNameServers(result)) == 0 {
+	resultStatus := whois.ParseDomainStatus(result)
+	resultNameServer := whois.ParseNameServers(result)
+	if len(resultStatus) == 0 {
+		// Check if nameservers are associated
+		if len(resultNameServer) == 0 {
 			return true, nil
 		}
 	}
-	for _, status := range whois.ParseDomainStatus(result) {
-		if status == "available" {
+
+	for _, status := range resultStatus {
+		if strings.ToLower(status) == "available" {
 			return true, nil
 		}
 	}
