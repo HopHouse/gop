@@ -112,12 +112,12 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool) {
 				}
 			}
 
-			if len(elem.ip) > 1 {
+			if len(elem.ip) > 0 {
 				ipList := strings.Join(elem.ip, " ")
 				resultsSlice = append(resultsSlice, ipList)
 			}
 
-			results := strings.Join(resultsSlice, " -> ")
+			results := strings.Join(resultsSlice, " > ")
 
 			fmt.Printf("%s\n", results)
 		}
@@ -128,22 +128,40 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool) {
 func workerLookup(domainsChan chan string, gatherChan chan register, workersChan chan bool) {
 	for domain := range domainsChan {
 		ipList, _ := net.LookupHost(domain)
+		ipListUnique := uniqueNonEmptyElementsOf(ipList)
 		gatherChan <- register{
-			domain: domain,
-			ip:     ipList,
+			domain:            domain,
+			middleInformation: []string{},
+			ip:                ipListUnique,
 		}
 	}
 	workersChan <- true
 }
 
+func uniqueNonEmptyElementsOf(s []string) []string {
+	unique := make(map[string]bool, len(s))
+	result := make([]string, len(unique))
+	for _, elem := range s {
+		if len(elem) != 0 {
+			if !unique[elem] {
+				result = append(result, elem)
+				unique[elem] = true
+			}
+		}
+	}
+	return result
+}
+
 func workerLookupPetitPoucet(domainsChan chan string, gatherChan chan register, workersChan chan bool) {
-	dnsServer := "8.8.8.8:53"
+	dnsServer := "1.1.1.1:53"
 
 	for domain := range domainsChan {
 		cname := domain
 
 		register := register{
-			domain: domain,
+			domain:            domain,
+			middleInformation: []string{},
+			ip:                []string{},
 		}
 
 		for {
