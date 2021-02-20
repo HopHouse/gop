@@ -10,12 +10,16 @@ import (
 
 var (
 	regList               []*regexp.Regexp
+	extensionWhiteListPtr *[]string
 	extensionBlackListPtr *[]string
+	onlyFilesPtr          *bool
 )
 
 // RunSearchCmd : Run the Search command
-func RunSearchCmd(patternList []string, pathList []string, extensionBlackList []string) {
+func RunSearchCmd(patternList []string, pathList []string, extensionWhiteList []string, extensionBlackList []string, onlyFiles bool) {
+	extensionWhiteListPtr = &extensionWhiteList
 	extensionBlackListPtr = &extensionBlackList
+	onlyFilesPtr = &onlyFiles
 
 	// Compile all patterns
 	for _, expr := range patternList {
@@ -37,17 +41,32 @@ func RunSearchCmd(patternList []string, pathList []string, extensionBlackList []
 }
 
 func findInPath(path string, info os.FileInfo, err error) error {
-	// If extension file is blacklist then do to check the file
-	for _, extension := range *extensionBlackListPtr {
-		if strings.HasSuffix(info.Name(), extension) {
+	// Apply white list option. If extension file is blacklist then do to check the file
+	if len(*extensionWhiteListPtr) > 0 {
+		found := false
+		for _, extension := range *extensionWhiteListPtr {
+			if strings.HasSuffix(info.Name(), "."+extension) {
+				found = true
+			}
+		}
+
+		if found == false {
 			return nil
+		}
+
+	} else {
+		// Apply black list option. If extension file is blacklist then do to check the file
+		for _, extension := range *extensionBlackListPtr {
+			if strings.HasSuffix(info.Name(), "."+extension) {
+				return nil
+			}
 		}
 	}
 
 	for _, re := range regList {
 		res := re.MatchString(info.Name())
 		if res == true {
-			if info.IsDir() {
+			if info.IsDir() && *onlyFilesPtr == false {
 				fmt.Printf("[+] [D] %s\n", path)
 			} else {
 				fmt.Printf("[+] [F] %s\n", path)
