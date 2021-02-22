@@ -3,31 +3,31 @@ package utils
 import (
 	"sync"
 
-	"github.com/vbauerster/mpb/v5"
-	"github.com/vbauerster/mpb/v5/decor"
+	"github.com/vbauerster/mpb/v6"
+	"github.com/vbauerster/mpb/v6/decor"
 )
 
 var (
-    ScreenshotBar Bar
-    CrawlerBar Bar
+	ScreenshotBar Bar
+	CrawlerBar    Bar
 )
 
 type Bar struct {
 	waitGroup *sync.WaitGroup
-	bar *mpb.Bar
-	name string
-	total int
-	mutex sync.Mutex
+	bar       *mpb.Bar
+	name      string
+	total     int
+	mutex     sync.Mutex
 }
 
 type WaitGroupBar struct {
 	waitGroup sync.WaitGroup
-	progress *mpb.Progress
-	mutex sync.Mutex
-	bars []*Bar
+	progress  *mpb.Progress
+	mutex     sync.Mutex
+	bars      []*Bar
 }
 
-func InitWaitGroupBar () (*WaitGroupBar) {
+func InitWaitGroupBar() *WaitGroupBar {
 	var groupBar WaitGroupBar
 	groupBar.progress = mpb.New(mpb.WithWidth(1))
 	return &groupBar
@@ -52,7 +52,7 @@ func (groupBar *WaitGroupBar) AddBar(name string, main bool) (newBar Bar) {
 	return newBar
 }
 
-func (bar *Bar) Add(delta int) () {
+func (bar *Bar) Add(delta int) {
 	bar.mutex.Lock()
 	bar.total += delta
 	bar.bar.SetTotal(int64(bar.total), false)
