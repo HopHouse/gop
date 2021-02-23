@@ -8,9 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/emulation"
-	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	"github.com/gobuffalo/packr"
@@ -105,24 +103,26 @@ func fullScreenshot(urlstr string, cookie string, quality int64, res *[]byte) ch
 			// add cookies to chrome
 			if cookie != "" {
 				// create cookie expiration
-				expr := cdp.TimeSinceEpoch(time.Now().Add(180 * 24 * time.Hour))
+				/*
+					expr := cdp.TimeSinceEpoch(time.Now().Add(180 * 24 * time.Hour))
 
-				var cookieName, cookieValue string
-				cookieName = strings.Split(cookie, "=")[0]
-				cookieValue = strings.Split(cookie, "=")[1]
-				domain := strings.Split(urlstr, "/")[2]
+					var cookieName, cookieValue string
+					cookieName = strings.Split(cookie, "=")[0]
+					cookieValue = strings.Split(cookie, "=")[1]
+					domain := strings.Split(urlstr, "/")[2]
 
-				cookieContext := network.SetCookie(cookieName, cookieValue).
-					WithExpires(&expr).
-					WithDomain(domain).
-					WithHTTPOnly(true)
-				success, err := cookieContext.Do(ctx)
-				if err != nil {
-					return err
-				}
-				if !success {
-					return fmt.Errorf("could not set cookie %q", cookie)
-				}
+					cookieContext := network.SetCookie(cookieName, cookieValue).
+						WithExpires(&expr).
+						WithDomain(domain).
+						WithHTTPOnly(true)
+					success, err := cookieContext.Do(ctx)
+					if err != nil {
+						return err
+					}
+					if !success {
+						return fmt.Errorf("could not set cookie %q", cookie)
+					}
+				*/
 			}
 			return nil
 		}),
@@ -146,8 +146,8 @@ func fullScreenshot(urlstr string, cookie string, quality int64, res *[]byte) ch
 				}).
 				Do(ctx)
 			if err != nil {
-				return err
 				utils.Log.Println("Error in emulation.SetDeviceMetricsOverride ", err)
+				return err
 			}
 
 			// capture screenshot
