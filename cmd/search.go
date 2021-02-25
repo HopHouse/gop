@@ -31,6 +31,7 @@ var (
 	patternFileOption        string
 	patternListOption        []string
 	locationListOption       []string
+	locationBlackListOption  []string
 	extensionWhiteListOption []string
 	extensionBlackListOption []string
 	onlyFilesOption          bool
@@ -45,7 +46,7 @@ var searchCmd = &cobra.Command{
 		utils.NewLoggerStdout()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gopsearch.RunSearchCmd(patternListOption, locationListOption, extensionWhiteListOption, extensionBlackListOption, onlyFilesOption)
+		gopsearch.RunSearchCmd(patternListOption, locationListOption, locationBlackListOption, extensionWhiteListOption, extensionBlackListOption, onlyFilesOption)
 	},
 }
 
@@ -61,6 +62,7 @@ func init() {
 		"kdb(x)?",
 		"(?i)secret",
 		"key[0-9].db",
+		"(?i)backup",
 	}
 
 	extensionBlackList := []string{
@@ -81,7 +83,8 @@ func init() {
 
 	searchCmd.Flags().StringSliceVarP(&patternListOption, "search", "s", patternList, "Specify a file will all the pattern that need to be checked.")
 	searchCmd.Flags().StringSliceVarP(&locationListOption, "path", "p", []string{}, "Locations were to look the script have to look.")
-	searchCmd.Flags().StringSliceVarP(&extensionWhiteListOption, "whitelist-extensions", "e", []string{}, "Extension that will be whithelisted. If specified the black list option is taken in consideration by the program.")
-	searchCmd.Flags().StringSliceVarP(&extensionBlackListOption, "blacklist-extensions", "b", extensionBlackList, "Extension that will be blacklisted.")
+	searchCmd.Flags().StringSliceVarP(&locationBlackListOption, "blacklist-location", "", []string{}, "Locations were the script will not look.")
+	searchCmd.Flags().StringSliceVarP(&extensionWhiteListOption, "whitelist-extensions", "", []string{}, "Extension that will be whithelisted. If specified the black list option is taken in consideration by the program. Exemple : msg, squlite, zip, backup")
+	searchCmd.Flags().StringSliceVarP(&extensionBlackListOption, "blacklist-extensions", "", extensionBlackList, "Extension that will be blacklisted.")
 	searchCmd.Flags().BoolVarP(&onlyFilesOption, "only-files", "", false, "Only display found items that are files.")
 }

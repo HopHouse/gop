@@ -10,13 +10,15 @@ import (
 
 var (
 	regList               []*regexp.Regexp
+	locationBlackListPtr  *[]string
 	extensionWhiteListPtr *[]string
 	extensionBlackListPtr *[]string
 	onlyFilesPtr          *bool
 )
 
 // RunSearchCmd : Run the Search command
-func RunSearchCmd(patternList []string, pathList []string, extensionWhiteList []string, extensionBlackList []string, onlyFiles bool) {
+func RunSearchCmd(patternList []string, pathList []string, locationBlackList []string, extensionWhiteList []string, extensionBlackList []string, onlyFiles bool) {
+	locationBlackListPtr = &locationBlackList
 	extensionWhiteListPtr = &extensionWhiteList
 	extensionBlackListPtr = &extensionBlackList
 	onlyFilesPtr = &onlyFiles
@@ -42,8 +44,16 @@ func RunSearchCmd(patternList []string, pathList []string, extensionWhiteList []
 }
 
 func findInPath(path string, info os.FileInfo, err error) error {
+	// If there is an error, then do not run search routine
 	if err != nil {
 		return nil
+	}
+
+	// Check if we should avoid a location
+	for _, location := range *locationBlackListPtr {
+		if strings.HasPrefix(path, location) {
+			return nil
+		}
 	}
 
 	// Apply white list option. If extension file is blacklist then do to check the file
