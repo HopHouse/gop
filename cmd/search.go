@@ -60,6 +60,7 @@ func init() {
 		"(?i)compte(s)?",
 		"kdb(x)?",
 		"(?i)secret",
+		"key[0-9].db",
 	}
 
 	extensionBlackList := []string{
