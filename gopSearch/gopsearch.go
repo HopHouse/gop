@@ -36,11 +36,16 @@ func RunSearchCmd(patternList []string, pathList []string, extensionWhiteList []
 		err := filepath.Walk(path, findInPath)
 		if err != nil {
 			fmt.Printf("Error during walk in location : %s\n", path)
+			fmt.Println(err)
 		}
 	}
 }
 
 func findInPath(path string, info os.FileInfo, err error) error {
+	if err != nil {
+		return nil
+	}
+
 	// Apply white list option. If extension file is blacklist then do to check the file
 	if len(*extensionWhiteListPtr) > 0 {
 		found := false
