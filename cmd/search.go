@@ -61,8 +61,11 @@ func init() {
 		"(?i)compte(s)?",
 		"kdb(x)?",
 		"(?i)secret",
-		"key[0-9].db",
+		"key[0-9].db$",
 		"(?i)backup",
+		".ntds$",
+		"SYSTEM$",
+		"SAM$",
 	}
 
 	extensionBlackList := []string{
@@ -81,9 +84,13 @@ func init() {
 		"tex",
 	}
 
+	locationBlackList := []string{
+		"C:\\Windows",
+	}
+
 	searchCmd.Flags().StringSliceVarP(&patternListOption, "search", "s", patternList, "Specify a file will all the pattern that need to be checked.")
 	searchCmd.Flags().StringSliceVarP(&locationListOption, "path", "p", []string{}, "Locations were to look the script have to look.")
-	searchCmd.Flags().StringSliceVarP(&locationBlackListOption, "blacklist-location", "", []string{}, "Locations were the script will not look.")
+	searchCmd.Flags().StringSliceVarP(&locationBlackListOption, "blacklist-location", "", locationBlackList, "Locations were the script will not look.")
 	searchCmd.Flags().StringSliceVarP(&extensionWhiteListOption, "whitelist-extensions", "", []string{}, "Extension that will be whithelisted. If specified the black list option is taken in consideration by the program. Exemple : msg, squlite, zip, backup")
 	searchCmd.Flags().StringSliceVarP(&extensionBlackListOption, "blacklist-extensions", "", extensionBlackList, "Extension that will be blacklisted.")
 	searchCmd.Flags().BoolVarP(&onlyFilesOption, "only-files", "", false, "Only display found items that are files.")
