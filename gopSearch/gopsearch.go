@@ -86,6 +86,12 @@ func findInPath(path string, info os.FileInfo, err error) error {
 			} else {
 				fmt.Printf("[+] [F] %s\n", path)
 			}
+			fmt.Printf("     |_ Name : %s\n", info.Name())
+			fmt.Printf("     |_ Size : %d\n", info.Size())
+			fmt.Printf("     |_ Last modified : %s\n", info.ModTime())
+			fmt.Printf("     |_ Permissions : %s\n", info.Mode())
+			fmt.Printf("     |_ Matched Pattern : %s\n", re.String())
+			fmt.Printf("\n")
 		}
 	}
 
