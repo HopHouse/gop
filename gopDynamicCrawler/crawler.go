@@ -17,7 +17,7 @@ import (
 
 type URLVisitedStruct struct {
 	sync.RWMutex
-	slice          []string
+	slice []string
 }
 
 var (
@@ -113,7 +113,7 @@ func workerVisit() {
 
 			// First time an error was get, so the url is submitted again
 			urlFailed = append(urlFailed, urlItem)
-			go func (){
+			go func() {
 				UrlChan <- urlItem
 			}()
 
@@ -158,19 +158,19 @@ func workerVisit() {
 
 		utils.CrawlerBar.Add(len(uniqueResults))
 
-		go func (){
+		go func() {
 			for _, i := range uniqueResults {
 				UrlChan <- i
 			}
 		}()
-		
+
 		utils.CrawlerBar.Done()
 	}
 }
 
 func visitUrlTask(url string, html *string) []chromedp.Action {
 	*html = ""
-	
+
 	actions := make([]chromedp.Action, 0)
 
 	actions = append(actions, chromedp.Navigate(url))
@@ -320,7 +320,7 @@ func getAbsoluteURL(original_item string, urlItem string) string {
 
 // Treat url, classify what the ressource is and add urlto the internal or
 // external scope
-func treatRessource(item string, url *url.URL) (string) {
+func treatRessource(item string, url *url.URL) string {
 	var isAdded bool
 	var scriptKind = "link"
 
@@ -364,7 +364,6 @@ func treatRessource(item string, url *url.URL) (string) {
 			return ""
 		}
 
-
 		if isInternal == true {
 			gopstaticcrawler.PrintNewRessourceFound("internal", scriptKind, item)
 		} else {
@@ -375,6 +374,6 @@ func treatRessource(item string, url *url.URL) (string) {
 	if isAdded && isInternal {
 		return item
 	}
-	
+
 	return ""
 }

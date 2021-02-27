@@ -11,9 +11,9 @@ import (
 )
 
 type Ressource struct {
-	Url    string
-	Type   string
-	Secure bool
+	Url      string
+	Type     string
+	Secure   bool
 	Internal bool
 	sync.RWMutex
 }
