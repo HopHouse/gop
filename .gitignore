@@ -52,6 +52,6 @@ workdir/*
 external_ressources.tex
 Gopkg.lock
 *.png
-20*-GoCrawler/*
+20*-Go*/*
 gop
 gop.exe
