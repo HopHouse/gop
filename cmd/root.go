@@ -44,12 +44,12 @@ var (
 	hostOption          string
 	portOption          string
 	concurrencyOption   int
-	UrlOption 			string
-    recursiveOption 	bool
-    screenshotOption 	bool
-    cookieOption 		string
-    delayOption 		int
-    reportOption 		bool
+	UrlOption           string
+	recursiveOption     bool
+	screenshotOption    bool
+	cookieOption        string
+	delayOption         int
+	reportOption        bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -65,7 +65,7 @@ var rootCmd = &cobra.Command{
 			}
 			os.Chdir(directoryNameOption)
 		} else {
-			utils.CreateOutputDir(directoryNameOption)
+			utils.CreateOutputDir(directoryNameOption, cmd.Use)
 		}
 
 		// Init the logger and let close it later

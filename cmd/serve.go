@@ -30,7 +30,7 @@ var serveCmd = &cobra.Command{
 				}
 				os.Chdir(directoryNameOption)
 			} else {
-				utils.CreateOutputDir(directoryNameOption)
+				utils.CreateOutputDir(directoryNameOption, cmd.Name())
 			}
 
 			// Init the logger and let close it later

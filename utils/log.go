@@ -8,14 +8,14 @@ import (
 )
 
 var (
-    Log *log.Logger
+	Log *log.Logger
 )
 
-func NewLogger(file *os.File, logFileName string) () {
+func NewLogger(file *os.File, logFileName string) {
 	var err error
 
 	// Open Log File
-	file, err = os.OpenFile(logFileName, os.O_APPEND | os.O_CREATE | os.O_RDWR, 0666)
+	file, err = os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		fmt.Printf("error opening file: %v", err)
 	}
@@ -24,7 +24,7 @@ func NewLogger(file *os.File, logFileName string) () {
 	Log.Println("Initialisation of the log file")
 }
 
-func CloseLogger(file *os.File) () {
+func CloseLogger(file *os.File) {
 	file.Close()
 }
 
@@ -33,13 +33,13 @@ func NewLoggerStdout() {
 	Log = log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)
 }
 
-func CreateOutputDir(directoryName string) {
+func CreateOutputDir(directoryName string, commandName string) {
 	var err error
 
 	//  Main directory structure of the ouput
 	t := time.Now()
 	if directoryName == "" {
-		directoryName = t.Format("20060102-15-04-05") + "-GoPentest"
+		directoryName = t.Format("20060102-15-04-05") + "-gop-" + commandName
 	}
 
 	if _, err := os.Stat(directoryName); os.IsNotExist(err) {

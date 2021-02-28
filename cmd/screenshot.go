@@ -22,13 +22,13 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"os"
 	"fmt"
-    "path/filepath"
+	"os"
+	"path/filepath"
 
-	"github.com/spf13/cobra"
+	gopscreen "github.com/hophouse/gop/gopScreen"
 	"github.com/hophouse/gop/utils"
-	"github.com/hophouse/gop/gopScreen"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -39,7 +39,7 @@ var (
 var screenCmd = &cobra.Command{
 	Use:   "screenshot",
 	Short: "Take screenshots of the supplied URLs. The program will take the stdin if no input file is passed as argument.",
-	Long: "Take screenshots of the supplied URLs. The program will take the stdin if no input file is passed as argument.",
+	Long:  "Take screenshots of the supplied URLs. The program will take the stdin if no input file is passed as argument.",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		var err error
 
@@ -70,7 +70,7 @@ var screenCmd = &cobra.Command{
 		}
 
 		// Create a specific log file for the screenshots
-		utils.CreateOutputDir("screenshots")
+		utils.CreateOutputDir("screenshots", cmd.Name())
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		gopscreen.RunScreenCmd(reader, proxyOption, concurrencyOption, timeoutOption, delayOption)
@@ -80,8 +80,8 @@ var screenCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(screenCmd)
 
-	screenCmd.PersistentFlags().StringVarP(&inputFileOption ,"input-file", "i", "", "Use the specified cookie.")
-	screenCmd.PersistentFlags().StringVarP(&proxyOption ,"proxy", "p", "", "Use this proxy to visit the pages.")
-	screenCmd.PersistentFlags().IntVarP(&delayOption ,"delay", "", 0, "Use this delay in seconds between requests.")
-	screenCmd.PersistentFlags().IntVarP(&concurrencyOption ,"concurrency", "t", 10, "Thread used to take screenshot.")
+	screenCmd.PersistentFlags().StringVarP(&inputFileOption, "input-file", "i", "", "Use the specified cookie.")
+	screenCmd.PersistentFlags().StringVarP(&proxyOption, "proxy", "p", "", "Use this proxy to visit the pages.")
+	screenCmd.PersistentFlags().IntVarP(&delayOption, "delay", "", 0, "Use this delay in seconds between requests.")
+	screenCmd.PersistentFlags().IntVarP(&concurrencyOption, "concurrency", "t", 10, "Thread used to take screenshot.")
 }
