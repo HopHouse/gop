@@ -90,6 +90,7 @@ func init() {
 
 	searchCmd.Flags().StringSliceVarP(&patternListOption, "search", "s", patternList, "Specify a file will all the pattern that need to be checked.")
 	searchCmd.Flags().StringSliceVarP(&locationListOption, "path", "p", []string{}, "Locations were to look the script have to look.")
+	searchCmd.MarkFlagRequired("path")
 	searchCmd.Flags().StringSliceVarP(&locationBlackListOption, "blacklist-location", "", locationBlackList, "Locations were the script will not look.")
 	searchCmd.Flags().StringSliceVarP(&extensionWhiteListOption, "whitelist-extensions", "", []string{}, "Extension that will be whithelisted. If specified the black list option is taken in consideration by the program. Exemple : msg, squlite, zip, backup")
 	searchCmd.Flags().StringSliceVarP(&extensionBlackListOption, "blacklist-extensions", "", extensionBlackList, "Extension that will be blacklisted.")
