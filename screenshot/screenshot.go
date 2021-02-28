@@ -8,19 +8,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/emulation"
+	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	"github.com/gobuffalo/packr"
 	"github.com/hophouse/gop/utils"
 )
 
+// Screenshot structure to defile the Url and the status when requested
 type Screenshot struct {
 	Url           string
 	RequestStatus string
 }
 
-// Take screenshot of the pages.
+// TakeScreenShot Take screenshot of the pages.
 func TakeScreenShot(url string, directory string, cookie string, proxy string) {
 	defer utils.ScreenshotBar.Done()
 
@@ -87,7 +90,7 @@ func TakeScreenShot(url string, directory string, cookie string, proxy string) {
 	utils.Log.Println("[+] Took a screenshot of ", url, " - ", filename)
 }
 
-// Compute the filename based on the URL.
+// GetScreenshotFileName Compute the filename based on the URL.
 func GetScreenshotFileName(url string) string {
 	filename := strings.ReplaceAll(url, ":", "_")
 	filename = strings.ReplaceAll(filename, "/", "")
@@ -103,26 +106,23 @@ func fullScreenshot(urlstr string, cookie string, quality int64, res *[]byte) ch
 			// add cookies to chrome
 			if cookie != "" {
 				// create cookie expiration
-				/*
-					expr := cdp.TimeSinceEpoch(time.Now().Add(180 * 24 * time.Hour))
+				expr := cdp.TimeSinceEpoch(time.Now().Add(180 * 24 * time.Hour))
 
-					var cookieName, cookieValue string
-					cookieName = strings.Split(cookie, "=")[0]
-					cookieValue = strings.Split(cookie, "=")[1]
-					domain := strings.Split(urlstr, "/")[2]
+				var cookieName, cookieValue string
+				cookieName = strings.Split(cookie, "=")[0]
+				cookieValue = strings.Split(cookie, "=")[1]
+				domain := strings.Split(urlstr, "/")[2]
+				fmt.Printf("Cookie info %s %s %s\n", cookieName, cookieValue, domain)
 
-					cookieContext := network.SetCookie(cookieName, cookieValue).
-						WithExpires(&expr).
-						WithDomain(domain).
-						WithHTTPOnly(true)
-					success, err := cookieContext.Do(ctx)
-					if err != nil {
-						return err
-					}
-					if !success {
-						return fmt.Errorf("could not set cookie %q", cookie)
-					}
-				*/
+				_, err := network.SetCookie(cookieName, cookieValue).
+					WithExpires(&expr).
+					WithDomain(domain).
+					WithHTTPOnly(true).
+					Do(ctx)
+
+				if err != nil {
+					return fmt.Errorf("could not set cookie %q", cookie)
+				}
 			}
 			return nil
 		}),
@@ -169,50 +169,50 @@ func fullScreenshot(urlstr string, cookie string, quality int64, res *[]byte) ch
 	}
 }
 
-// Create the HTML page that references all the taken screenshots.
+// GetScreenshotHTML Create the HTML page that references all the taken screenshots.
 func GetScreenshotHTML(sl []Screenshot) string {
-	var html_code string
+	var htmlCode string
 
 	box := packr.NewBox("./template")
 
-	html_header, err := box.FindString("base_header.html")
+	htmlHeader, err := box.FindString("base_header.html")
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
 
-	html_code += html_header
+	htmlCode += htmlHeader
 
 	for _, item := range sl {
 		filename := "./screenshots/" + GetScreenshotFileName(item.Url)
 
 		utils.Log.Println(filename)
-		html_code += fmt.Sprintf("<div class=\"col-md-4\">\n")
-		html_code += fmt.Sprintf("  <div class=\"card mb-4 shadow-sm\">\n")
+		htmlCode += fmt.Sprintf("<div class=\"col-md-4\">\n")
+		htmlCode += fmt.Sprintf("  <div class=\"card mb-4 shadow-sm\">\n")
 
 		// Screenshot
-		html_code += fmt.Sprintf("    <img class=\"bd-placeholder-img card-img-top\" width=\"100%%\" height=\"225\" focusable=\"false\" src=\"%s\" />\n", filename)
-		html_code += fmt.Sprintf("    <div class=\"card-body\">\n")
+		htmlCode += fmt.Sprintf("    <img class=\"bd-placeholder-img card-img-top\" width=\"100%%\" height=\"225\" focusable=\"false\" src=\"%s\" />\n", filename)
+		htmlCode += fmt.Sprintf("    <div class=\"card-body\">\n")
 
 		// Request
-		html_code += fmt.Sprintf("      <p class=\"card-text\">%s</p>\n", item.Url)
-		html_code += fmt.Sprintf("      <div class=\"d-flex justify-content-between align-items-center\">\n")
-		html_code += fmt.Sprintf("        <div class=\"btn-group\">\n")
+		htmlCode += fmt.Sprintf("      <p class=\"card-text\">%s</p>\n", item.Url)
+		htmlCode += fmt.Sprintf("      <div class=\"d-flex justify-content-between align-items-center\">\n")
+		htmlCode += fmt.Sprintf("        <div class=\"btn-group\">\n")
 		// Visit
-		html_code += fmt.Sprintf("          <a href=\"%s\"><button type=\"button\" class=\"btn btn-sm btn-outline-secondary\">Visit</button></a>", item.Url)
-		html_code += fmt.Sprintf("        </div>\n")
-		html_code += fmt.Sprintf("      </div>\n")
-		html_code += fmt.Sprintf("    </div>\n")
-		html_code += fmt.Sprintf("  </div>\n")
-		html_code += fmt.Sprintf("</div>\n")
-		html_code += fmt.Sprintf("\n\n")
+		htmlCode += fmt.Sprintf("          <a href=\"%s\"><button type=\"button\" class=\"btn btn-sm btn-outline-secondary\">Visit</button></a>", item.Url)
+		htmlCode += fmt.Sprintf("        </div>\n")
+		htmlCode += fmt.Sprintf("      </div>\n")
+		htmlCode += fmt.Sprintf("    </div>\n")
+		htmlCode += fmt.Sprintf("  </div>\n")
+		htmlCode += fmt.Sprintf("</div>\n")
+		htmlCode += fmt.Sprintf("\n\n")
 	}
 
-	html_footer, err := box.FindString("base_footer.html")
+	htmlFooter, err := box.FindString("base_footer.html")
 	if err != nil {
 		utils.Log.Fatal(err)
 	}
 
-	html_code += html_footer
+	htmlCode += htmlFooter
 
-	return html_code
+	return htmlCode
 }
