@@ -104,6 +104,7 @@ func fullScreenshot(urlstr string, cookie string, quality int64, res *[]byte) ch
 	return chromedp.Tasks{
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			// add cookies to chrome
+			/*
 			if cookie != "" {
 				// create cookie expiration
 				expr := cdp.TimeSinceEpoch(time.Now().Add(180 * 24 * time.Hour))
@@ -112,7 +113,7 @@ func fullScreenshot(urlstr string, cookie string, quality int64, res *[]byte) ch
 				cookieName = strings.Split(cookie, "=")[0]
 				cookieValue = strings.Split(cookie, "=")[1]
 				domain := strings.Split(urlstr, "/")[2]
-				fmt.Printf("Cookie info %s %s %s\n", cookieName, cookieValue, domain)
+				//fmt.Printf("Cookie info %s %s %s\n", cookieName, cookieValue, domain)
 
 				_, err := network.SetCookie(cookieName, cookieValue).
 					WithExpires(&expr).
@@ -123,6 +124,7 @@ func fullScreenshot(urlstr string, cookie string, quality int64, res *[]byte) ch
 				if err != nil {
 					return fmt.Errorf("could not set cookie %q", cookie)
 				}
+				*/
 			}
 			return nil
 		}),
