@@ -58,8 +58,7 @@ func init() {
 	rootCmd.AddCommand(staticCrawlerCmd)
 
 	staticCrawlerCmd.PersistentFlags().StringVarP(&UrlOption, "url", "u", "", "URL to test.")
-	staticCrawlerCmd.MarkFlagRequired("url")
-
+	staticCrawlerCmd.MarkPersistentFlagRequired("url")
 	staticCrawlerCmd.PersistentFlags().BoolVarP(&reportOption, "report", "", false, "Generate a report.")
 	staticCrawlerCmd.PersistentFlags().BoolVarP(&recursiveOption, "recursive", "r", false, "Crawl the website recursively.")
 	staticCrawlerCmd.PersistentFlags().BoolVarP(&screenshotOption, "screenshot", "s", false, "Take a screenshot on each visited link.")

@@ -55,10 +55,10 @@ func init() {
 	rootCmd.AddCommand(crawlerCmd)
 
 	crawlerCmd.PersistentFlags().StringVarP(&UrlOption, "url", "u", "", "URL to test.")
-	crawlerCmd.MarkFlagRequired("url")
+	crawlerCmd.MarkPersistentFlagRequired("url")
 	crawlerCmd.PersistentFlags().BoolVarP(&recursiveOption, "recursive", "r", false, "Crawl the website recursively.")
 	crawlerCmd.PersistentFlags().BoolVarP(&screenshotOption, "screenshot", "s", false, "Take a screenshot on each visited link.")
-	crawlerCmd.PersistentFlags().StringVarP(&cookieOption, "cookie", "c", "", "Use the specified cookie.")
+	//crawlerCmd.PersistentFlags().StringVarP(&cookieOption, "cookie", "c", "", "Use the specified cookie.")
 	crawlerCmd.PersistentFlags().StringVarP(&proxyOption, "proxy", "p", "", "Use the specified proxy.")
 	crawlerCmd.PersistentFlags().IntVarP(&delayOption, "delay", "", 0, "Use this delay in seconds between each requests.")
 	crawlerCmd.PersistentFlags().IntVarP(&concurrencyOption, "concurrency", "t", 10, "Thread used to take screenshot.")
