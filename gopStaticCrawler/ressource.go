@@ -40,7 +40,8 @@ func CreateRessource(urlReference string, script string, kind string) (isInterna
 	if err != nil {
 		utils.Log.Println(err)
 	}
-	if scriptUrl.Host == urlReferenceUrl.Host {
+
+	if scriptUrl.Host == urlReferenceUrl.Host || scriptUrl.Host == "" {
 		ressource.Internal = true
 	}
 	return ressource.Internal, ressource
