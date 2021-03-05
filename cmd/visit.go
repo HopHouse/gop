@@ -22,18 +22,20 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"os"
 	"fmt"
+	"os"
 
+	gopvisit "github.com/hophouse/gop/gopVisit"
 	"github.com/spf13/cobra"
-	"github.com/hophouse/gop/gopVisit"
 )
+
+var burpOption bool
 
 // visitCmd represents the visit command
 var visitCmd = &cobra.Command{
 	Use:   "visit",
 	Short: "Visit supplied URLs.",
-	Long: "Visit supplied URLs.",
+	Long:  "Visit supplied URLs.",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		var err error
 
@@ -63,6 +65,9 @@ var visitCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if proxyOption == "" && burpOption == true {
+			proxyOption = "http://127.0.0.1:8080"
+		}
 		gopvisit.RunVisitCmd(reader, proxyOption)
 	},
 }
@@ -70,6 +75,7 @@ var visitCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(visitCmd)
 
-	visitCmd.PersistentFlags().StringVarP(&inputFileOption ,"input-file", "i", "", "Use the specified cookie.")
-	visitCmd.PersistentFlags().StringVarP(&proxyOption ,"proxy", "p", "", "Use this proxy to visit the pages.")
+	visitCmd.Flags().StringVarP(&inputFileOption, "input-file", "i", "", "Use the specified cookie.")
+	visitCmd.Flags().StringVarP(&proxyOption, "proxy", "p", "", "Use this proxy to visit the pages.")
+	visitCmd.Flags().BoolVarP(&burpOption, "burp", "", false, "Set the proxy directly to the default address and port of burp.")
 }
