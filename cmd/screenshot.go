@@ -82,6 +82,6 @@ func init() {
 
 	screenCmd.PersistentFlags().StringVarP(&inputFileOption, "input-file", "i", "", "Use the specified cookie.")
 	screenCmd.PersistentFlags().StringVarP(&proxyOption, "proxy", "p", "", "Use this proxy to visit the pages.")
-	screenCmd.PersistentFlags().IntVarP(&delayOption, "delay", "", 0, "Use this delay in seconds between requests.")
-	screenCmd.PersistentFlags().IntVarP(&concurrencyOption, "concurrency", "t", 10, "Thread used to take screenshot.")
+	screenCmd.PersistentFlags().IntVarP(&delayOption, "delay", "", 1, "Use this delay in seconds between requests.")
+	screenCmd.PersistentFlags().IntVarP(&concurrencyOption, "concurrency", "t", 5, "Thread used to take screenshot.")
 }
