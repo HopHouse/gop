@@ -296,6 +296,11 @@ func getAbsoluteURL(original_item string, urlItem string) string {
 
 	domain := strings.Join(strings.Split(urlItem, "/")[:3], "/")
 
+	if strings.HasPrefix(item, "../") {
+		item = domain + "/" + item
+		utils.Log.Printf("[*] Transformed from %s to %s\n", original_item, item)
+	}
+
 	if strings.HasPrefix(item, "/") {
 		if strings.HasPrefix(item, "//") {
 			item = "https:" + item
