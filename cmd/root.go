@@ -56,7 +56,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "gop",
 	Short: "GOP provides a toolbox to do pentest tasks.",
-	Long:  "GOP provide a help performing some pentest tasks.",
+	Long:  "GOP provides a toolbox to do pentest tasks.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// If an output directory is specified, check if it exists and then move to it
 		if directoryNameOption != "" {
@@ -84,6 +84,6 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&logFileNameOption, "logfile", "l", "logs.txt", "Set a custom log file.")
-	rootCmd.PersistentFlags().StringVarP(&directoryNameOption, "output-directory", "D", "", "Use the following directory to output results.")
+	rootCmd.PersistentFlags().StringVarP(&logFileNameOption, "logfile", "", "logs.txt", "Set a custom log file.")
+	rootCmd.PersistentFlags().StringVarP(&directoryNameOption, "output-directory", "", "", "Use the following directory to output results.")
 }
