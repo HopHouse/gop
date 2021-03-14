@@ -31,16 +31,17 @@ import (
 )
 
 var (
-	tcpScanOption  bool
-	udpScanOption  bool
-	onlyOpenOption bool
+	tcpScanOption   bool
+	udpScanOption   bool
+	onlyOpenOption  bool
+	greppableOption bool
 )
 
 // gopstaticcrawler represents the active command
 var scanNetworkCmd = &cobra.Command{
 	Use:   "network",
-	Short: "Port scan the network.",
-	Long:  "Port scan the network.",
+	Short: "Port scan the network. Only valid IP address must be passed as input.",
+	Long:  "Port scan the network. Only valid IP address must be passed as input.",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		var err error
 
@@ -70,17 +71,18 @@ var scanNetworkCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gopscannetwork.RunScanNetwork(reader, tcpScanOption, udpScanOption, portOption, onlyOpenOption, concurrencyOption)
+		gopscannetwork.RunScanNetwork(reader, tcpScanOption, udpScanOption, portOption, onlyOpenOption, concurrencyOption, greppableOption)
 	},
 }
 
 func init() {
 	scanCmd.AddCommand(scanNetworkCmd)
 
-	scanNetworkCmd.PersistentFlags().StringVarP(&inputFileOption, "input-file", "i", "", "Input file with the IP addresses to scan.")
-	scanNetworkCmd.PersistentFlags().BoolVarP(&tcpScanOption, "tcp", "", false, "Scan with the TCP protocol.")
-	scanNetworkCmd.PersistentFlags().BoolVarP(&udpScanOption, "udp", "", false, "Scan with the UDP protocol.")
-	scanNetworkCmd.PersistentFlags().StringVarP(&portOption, "port", "p", "", "Ports to scan.")
-	scanNetworkCmd.PersistentFlags().BoolVarP(&onlyOpenOption, "open", "", false, "Display only open ports.")
-	scanNetworkCmd.PersistentFlags().IntVarP(&concurrencyOption, "concurrency", "t", 10, "Number of threads used to take to scan.")
+	scanNetworkCmd.Flags().StringVarP(&inputFileOption, "input-file", "i", "", "Input file with the IP addresses to scan. If no file is passed, then the stdin will be taken.")
+	scanNetworkCmd.Flags().BoolVarP(&tcpScanOption, "tcp", "", false, "Scan with the TCP protocol.")
+	scanNetworkCmd.Flags().BoolVarP(&udpScanOption, "udp", "", false, "[WIP] Scan with the UDP protocol.")
+	scanNetworkCmd.Flags().StringVarP(&portOption, "port", "p", "", "Ports to scan. Can be either : \n\t- X,Y,Z \n\t- X-Y\n\t- X-Y,Z\nFamily of ports can also be passed : \n\t- http\n\t- ssh\n\t- mail\n\t- ...\tOptions can be combined, example :\n\t- 22,http,445,8080-8088")
+	scanNetworkCmd.Flags().BoolVarP(&onlyOpenOption, "open", "", false, "Display only open ports.")
+	scanNetworkCmd.Flags().IntVarP(&concurrencyOption, "concurrency", "t", 5000, "Number of threads used to take to scan.")
+	scanNetworkCmd.Flags().BoolVarP(&greppableOption, "greppable", "", false, "Display results as greppable. Will displays the following format for each host :\nip,protcol,port,status.")
 }

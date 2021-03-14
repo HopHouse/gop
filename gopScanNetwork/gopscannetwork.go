@@ -7,18 +7,22 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"text/tabwriter"
+	"time"
 
 	"github.com/hophouse/gop/utils"
 )
 
 type hostStruct struct {
+	mu              sync.Mutex
 	ip              net.IP
 	services        []serviceStruct
 	hasOpenServices bool
 }
 
 type serviceStruct struct {
+	ip         string
 	port       int
 	portString string
 	protocol   string
@@ -26,30 +30,41 @@ type serviceStruct struct {
 }
 
 // RunScanNetwork will run network scan on all inputed IP
-func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsString string, onlyOpen bool, concurrency int) {
+func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsString string, onlyOpen bool, concurrency int, greppableOutput bool) {
 	workersChan := make(chan bool)
-	ipChan := make(chan net.IP, concurrency)
-	gatherChan := make(chan hostStruct)
+	inputChan := make(chan string, concurrency)
+	gatherChan := make(chan serviceStruct)
+	hosts := make(map[string]hostStruct, 0)
+
+	// Init ports list
+	initPortStringMap()
 
 	// Parse ports
-	ports := parsePortsOption(portsString)
+	ports := unique(parsePortsOption(portsString))
 	if len(ports) < 1 {
 		utils.Log.Println("No valid port found. Exiting.")
 	}
 
 	// Run workers
 	for i := 0; i < concurrency; i++ {
-		go scanWorker(ipChan, workersChan, gatherChan, tcpOption, udpOption, ports)
+		go scanWorker(inputChan, workersChan, gatherChan, tcpOption, udpOption)
 	}
-	defer close(workersChan)
 
 	// Run goroutine to gather results and add them to the result slice
-	go func(gatherChan chan hostStruct, workersChan chan bool) {
-		for item := range gatherChan {
-			printResult(item, onlyOpen)
+	go func(gatherChan chan serviceStruct, workersChan chan bool, hosts map[string]hostStruct) {
+		for service := range gatherChan {
+			host, _ := hosts[service.ip]
+			host.mu.Lock()
+			host.services = append(host.services, service)
+
+			if service.status == "Open" {
+				host.hasOpenServices = true
+			}
+			host.mu.Unlock()
+			hosts[service.ip] = host
 		}
 		workersChan <- true
-	}(gatherChan, workersChan)
+	}(gatherChan, workersChan, hosts)
 
 	// Parse IP addresses
 	scanner := bufio.NewScanner(inputFile)
@@ -57,23 +72,43 @@ func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsStr
 		if !strings.Contains(scanner.Text(), "/") {
 			ipAddr := net.ParseIP(scanner.Text())
 			if ipAddr == nil {
+				utils.Log.Printf("[!] Input %s is not a valid IP address.\n", scanner.Text())
+				fmt.Printf("[!] Input %s is not a valid IP address.\n", scanner.Text())
 				break
 			}
-			ipChan <- ipAddr
+			hosts[ipAddr.String()] = hostStruct{
+				ip:              ipAddr,
+				services:        []serviceStruct{},
+				hasOpenServices: false,
+			}
+			utils.Log.Printf("[+] Adding IP address to queue : %s\n", scanner.Text())
 		} else {
 			ipAddrs, err := ipsFromCIDR(scanner.Text())
 			if err != nil {
+				utils.Log.Printf("[!] Input %s is not a valid IP address range.\n", scanner.Text())
+				fmt.Printf("[!] Input %s is not a valid IP address range.\n", scanner.Text())
 				break
 			}
 
 			for _, ipAddr := range ipAddrs {
-				ipChan <- net.ParseIP(ipAddr)
+				hosts[ipAddr] = hostStruct{
+					ip:              net.ParseIP(ipAddr),
+					services:        []serviceStruct{},
+					hasOpenServices: false,
+				}
+				utils.Log.Printf("[+] Adding IP address to queue : %s\n", ipAddr)
 			}
 		}
+	}
 
+	// Run the scan
+	for host, _ := range hosts {
+		for _, port := range ports {
+			inputChan <- fmt.Sprintf("%s:%d", host, port)
+		}
 	}
 	// Close IP chan
-	close(ipChan)
+	close(inputChan)
 
 	// Wait for GoRoutine to finish
 	for i := 0; i < concurrency; i++ {
@@ -85,70 +120,92 @@ func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsStr
 
 	// Wait for the gather worker to finish
 	<-workersChan
+
+	if greppableOutput {
+		printGreppableResults(hosts, onlyOpen)
+	} else {
+		printResults(hosts, onlyOpen)
+	}
+	utils.Log.Println("[+] Scan is terminated")
 }
 
-func printResult(item hostStruct, onlyOpen bool) {
-	fmt.Printf("\n[+] %s :\n", item.ip.String())
+func printResults(hosts map[string]hostStruct, onlyOpen bool) {
+	for ip, item := range hosts {
+		if item.hasOpenServices == false && onlyOpen == true {
+			continue
+		}
 
-	if item.hasOpenServices == false {
-		fmt.Printf("    No open ports found\n")
-		return
-	}
-
-	w := tabwriter.NewWriter(os.Stdout, 4, 1, 4, ' ', 0)
-	for _, service := range item.services {
-		if strings.Compare(service.status, "Open") == 0 {
-			fmt.Fprintf(w, "\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
-		} else {
-			if onlyOpen == false {
+		fmt.Printf("\n[+] %s :\n", ip)
+		w := tabwriter.NewWriter(os.Stdout, 4, 1, 4, ' ', 0)
+		for _, service := range item.services {
+			if strings.Compare(service.status, "Open") == 0 {
 				fmt.Fprintf(w, "\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
+			} else {
+				if onlyOpen == false {
+					fmt.Fprintf(w, "\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
+				}
+			}
+		}
+		w.Flush()
+	}
+}
+
+func printGreppableResults(hosts map[string]hostStruct, onlyOpen bool) {
+	for ip, item := range hosts {
+		if item.hasOpenServices == false && onlyOpen == true {
+			continue
+		}
+
+		for _, service := range item.services {
+			if strings.Compare(service.status, "Open") == 0 {
+				fmt.Printf("%s,%s,%s,%s\n", ip, service.protocol, service.portString, service.status)
+			} else {
+				if onlyOpen == false {
+					fmt.Printf("%s,%s,%s,%s\n", ip, service.protocol, service.portString, service.status)
+				}
 			}
 		}
 	}
-	w.Flush()
 }
 
-func scanWorker(ipChan chan net.IP, workersChan chan bool, gatherChan chan hostStruct, tcpOption bool, udpOtion bool, ports []int) {
-	for ipAddr := range ipChan {
-		host := hostStruct{
-			ip:              ipAddr,
-			hasOpenServices: false,
+func scanWorker(inputChan chan string, workersChan chan bool, gatherChan chan serviceStruct, tcpOption bool, udpOtion bool) {
+	for entry := range inputChan {
+		service := serviceStruct{
+			ip:         "",
+			port:       0,
+			portString: "",
+			protocol:   "",
+			status:     "",
+		}
+		service.ip = strings.Split(entry, ":")[0]
+		service.port, _ = strconv.Atoi(strings.Split(entry, ":")[1])
+		service.portString = strconv.Itoa(service.port)
+
+		address := fmt.Sprintf("%s:%s", service.ip, service.portString)
+
+		if tcpOption {
+			service.protocol = "TCP"
+			service.status = "Close"
+
+			conn, err := net.DialTimeout("tcp", address, 500*time.Millisecond)
+			if err == nil {
+				service.status = "Open"
+				conn.Close()
+			}
+			gatherChan <- service
 		}
 
-		for _, portInt := range ports {
-			service := serviceStruct{}
-			service.port = portInt
-			service.portString = strconv.Itoa(portInt)
+		if udpOtion {
+			service.protocol = "UDP"
+			service.status = "Close"
 
-			address := fmt.Sprintf("%s:%s", ipAddr.String(), service.portString)
-
-			if tcpOption {
-				service.protocol = "TCP"
-				service.status = "Close"
-
-				_, err := net.Dial("tcp", address)
-				if err == nil {
-					service.status = "Open"
-					host.hasOpenServices = true
-				}
-
-				host.services = append(host.services, service)
+			conn, err := net.Dial("udp", address)
+			if err == nil {
+				service.status = "Open"
+				conn.Close()
 			}
-
-			if udpOtion {
-				service.protocol = "UDP"
-				service.status = "Close"
-
-				_, err := net.Dial("udp", address)
-				if err == nil {
-					service.status = "Open"
-					host.hasOpenServices = true
-				}
-
-				host.services = append(host.services, service)
-			}
+			gatherChan <- service
 		}
-		gatherChan <- host
 	}
 	workersChan <- true
 }
@@ -163,18 +220,30 @@ func parsePortsOption(portsOption string) []int {
 	*/
 	for _, i := range strings.Split(portsOption, ",") {
 		item := strings.TrimSpace(i)
+		// Check if a string that represent a set of ports is passed
+		portList, in := portStringMap[item]
+		if in == true {
+			item = strings.TrimSpace(portList)
+
+			// Recursively parse ports
+			result = append(result, parsePortsOption(item)...)
+
+			continue
+		}
+
+		// No string is passed, then parse the ports
 		if itemDash := strings.Split(item, "-"); len(itemDash) == 2 {
 			i1, err := strconv.ParseInt(itemDash[0], 10, 32)
 			if err != nil {
-				break
+				continue
 			}
 			i2, err := strconv.ParseInt(itemDash[1], 10, 32)
 			if err != nil {
-				break
+				continue
 			}
 
 			if i1 > i2 {
-				break
+				continue
 			}
 
 			for c := i1; c <= i2; c++ {
@@ -182,9 +251,9 @@ func parsePortsOption(portsOption string) []int {
 			}
 
 		} else {
-			i3, err := strconv.ParseInt(i, 10, 32)
+			i3, err := strconv.ParseInt(item, 10, 32)
 			if err != nil {
-				break
+				continue
 			}
 			result = append(result, int(i3))
 		}
@@ -212,4 +281,16 @@ func inc(ip net.IP) {
 			break
 		}
 	}
+}
+
+func unique(intSlice []int) []int {
+	keys := make(map[int]bool)
+	list := []int{}
+	for _, entry := range intSlice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
 }
