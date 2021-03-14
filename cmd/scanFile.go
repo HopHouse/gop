@@ -22,7 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
-	gopsearch "github.com/hophouse/gop/gopSearch"
+	gopsearch "github.com/hophouse/gop/gopScanFile"
 	"github.com/hophouse/gop/utils"
 	"github.com/spf13/cobra"
 )
@@ -38,8 +38,8 @@ var (
 )
 
 // searchCmd represents the host command
-var searchCmd = &cobra.Command{
-	Use:   "search",
+var scanFileCmd = &cobra.Command{
+	Use:   "file",
 	Short: "Search for files on disk that matches a specific patterne. Regex or partial filename can be passed to the script.",
 	Long:  "Search for files on disk that matches a specific patterne. Regex or partial filename can be passed to the script.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
@@ -51,7 +51,7 @@ var searchCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(searchCmd)
+	scanCmd.AddCommand(scanFileCmd)
 
 	patternList := []string{
 		"(?i)identifiants",
@@ -88,11 +88,11 @@ func init() {
 		"C:\\Windows",
 	}
 
-	searchCmd.Flags().StringSliceVarP(&patternListOption, "search", "s", patternList, "Specify a file will all the pattern that need to be checked.")
-	searchCmd.Flags().StringSliceVarP(&locationListOption, "path", "p", []string{}, "Locations were to look the script have to look.")
-	searchCmd.MarkFlagRequired("path")
-	searchCmd.Flags().StringSliceVarP(&locationBlackListOption, "blacklist-location", "", locationBlackList, "Locations were the script will not look.")
-	searchCmd.Flags().StringSliceVarP(&extensionWhiteListOption, "whitelist-extensions", "", []string{}, "Extension that will be whithelisted. If specified the black list option is taken in consideration by the program. Exemple : msg, squlite, zip, backup")
-	searchCmd.Flags().StringSliceVarP(&extensionBlackListOption, "blacklist-extensions", "", extensionBlackList, "Extension that will be blacklisted.")
-	searchCmd.Flags().BoolVarP(&onlyFilesOption, "only-files", "", false, "Only display found items that are files.")
+	scanFileCmd.Flags().StringSliceVarP(&patternListOption, "search", "s", patternList, "Specify a file will all the pattern that need to be checked.")
+	scanFileCmd.Flags().StringSliceVarP(&locationListOption, "path", "p", []string{}, "Locations were to look the script have to look.")
+	scanFileCmd.MarkFlagRequired("path")
+	scanFileCmd.Flags().StringSliceVarP(&locationBlackListOption, "blacklist-location", "", locationBlackList, "Locations were the script will not look.")
+	scanFileCmd.Flags().StringSliceVarP(&extensionWhiteListOption, "whitelist-extensions", "", []string{}, "Extension that will be whithelisted. If specified the black list option is taken in consideration by the program. Exemple : msg, squlite, zip, backup")
+	scanFileCmd.Flags().StringSliceVarP(&extensionBlackListOption, "blacklist-extensions", "", extensionBlackList, "Extension that will be blacklisted.")
+	scanFileCmd.Flags().BoolVarP(&onlyFilesOption, "only-files", "", false, "Only display found items that are files.")
 }

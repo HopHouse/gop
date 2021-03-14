@@ -160,41 +160,82 @@ openssl req -new -x509 -sha256 -key ca.key -out ca.crt -days 3650
 Scan commands to scan any kind of assets.
 
 Usage:
-  gop scan [flags]
   gop scan [command]
 
 Available Commands:
-  network     Port scan the network.
+  file        Search for files on disk that matches a specific patterne. Regex or partial filename can be passed to the script.
+  network     Port scan the network. Only valid IP address must be passed as input.
 
 Flags:
   -h, --help   help for scan
 
 Global Flags:
-      --logfile string            Set a custom log file. (default "logs.txt")   
+      --logfile string            Set a custom log file. (default "logs.txt")
       --output-directory string   Use the following directory to output results.
 
 Use "gop scan [command] --help" for more information about a command.
-```          
+```     
 
-#### network
+### File
 ```
-Port scan the network.
+Search for files on disk that matches a specific patterne. Regex or partial filename can be passed to the script.
+
+Usage:
+  gop scan file [flags]
+
+Flags:
+      --blacklist-extensions strings   Extension that will be blacklisted. (default [exe,ttf,dll,svg,go,py,html,css,js,yar,json,md,tex])
+      --blacklist-location strings     Locations were the script will not look. (default [C:\Windows])
+  -h, --help                           help for file
+      --only-files                     Only display found items that are files.
+  -p, --path strings                   Locations were to look the script have to look.
+  -s, --search strings                 Specify a file will all the pattern that need to be checked. (default [(?i)identifiants,(?i)password,(?i)mot de passe,(?i)motdepasse,(?i)compte(s)?,kdb(x)?,(?i)secret,key[0-9].db$,(?i)backup,.ntds$,SYSTEM$,SAM$])
+      --whitelist-extensions strings   Extension that will be whithelisted. If specified the black list option is taken in consideration by the program. Exemple : msg, 
+squlite, zip, backup
+
+Global Flags:
+      --logfile string            Set a custom log file. (default "logs.txt")
+      --output-directory string   Use the following directory to output results.
+```
+
+#### Network
+```
+Port scan the network. Only valid IP address must be passed as input.
 
 Usage:
   gop scan network [flags]
 
 Flags:
-  -t, --concurrency int     Number of threads used to take to scan. (default 10)
+  -t, --concurrency int     Number of threads used to take to scan. (default 5000)
   -h, --help                help for network
-  -i, --input-file string   Input file with the IP addresses to scan.
+  -i, --input-file string   Input file with the IP addresses to scan. If no file is passed, then the stdin will be taken.
       --open                Display only open ports.
-  -p, --port string         Ports to scan.
+  -o, --output string       Display result format as :
+                                - text
+                                - grep
+                                - short
+                            Option text will display a human-readable outpit.
+                            Option grep will displays the following format for each host :
+                                ip,protcol,port,status.
+                            Option short will activate the flag --open and will display value for each open port as :    
+                                ip:port (default "text")
+  -p, --port string         Ports to scan. Can be either :
+                                - X,Y,Z
+                                - X-Y
+                                - X-Y,Z
+                            Family of ports can also be passed :
+                                - http
+                                - ssh
+                                - mail
+                                - ...   
+                            Options can be combined, example :
+                                - 22,http,445,8080-8088
       --tcp                 Scan with the TCP protocol.
-      --udp                 Scan with the UDP protocol.
+      --udp                 [WIP] Scan with the UDP protocol.
 
 Global Flags:
       --logfile string            Set a custom log file. (default "logs.txt")
-      --output-directory string   Use the following directory to output results.
+      --output-directory string   Use the following directory to output results..
 ```
 
 ### Schedule      
@@ -242,28 +283,6 @@ Flags:
 Global Flags:
       --logfile string            Set a custom log file. (default "logs.txt")      
       --output-directory string   Use the following directory to output results. 
-```          
-
-## Search        
-```
-Search for files on disk that matches a specific patterne. Regex or partial filename can be passed to the script.
-
-Usage:
-  gop search [flags]
-
-Flags:
-      --blacklist-extensions strings   Extension that will be blacklisted. (default [exe,ttf,dll,svg,go,py,html,css,js,yar,json,md,tex])
-      --blacklist-location strings     Locations were the script will not look. (default [C:\Windows])
-  -h, --help                           help for search
-      --only-files                     Only display found items that are files.
-  -p, --path strings                   Locations were to look the script have to look.
-  -s, --search strings                 Specify a file will all the pattern that need to be checked. (default [(?i)identifiants,(?i)password,(?i)mot de passe,(?i)motdepasse,(?i)compte(s)?,kdb(x)?,(?i)secret,key[0-9].db$,(?i)backup,.ntds$,SYSTEM$,SAM$])
-      --whitelist-extensions strings   Extension that will be whithelisted. If specified the black list option is taken in consideration by the program. Exemple : msg, 
-squlite, zip, backup
-
-Global Flags:
-      --logfile string            Set a custom log file. (default "logs.txt")
-      --output-directory string   Use the following directory to output results.
 ```          
 
 ## Serve

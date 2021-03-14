@@ -30,7 +30,7 @@ type serviceStruct struct {
 }
 
 // RunScanNetwork will run network scan on all inputed IP
-func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsString string, onlyOpen bool, concurrency int, greppableOutput bool) {
+func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsString string, onlyOpen bool, concurrency int, output string) {
 	workersChan := make(chan bool)
 	inputChan := make(chan string, concurrency)
 	gatherChan := make(chan serviceStruct)
@@ -121,9 +121,12 @@ func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsStr
 	// Wait for the gather worker to finish
 	<-workersChan
 
-	if greppableOutput {
+	switch output {
+	case "grep":
 		printGreppableResults(hosts, onlyOpen)
-	} else {
+	case "short":
+		printShortResults(hosts, onlyOpen)
+	default:
 		printResults(hosts, onlyOpen)
 	}
 	utils.Log.Println("[+] Scan is terminated")
@@ -168,6 +171,18 @@ func printGreppableResults(hosts map[string]hostStruct, onlyOpen bool) {
 	}
 }
 
+func printShortResults(hosts map[string]hostStruct, onlyOpen bool) {
+	for ip, item := range hosts {
+		if item.hasOpenServices == false && onlyOpen == true {
+			continue
+		}
+		for _, service := range item.services {
+			if strings.Compare(service.status, "Open") == 0 {
+				fmt.Printf("%s:%s\n", ip, service.portString)
+			}
+		}
+	}
+}
 func scanWorker(inputChan chan string, workersChan chan bool, gatherChan chan serviceStruct, tcpOption bool, udpOtion bool) {
 	for entry := range inputChan {
 		service := serviceStruct{

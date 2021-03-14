@@ -32,8 +32,6 @@ var scanCmd = &cobra.Command{
 	Long:  "Scan commands to scan any kind of assets.",
 	PreRun: func(cmd *cobra.Command, args []string) {
 	},
-	Run: func(cmd *cobra.Command, args []string) {
-	},
 }
 
 func init() {

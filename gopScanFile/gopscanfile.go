@@ -1,4 +1,4 @@
-package gopsearch
+package gopscanfile
 
 import (
 	"fmt"

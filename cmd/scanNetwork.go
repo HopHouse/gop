@@ -31,10 +31,10 @@ import (
 )
 
 var (
-	tcpScanOption   bool
-	udpScanOption   bool
-	onlyOpenOption  bool
-	greppableOption bool
+	tcpScanOption  bool
+	udpScanOption  bool
+	onlyOpenOption bool
+	outputOption   string
 )
 
 // gopstaticcrawler represents the active command
@@ -69,9 +69,15 @@ var scanNetworkCmd = &cobra.Command{
 				os.Exit(1)
 			}
 		}
+
+		// Output option
+		if outputOption != "text" && outputOption != "grep" && outputOption != "short" {
+			outputOption = "text"
+		}
+
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gopscannetwork.RunScanNetwork(reader, tcpScanOption, udpScanOption, portOption, onlyOpenOption, concurrencyOption, greppableOption)
+		gopscannetwork.RunScanNetwork(reader, tcpScanOption, udpScanOption, portOption, onlyOpenOption, concurrencyOption, outputOption)
 	},
 }
 
@@ -81,8 +87,8 @@ func init() {
 	scanNetworkCmd.Flags().StringVarP(&inputFileOption, "input-file", "i", "", "Input file with the IP addresses to scan. If no file is passed, then the stdin will be taken.")
 	scanNetworkCmd.Flags().BoolVarP(&tcpScanOption, "tcp", "", false, "Scan with the TCP protocol.")
 	scanNetworkCmd.Flags().BoolVarP(&udpScanOption, "udp", "", false, "[WIP] Scan with the UDP protocol.")
-	scanNetworkCmd.Flags().StringVarP(&portOption, "port", "p", "", "Ports to scan. Can be either : \n\t- X,Y,Z \n\t- X-Y\n\t- X-Y,Z\nFamily of ports can also be passed : \n\t- http\n\t- ssh\n\t- mail\n\t- ...\tOptions can be combined, example :\n\t- 22,http,445,8080-8088")
+	scanNetworkCmd.Flags().StringVarP(&portOption, "port", "p", "", "Ports to scan. Can be either : \n\t- X,Y,Z \n\t- X-Y\n\t- X-Y,Z\nFamily of ports can also be passed : \n\t- http\n\t- ssh\n\t- mail\n\t- ...\nOptions can be combined, example :\n\t- 22,http,445,8080-8088")
 	scanNetworkCmd.Flags().BoolVarP(&onlyOpenOption, "open", "", false, "Display only open ports.")
 	scanNetworkCmd.Flags().IntVarP(&concurrencyOption, "concurrency", "t", 5000, "Number of threads used to take to scan.")
-	scanNetworkCmd.Flags().BoolVarP(&greppableOption, "greppable", "", false, "Display results as greppable. Will displays the following format for each host :\nip,protcol,port,status.")
+	scanNetworkCmd.Flags().StringVarP(&outputOption, "output", "o", "text", "Display result format as :\n\t- text\n\t- grep\n\t- short\nOption text will display a human-readable outpit.\nOption grep will displays the following format for each host :\n\tip,protcol,port,status.\nOption short will activate the flag --open and will display value for each open port as :\n\tip:port")
 }
