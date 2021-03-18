@@ -73,15 +73,16 @@ var screenCmd = &cobra.Command{
 		utils.CreateOutputDir("screenshots", cmd.Name())
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gopscreen.RunScreenCmd(reader, proxyOption, concurrencyOption, timeoutOption, delayOption)
+		gopscreen.RunScreenCmd(reader, proxyOption, concurrencyOption, timeoutOption, delayOption, cookieOption)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(screenCmd)
 
-	screenCmd.PersistentFlags().StringVarP(&inputFileOption, "input-file", "i", "", "Use the specified cookie.")
-	screenCmd.PersistentFlags().StringVarP(&proxyOption, "proxy", "p", "", "Use this proxy to visit the pages.")
-	screenCmd.PersistentFlags().IntVarP(&delayOption, "delay", "", 1, "Use this delay in seconds between requests.")
-	screenCmd.PersistentFlags().IntVarP(&concurrencyOption, "concurrency", "t", 5, "Thread used to take screenshot.")
+	screenCmd.Flags().StringVarP(&inputFileOption, "input-file", "i", "", "Use the specified cookie.")
+	screenCmd.Flags().StringVarP(&proxyOption, "proxy", "p", "", "Use this proxy to visit the pages.")
+	screenCmd.Flags().IntVarP(&delayOption, "delay", "", 1, "Use this delay in seconds between requests.")
+	screenCmd.Flags().IntVarP(&concurrencyOption, "concurrency", "t", 5, "Thread used to take screenshot.")
+	screenCmd.Flags().StringVarP(&cookieOption, "cookie", "c", "", "Use the specified cookie.")
 }

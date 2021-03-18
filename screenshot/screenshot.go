@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"strings"
 	"time"
 
+	"github.com/chromedp/cdproto/dom"
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
@@ -79,19 +79,20 @@ func TakeScreenShot(url string, directory string, cookie string, proxy string) {
 		utils.Log.Println("[!] Error, screenshot not taken for ", url, " because it had a size of 0 bytes")
 		return
 	}
+	filename := directory + GetScreenshotFileName(url)
 
-	filename := directory + strings.ReplaceAll(strings.ReplaceAll(url, "/", ""), ":", "_") + ".png"
 	if err := ioutil.WriteFile(filename, buf, 0644); err != nil {
 		utils.Log.Println("Error in ioutil.WriteFile", err, "for url: ", url)
 		return
 	}
-	utils.Log.Println("[+] Took a screenshot of ", url, " - ", filename)
+	utils.Log.Println("[+] Took a screenshot of ", url, " - ", filename, " with a size of ", len(buf))
 }
 
 // GetScreenshotFileName Compute the filename based on the URL.
 func GetScreenshotFileName(url string) string {
-	filename := strings.ReplaceAll(url, ":", "_")
+	filename := strings.ReplaceAll(url, ":", "-")
 	filename = strings.ReplaceAll(filename, "/", "")
+	filename = strings.ReplaceAll(filename, ".", "_")
 	filename += ".png"
 	return filename
 }
@@ -136,10 +137,18 @@ func fullScreenshot(urlstr string, cookie string, quality int64, res *[]byte) ch
 				return err
 			}
 
-			width, height := int64(math.Ceil(contentSize.Width)), int64(math.Ceil(contentSize.Height))
+			// If content size is empty
+			if contentSize == nil {
+				contentSize = &dom.Rect{
+					X:      0,
+					Y:      0,
+					Width:  1920,
+					Height: 1080,
+				}
+			}
 
 			// force viewport emulation
-			err = emulation.SetDeviceMetricsOverride(width, height, 1, false).
+			err = emulation.SetDeviceMetricsOverride(int64(contentSize.Width), int64(contentSize.Height), 1, false).
 				WithScreenOrientation(&emulation.ScreenOrientation{
 					Type:  emulation.OrientationTypePortraitPrimary,
 					Angle: 0,
