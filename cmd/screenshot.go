@@ -80,7 +80,7 @@ var screenCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(screenCmd)
 
-	screenCmd.Flags().StringVarP(&inputFileOption, "input-file", "i", "", "Use the specified cookie.")
+	screenCmd.Flags().StringVarP(&inputFileOption, "input-file", "i", "", "Use the specified file as input.")
 	screenCmd.Flags().StringVarP(&proxyOption, "proxy", "p", "", "Use this proxy to visit the pages.")
 	screenCmd.Flags().IntVarP(&delayOption, "delay", "", 1, "Use this delay in seconds between requests.")
 	screenCmd.Flags().IntVarP(&concurrencyOption, "concurrency", "t", 5, "Thread used to take screenshot.")

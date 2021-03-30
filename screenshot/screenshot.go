@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -79,10 +80,10 @@ func TakeScreenShot(url string, directory string, cookie string, proxy string) {
 		utils.Log.Println("[!] Error, screenshot not taken for ", url, " because it had a size of 0 bytes")
 		return
 	}
-	filename := directory + GetScreenshotFileName(url)
+	filename := filepath.Join(directory, GetScreenshotFileName(url))
 
 	if err := ioutil.WriteFile(filename, buf, 0644); err != nil {
-		utils.Log.Println("Error in ioutil.WriteFile", err, "for url: ", url)
+		utils.Log.Println("Error in ioutil.WriteFile ", err, " for url ", url, " with filename ", filename, " and size of ", len(buf))
 		return
 	}
 	utils.Log.Println("[+] Took a screenshot of ", url, " - ", filename, " with a size of ", len(buf))
@@ -93,6 +94,7 @@ func GetScreenshotFileName(url string) string {
 	filename := strings.ReplaceAll(url, ":", "-")
 	filename = strings.ReplaceAll(filename, "/", "")
 	filename = strings.ReplaceAll(filename, ".", "_")
+	filename = strings.ReplaceAll(filename, "?", "-")
 	filename += ".png"
 	return filename
 }
