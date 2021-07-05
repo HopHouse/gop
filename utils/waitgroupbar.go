@@ -36,8 +36,8 @@ func InitWaitGroupBar() *WaitGroupBar {
 func (groupBar *WaitGroupBar) AddBar(name string, main bool) (newBar Bar) {
 	newBar.name = name
 	newBar.total = 0
-	newBar.bar = groupBar.progress.Add(int64(1),
-		mpb.NewSpinnerFiller([]string{}, mpb.SpinnerOnLeft),
+	newBar.bar = groupBar.progress.AddBar(int64(1),
+		//mpb.NewSpinnerFiller([]string{}, mpb.SpinnerOnLeft),
 		mpb.PrependDecorators(decor.Name("[")),
 		mpb.AppendDecorators(
 			decor.Name("] ["),
