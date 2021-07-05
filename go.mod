@@ -28,10 +28,9 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/temoto/robotstxt v1.1.1 // indirect
 	github.com/urfave/negroni v1.0.0
-	github.com/vbauerster/mpb/v6 v6.0.2
+	github.com/vbauerster/mpb/v7 v7.0.3
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 // indirect
-	golang.org/x/sys v0.0.0-20210313202042-bd2e13477e9c // indirect
 	golang.org/x/text v0.3.5 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
