@@ -28,10 +28,9 @@ import (
 )
 
 var (
-	firstNameOption  string
-	surnameOption    string
-	domainOption     string
-	delimitersOption []string
+	firstNameOption string
+	surnameOption   string
+	domainOption    string
 )
 
 // gopstaticcrawler represents the active command
@@ -47,30 +46,7 @@ var osintEmailGenCmd = &cobra.Command{
 }
 
 func init() {
-	osintCmd.AddCommand(osintEmailGenCmd)
-
-	delimiters := []string{
-		".",
-		"-",
-		"_",
-		"#",
-		"$",
-		"%",
-		"&",
-		"*",
-		"+",
-		"/",
-		"=",
-		"!",
-		"?",
-		"^",
-		"'",
-		"`",
-		"{",
-		"|",
-		"}",
-		"~",
-	}
+	generateCmd.AddCommand(osintEmailGenCmd)
 
 	osintEmailGenCmd.Flags().StringVarP(&firstNameOption, "firstname", "f", "", "First name.")
 	osintEmailGenCmd.MarkFlagRequired("firstname")
@@ -78,5 +54,4 @@ func init() {
 	osintEmailGenCmd.MarkFlagRequired("surname")
 	osintEmailGenCmd.Flags().StringVarP(&domainOption, "domain", "d", "", "Domain used into the email address.")
 	osintEmailGenCmd.MarkFlagRequired("domain")
-	osintEmailGenCmd.Flags().StringSliceVarP(&delimitersOption, "delimiters", "", delimiters, "Delimiters to construct the mail address.")
 }

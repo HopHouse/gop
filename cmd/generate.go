@@ -25,15 +25,43 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var ()
+var (
+	delimitersOption []string
+	Delimiters       []string
+)
 
 // gopstaticcrawler represents the active command
-var osintCmd = &cobra.Command{
-	Use:   "osint",
-	Short: "OSINT module.",
-	Long:  "OSINT module.",
+var generateCmd = &cobra.Command{
+	Use:   "generate",
+	Short: "Generate module.",
+	Long:  "Generate module.",
 }
 
 func init() {
-	rootCmd.AddCommand(osintCmd)
+	rootCmd.AddCommand(generateCmd)
+
+	Delimiters = []string{
+		".",
+		"-",
+		"_",
+		"#",
+		"$",
+		"%",
+		"&",
+		"*",
+		"+",
+		"/",
+		"=",
+		"!",
+		"?",
+		"^",
+		"'",
+		"`",
+		"{",
+		"|",
+		"}",
+		"~",
+	}
+
+	generateCmd.Flags().StringSliceVarP(&delimitersOption, "delimiters", "", Delimiters, "Delimiters to construct the mail address.")
 }
