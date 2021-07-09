@@ -66,6 +66,7 @@ func init() {
 		".ntds$",
 		"SYSTEM$",
 		"SAM$",
+		"id_rsa.*",
 	}
 
 	extensionBlackList := []string{
