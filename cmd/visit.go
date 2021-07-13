@@ -29,7 +29,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var burpOption bool
+var (
+	burpOption bool
+)
 
 // visitCmd represents the visit command
 var visitCmd = &cobra.Command{

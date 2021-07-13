@@ -133,7 +133,7 @@ func fullScreenshot(urlstr string, cookie string, quality int64, res *[]byte) ch
 		chromedp.Sleep(20 * time.Second),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			// get layout metrics
-			_, _, contentSize, err := page.GetLayoutMetrics().Do(ctx)
+			_, _, _, _, _, contentSize, err := page.GetLayoutMetrics().Do(ctx)
 			if err != nil {
 				utils.Log.Println("Error in page.GetLayoutMetrics ", err)
 				return err
