@@ -75,12 +75,11 @@ func init() {
 		"dll",
 		"svg",
 		"go",
-		"py",
+		"pyi",
 		"html",
 		"css",
 		"js",
 		"yar",
-		"json",
 		"md",
 		"tex",
 	}
