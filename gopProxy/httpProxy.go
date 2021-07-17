@@ -1,13 +1,14 @@
 package gopproxy
 
 import (
-	"net"
-	"errors"
-	"net/http"
-	"net/http/httputil"
-	"io/ioutil"
 	"bufio"
 	"crypto/tls"
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"net"
+	"net/http"
+	"net/http/httputil"
 
 	"github.com/hophouse/gop/utils"
 )
@@ -16,15 +17,19 @@ type Proxy struct {
 	certManager CertManager
 }
 
-func RunHTTPProxyCmd(addr string) {
+func RunHTTPProxyCmd(options *Options) {
+	addr := fmt.Sprintf("%s:%s", options.Host, options.Port)
 	_, err := net.ResolveTCPAddr("tcp4", addr)
+	utils.CheckErrorExit(err)
+
+	_, err = net.ResolveTCPAddr("tcp4", addr)
 	if err != nil {
 		utils.Log.Fatal(err)
 		return
 	}
 
 	proxy := &Proxy{
-		certManager: InitCertManager(),
+		certManager: InitCertManager(options.caFileOption, options.caPrivKeyFileOption),
 	}
 
 	server := &http.Server{Addr: addr, Handler: proxy}
@@ -99,7 +104,7 @@ func (p Proxy) handleHTTPSMethod(w http.ResponseWriter, req *http.Request) error
 
 	cer := p.certManager.CreateCertificate(req.URL.Hostname())
 	config := &tls.Config{
-		Certificates: []tls.Certificate{cer},
+		Certificates:       []tls.Certificate{cer},
 		InsecureSkipVerify: true,
 	}
 
@@ -125,7 +130,9 @@ func (p Proxy) handleHTTPSMethod(w http.ResponseWriter, req *http.Request) error
 
 	clientReader := bufio.NewReader(clientConn)
 	res, err := http.ReadResponse(clientReader, req)
-	if ok := utils.CheckError(err); ok { return err}
+	if ok := utils.CheckError(err); ok {
+		return err
+	}
 	if res == nil {
 		return errors.New("Reponse is nill")
 	}
@@ -144,4 +151,3 @@ func (p Proxy) handleHTTPSMethod(w http.ResponseWriter, req *http.Request) error
 
 	return nil
 }
-

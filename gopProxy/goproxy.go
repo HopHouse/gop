@@ -1,16 +1,16 @@
 package gopproxy
 
 import (
-	"time"
-	"fmt"
-	"net/http"
-	"net/http/httputil"
 	"bufio"
 	"bytes"
+	"crypto/tls"
+	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
+	"net/http/httputil"
 	"strings"
-	"crypto/tls"
+	"time"
 
 	"github.com/hophouse/gop/utils"
 	"github.com/jroimartin/gocui"
@@ -20,22 +20,22 @@ func RunProxyCmd(options *Options) {
 	// Init InterceptChan
 	InterceptChan = make(chan bool, 1)
 
+	//RunHTTPProxyCmd(options)
+	RunNetProxyCmd(options)
+}
+
+func RunNetProxyCmd(options *Options) {
 	addr := fmt.Sprintf("%s:%s", options.Host, options.Port)
 	_, err := net.ResolveTCPAddr("tcp4", addr)
 	utils.CheckErrorExit(err)
 
-	//RunHTTPProxyCmd(addr)
-	RunNetProxyCmd(addr)
-}
-
-func RunNetProxyCmd(addr string) {
-	certManager := InitCertManager()
+	certManager := InitCertManager(options.caFileOption, options.caPrivKeyFileOption)
 
 	l, err := net.Listen("tcp4", addr)
 	utils.CheckErrorExit(err)
 	defer l.Close()
 
-	go func () {
+	go func() {
 		for {
 			conn, err := l.Accept()
 			if err != nil {
@@ -45,7 +45,7 @@ func RunNetProxyCmd(addr string) {
 			}
 			handleConnection(conn, &certManager)
 		}
-	} ()
+	}()
 
 	RunGUI()
 }
@@ -59,7 +59,9 @@ func handleConnection(conn net.Conn, certManager *CertManager) {
 	reader := bufio.NewReader(conn)
 
 	req, err := http.ReadRequest(reader)
-	if ok := utils.CheckError(err); ok { return }
+	if ok := utils.CheckError(err); ok {
+		return
+	}
 	defer req.Body.Close()
 
 	// Connect method
@@ -67,33 +69,43 @@ func handleConnection(conn net.Conn, certManager *CertManager) {
 
 		// DNSLookup for IP
 		_, err := net.ResolveTCPAddr("tcp4", req.URL.Host)
-		if ok := utils.CheckError(err); ok { return }
+		if ok := utils.CheckError(err); ok {
+			return
+		}
 
 		// Dial the client
-		initConn, err := net.DialTimeout("tcp4", req.URL.Host, 2 * time.Second)
-		if ok := utils.CheckError(err); ok { return }
+		initConn, err := net.DialTimeout("tcp4", req.URL.Host, 2*time.Second)
+		if ok := utils.CheckError(err); ok {
+			return
+		}
 		defer initConn.Close()
 
 		clientConn := tls.Client(initConn, &tls.Config{InsecureSkipVerify: true})
 		err = clientConn.Handshake()
-		if ok := utils.CheckError(err); ok { return }
+		if ok := utils.CheckError(err); ok {
+			return
+		}
 
 		conn.Write([]byte("HTTP/1.1 200 OK\r\nProxy-agent: GoPentest/1.0\r\n\r\n"))
 
 		cer := certManager.CreateCertificate(req.URL.Hostname())
 		config := &tls.Config{
-			Certificates: []tls.Certificate{cer},
+			Certificates:       []tls.Certificate{cer},
 			InsecureSkipVerify: true,
 		}
 
 		proxyConn := tls.Server(conn, config)
 		err = proxyConn.Handshake()
-		if ok := utils.CheckError(err); ok { return }
+		if ok := utils.CheckError(err); ok {
+			return
+		}
 		defer proxyConn.Close()
 
 		proxyReader := bufio.NewReader(proxyConn)
 		req, err := http.ReadRequest(proxyReader)
-		if ok := utils.CheckError(err); ok { return }
+		if ok := utils.CheckError(err); ok {
+			return
+		}
 		PrintGUIRequest(req)
 		intercept()
 
@@ -146,10 +158,14 @@ func appendHostToXForwardHeader(header http.Header, host string) {
 
 func sendNetResponse(conn net.Conn, resp *http.Response) {
 	respBuffer, err := httputil.DumpResponse(resp, true)
-	if ok := utils.CheckError(err); ok { return }
+	if ok := utils.CheckError(err); ok {
+		return
+	}
 
 	_, err = conn.Write(respBuffer)
-	if ok := utils.CheckError(err); ok { return }
+	if ok := utils.CheckError(err); ok {
+		return
+	}
 }
 
 func copyHeader(newHeader http.Header, header http.Header) {
@@ -162,13 +178,17 @@ func copyHeader(newHeader http.Header, header http.Header) {
 
 func doHTTPRequest(r *http.Request) *http.Response {
 	newRequest, err := http.NewRequest(r.Method, r.URL.String(), nil)
-	if ok := utils.CheckError(err); ok { return nil }
+	if ok := utils.CheckError(err); ok {
+		return nil
+	}
 
 	copyHeader(newRequest.Header, r.Header)
 
 	client := http.Client{}
-	resp,err := client.Do(newRequest)
-	if ok := utils.CheckError(err); ok { return nil }
+	resp, err := client.Do(newRequest)
+	if ok := utils.CheckError(err); ok {
+		return nil
+	}
 
 	return resp
 }
@@ -176,7 +196,7 @@ func doHTTPRequest(r *http.Request) *http.Response {
 func PrintRequest(v *gocui.View, r *http.Request) {
 	fmt.Fprintf(v, "%s %s %s\n", r.Method, r.URL, r.Proto)
 	fmt.Fprintf(v, "Host: %s\n", r.Host)
-	for headerName, headerValueSlice := range(r.Header) {
+	for headerName, headerValueSlice := range r.Header {
 		for _, headerValue := range headerValueSlice {
 			fmt.Fprintf(v, "%s: %s\n", headerName, headerValue)
 		}
@@ -185,7 +205,7 @@ func PrintRequest(v *gocui.View, r *http.Request) {
 
 func PrintResponse(v *gocui.View, r http.Response) {
 	fmt.Fprintf(v, "%s\n", r.Status)
-	for headerName, headerValueSlice := range(r.Header) {
+	for headerName, headerValueSlice := range r.Header {
 		fmt.Fprintf(v, "%s: %s\n", headerName, headerValueSlice[0])
 	}
 }
@@ -197,10 +217,10 @@ func PrintGUIRequest(r *http.Request) {
 
 	G.Update(func(g *gocui.Gui) error {
 		v := ClearGUIView(g, "host")
-		fmt.Fprintf(v, "%s",  r.Host)
+		fmt.Fprintf(v, "%s", r.Host)
 
 		v = ClearGUIView(g, "url")
-		fmt.Fprintf(v, "%s %s %s",  r.URL.Scheme, r.URL.User, r.URL.Host)
+		fmt.Fprintf(v, "%s %s %s", r.URL.Scheme, r.URL.User, r.URL.Host)
 
 		v = ClearGUIView(g, "request")
 		PrintRequest(v, r)
@@ -220,7 +240,7 @@ func PrintGUIResponse(r http.Response) {
 		bodyBytes, _ = ioutil.ReadAll(r.Request.Body)
 	}
 	// Restore the io.ReadCloser to its original state
-	r.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))// Use the content
+	r.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes)) // Use the content
 
 	body := string(bodyBytes)
 
@@ -237,6 +257,6 @@ func PrintGUIResponse(r http.Response) {
 func intercept() {
 	if InterceptMode == true {
 		// Wait for data in channel and consimme it
-		<- InterceptChan
+		<-InterceptChan
 	}
 }

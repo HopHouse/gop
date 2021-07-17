@@ -1,31 +1,31 @@
 package gopproxy
 
 import (
-	"time"
-	"fmt"
-	"io/ioutil"
-	"crypto/tls"
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
+	"io/ioutil"
 	"math/big"
-	"bytes"
 	"net"
+	"time"
 
 	"github.com/hophouse/gop/utils"
 )
 
 type CertManager struct {
-	caCRT *x509.Certificate
-	caPrivateKey *rsa.PrivateKey
-	certPrivKey *rsa.PrivateKey
+	caCRT          *x509.Certificate
+	caPrivateKey   *rsa.PrivateKey
+	certPrivKey    *rsa.PrivateKey
 	certPrivKeyPEM *bytes.Buffer
-	certStore map[string]tls.Certificate
+	certStore      map[string]tls.Certificate
 }
 
-func (certManager CertManager) CreateCertificate(host string) (tls.Certificate) {
+func (certManager CertManager) CreateCertificate(host string) tls.Certificate {
 	// Check if we already have this certificate
 	if certificat, ok := certManager.certStore[host]; ok {
 		return certificat
@@ -37,16 +37,16 @@ func (certManager CertManager) CreateCertificate(host string) (tls.Certificate) 
 		utils.Log.Fatalf("Failed to generate serial number: %v", err)
 	}
 
-    // certparameters
+	// certparameters
 	cert := &x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			CommonName:    host,
-			Organization:  []string{"Company, INC."},
-			Country:       []string{"FR"},
-			Province:      []string{""},
-			Locality:      []string{"Paris"},
-			PostalCode:    []string{"75000"},
+			CommonName:   host,
+			Organization: []string{"Company, INC."},
+			Country:      []string{"FR"},
+			Province:     []string{""},
+			Locality:     []string{"Paris"},
+			PostalCode:   []string{"75000"},
 		},
 		//IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
 		NotBefore:    time.Now(),
@@ -89,44 +89,70 @@ func (certManager CertManager) CreateCertificate(host string) (tls.Certificate) 
 	return cer
 }
 
-func InitCertManager() CertManager {
+func InitCertManager(caFile string, caPrivKeyFile string) CertManager {
+	var err error
 	certManager := CertManager{}
 
 	// Init store
 	certManager.certStore = make(map[string]tls.Certificate)
 
 	// load CA public key/certificate
-	caPublicKeyFile, err := ioutil.ReadFile("../ca.crt")
-	if err != nil {
-		fmt.Println("Erreur reading CA")
-		utils.Log.Fatal(err)
-	}
-	pemBlock, _ := pem.Decode(caPublicKeyFile)
-	if pemBlock == nil {
-		fmt.Println("Erreur decode CA")
-		utils.Log.Fatal(err)
-	}
-	certManager.caCRT, err = x509.ParseCertificate(pemBlock.Bytes)
-	if err != nil {
-		fmt.Println("Erreur parse CA")
-		utils.Log.Fatal(err)
-	}
+	if caFile != "" && caPrivKeyFile != "" {
+		caPublicKeyFile, err := ioutil.ReadFile(caFile)
+		if err != nil {
+			fmt.Println("Erreur reading CA")
+			utils.Log.Fatal(err)
+		}
+		pemBlock, _ := pem.Decode(caPublicKeyFile)
+		if pemBlock == nil {
+			fmt.Println("Erreur decode CA")
+			utils.Log.Fatal(err)
+		}
+		certManager.caCRT, err = x509.ParseCertificate(pemBlock.Bytes)
+		if err != nil {
+			fmt.Println("Erreur parse CA")
+			utils.Log.Fatal(err)
+		}
 
-	// Load CA Private key
-	caPrivateKeyFile, err := ioutil.ReadFile("../ca.key")
-	if err != nil {
-		fmt.Println("Erreur reading CA key")
-		utils.Log.Fatal(err)
-	}
-	pemBlock, _ = pem.Decode(caPrivateKeyFile)
-	if pemBlock == nil {
-		fmt.Println("Erreur decode CA key")
-		utils.Log.Fatal(err)
-	}
-	certManager.caPrivateKey, err = x509.ParsePKCS1PrivateKey(pemBlock.Bytes)
-	if err != nil {
-		fmt.Println(err)
-		utils.Log.Fatal(err)
+		// Load CA Private key
+		caPrivateKeyFile, err := ioutil.ReadFile(caPrivKeyFile)
+		if err != nil {
+			fmt.Println("Erreur reading CA key")
+			utils.Log.Fatal(err)
+		}
+		pemBlock, _ = pem.Decode(caPrivateKeyFile)
+		if pemBlock == nil {
+			fmt.Println("Erreur decode CA key")
+			utils.Log.Fatal(err)
+		}
+
+		certManager.caPrivateKey, err = x509.ParsePKCS1PrivateKey(pemBlock.Bytes)
+		if err != nil {
+			fmt.Println(err)
+			utils.Log.Fatal(err)
+		}
+	} else {
+		certManager.caCRT, certManager.caPrivateKey = GenerateCA()
+
+		caBytes, err := x509.CreateCertificate(rand.Reader, certManager.caCRT, certManager.caCRT, certManager.caPrivateKey.Public(), certManager.caPrivateKey)
+		if err != nil {
+			fmt.Println(err)
+			utils.Log.Fatal(err)
+		}
+
+		caPEM := new(bytes.Buffer)
+		pem.Encode(caPEM, &pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: caBytes,
+		})
+		ioutil.WriteFile("ca.crt", caPEM.Bytes(), 0644)
+
+		caPrivKeyPEM := new(bytes.Buffer)
+		pem.Encode(caPrivKeyPEM, &pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: x509.MarshalPKCS1PrivateKey(certManager.caPrivateKey),
+		})
+		ioutil.WriteFile("ca-privkey.key", caPrivKeyPEM.Bytes(), 0644)
 	}
 
 	// Generate certPrivkey
@@ -145,4 +171,28 @@ func InitCertManager() CertManager {
 	//ioutil.WriteFile("server.key", certPrivKeyPEM.Bytes(), 0644)
 
 	return certManager
+}
+
+func GenerateCA() (*x509.Certificate, *rsa.PrivateKey) {
+	ca := &x509.Certificate{
+		SerialNumber: big.NewInt(2019),
+		Subject: pkix.Name{
+			CommonName:   "GOP",
+			Organization: []string{"Company, INC."},
+			Country:      []string{"FR"},
+			Province:     []string{""},
+			Locality:     []string{"Paris"},
+			PostalCode:   []string{"75000"},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(10, 0, 0),
+		IsCA:                  true,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+
+	caPrivKey, _ := rsa.GenerateKey(rand.Reader, 4096)
+
+	return ca, caPrivKey
 }

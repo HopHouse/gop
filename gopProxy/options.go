@@ -4,7 +4,10 @@ type Options struct {
 	Host string
 	Port string
 
-	VerboseOption bool
+	caFileOption        string
+	caPrivKeyFileOption string
+
+	VerboseOption   bool
 	InterceptOption bool
 }
 
@@ -13,11 +16,13 @@ var (
 	InterceptChan chan bool
 )
 
-func InitOptions(host string, port string, verboseOption bool, interceptOption bool) Options {
+func InitOptions(host string, port string, verboseOption bool, interceptOption bool, caFileOption string, caPrivKeyFileOption string) Options {
 	var options Options
 
 	options.Host = host
 	options.Port = port
+	options.caFileOption = caFileOption
+	options.caPrivKeyFileOption = caPrivKeyFileOption
 	options.VerboseOption = verboseOption
 	options.InterceptOption = interceptOption
 

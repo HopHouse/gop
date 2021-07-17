@@ -27,8 +27,10 @@ import (
 )
 
 var (
-	verboseOption   bool
-	interceptOption bool
+	caFileOption        string
+	caPrivKeyFileOption string
+	verboseOption       bool
+	interceptOption     bool
 )
 
 // proxyCmd represents the proxy command
@@ -37,7 +39,7 @@ var proxyCmd = &cobra.Command{
 	Short: "Set up a proxy to use",
 	Long:  "Set up a proxy to use",
 	Run: func(cmd *cobra.Command, args []string) {
-		options := gopproxy.InitOptions(hostOption, portOption, verboseOption, interceptOption)
+		options := gopproxy.InitOptions(hostOption, portOption, verboseOption, interceptOption, caFileOption, caPrivKeyFileOption)
 		gopproxy.RunProxyCmd(&options)
 	},
 }
@@ -47,6 +49,8 @@ func init() {
 
 	proxyCmd.PersistentFlags().StringVarP(&hostOption, "Host", "H", "127.0.0.1", "Define the proxy host.")
 	proxyCmd.PersistentFlags().StringVarP(&portOption, "Port", "P", "8080", "Define the proxy port.")
+	proxyCmd.PersistentFlags().StringVarP(&caFileOption, "ca-file", "", "", "Certificate Authority certficate file.")
+	proxyCmd.PersistentFlags().StringVarP(&caPrivKeyFileOption, "capriv-file", "", "", "Certificate Authority Private Key file.")
 	proxyCmd.PersistentFlags().BoolVarP(&verboseOption, "verbose", "v", false, "Display more information about packets.")
 	proxyCmd.PersistentFlags().BoolVarP(&reportOption, "intercept", "i", false, "Intercept traffic.")
 }
