@@ -1,11 +1,18 @@
 package goirc
 
 import (
+	"bytes"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"strings"
 
+	gopproxy "github.com/hophouse/gop/gopProxy"
 	"github.com/hophouse/gop/utils"
 	"github.com/jroimartin/gocui"
 )
@@ -69,11 +76,38 @@ func launchServer(options optionsStruct) net.Conn {
 	address := fmt.Sprintf("%s:%s", options.host, options.port)
 	fmt.Println("[+] Launching server on ", address)
 
+	serverCert, serverKey := gopproxy.GenerateCA()
+
+	caBytes, err := x509.CreateCertificate(rand.Reader, serverCert, serverCert, serverKey.Public(), serverKey)
+	if err != nil {
+		fmt.Println(err)
+		utils.Log.Fatal(err)
+	}
+
+	serverCertPEM := new(bytes.Buffer)
+	pem.Encode(serverCertPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: caBytes,
+	})
+
+	serverPrivKeyPEM := new(bytes.Buffer)
+	pem.Encode(serverPrivKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(serverKey),
+	})
+
+	cer, err := tls.X509KeyPair(serverCertPEM.Bytes(), serverPrivKeyPEM.Bytes())
+	if err != nil {
+		log.Fatal(err)
+	}
+	config := &tls.Config{Certificates: []tls.Certificate{cer}}
+
 	// Listen for incoming connections.
-	l, err := net.Listen("tcp", address)
+	l, err := tls.Listen("tcp", address, config)
 	if err != nil {
 		utils.Log.Panicln("Error listening:", err.Error())
 	}
+	defer l.Close()
 
 	conn, err := l.Accept()
 	if err != nil {
@@ -87,7 +121,11 @@ func connectToServer(options optionsStruct) net.Conn {
 	address := fmt.Sprintf("%s:%s", options.host, options.port)
 	fmt.Println("[+] Connecting to ", address)
 
-	conn, err := net.Dial("tcp", address)
+	config := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	conn, err := tls.Dial("tcp", address, config)
 	if err != nil {
 		utils.Log.Panicln(err)
 	}
