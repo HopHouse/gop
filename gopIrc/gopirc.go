@@ -3,6 +3,7 @@ package goirc
 import (
 	"fmt"
 	"net"
+	"os"
 	"strings"
 
 	"github.com/hophouse/gop/utils"
@@ -51,6 +52,8 @@ func RunClientIRC(host string, port string, username string) {
 
 	sendChan = make(chan string)
 	receiveChan = make(chan string)
+	defer close(sendChan)
+	defer close(receiveChan)
 
 	conn := connectToServer(Options)
 	defer conn.Close()
@@ -94,12 +97,7 @@ func connectToServer(options optionsStruct) net.Conn {
 
 func sendMessage(conn net.Conn, sendChan <-chan string) {
 	for sendItem := range sendChan {
-		message := sendItem
-		if !strings.HasPrefix(sendItem, "[+] ") {
-			message = fmt.Sprintf("%s > %s", Options.username, sendItem)
-		}
-		conn.Write([]byte(message))
-		receiveChan <- message
+		conn.Write([]byte(sendItem))
 		G.Update(func(g *gocui.Gui) error { return nil })
 	}
 }
@@ -107,7 +105,6 @@ func sendMessage(conn net.Conn, sendChan <-chan string) {
 func receiveMessage(conn net.Conn, receiveChan chan<- string) {
 	for {
 		message := ""
-
 		for {
 			buffer := make([]byte, 4096)
 			n, _ := conn.Read(buffer)
@@ -116,7 +113,6 @@ func receiveMessage(conn net.Conn, receiveChan chan<- string) {
 				break
 			}
 		}
-
 		receiveChan <- message
 		G.Update(func(g *gocui.Gui) error { return nil })
 	}
@@ -125,9 +121,11 @@ func receiveMessage(conn net.Conn, receiveChan chan<- string) {
 func GuiReceiveMessage(receiveChan chan string) {
 	for receiveItem := range receiveChan {
 		message := receiveItem
-		view, _ := G.View("chat")
-		view.Write([]byte(message))
-		G.Update(func(g *gocui.Gui) error { return nil })
+		view, err := G.View("chat")
+		if err == nil {
+			view.Write([]byte(message))
+			G.Update(func(g *gocui.Gui) error { return nil })
+		}
 	}
 }
 
@@ -143,6 +141,7 @@ func executeCommand(command string) {
 
 		message := fmt.Sprintf("[+] %s changed username for : %s\n", Options.username, newUsername)
 		sendChan <- message
+		receiveChan <- message
 
 		Options.username = newUsername
 		view, _ := G.View("username")
@@ -151,6 +150,17 @@ func executeCommand(command string) {
 		G.Update(func(g *gocui.Gui) error { return nil })
 
 		return
+	} else if strings.HasPrefix(strings.ToLower(command), "quit") {
+		message := fmt.Sprintf("[+] %s leaves the chat\n", Options.username)
+		sendChan <- message
+		receiveChan <- message
+
+		close(receiveChan)
+		close(sendChan)
+
+		G.Close()
+		os.Exit(0)
+
 	} else {
 		receiveChan <- getHelp()
 	}
@@ -161,7 +171,9 @@ func getHelp() string {
 	helpMessage := []string{"",
 		"[+] Help menu :",
 		"\t!help : Displays help message",
-		"\t!username : Change username",
+		"\t!username : Changes username",
+		"\t!quit : Leaves the chat",
+		"",
 		"",
 	}
 
@@ -211,7 +223,11 @@ func GuiSendMessage(g *gocui.Gui, v *gocui.View) error {
 		if strings.HasPrefix(message, "!") {
 			executeCommand(message[1:])
 		} else {
+			if !strings.HasPrefix(message, "[+] ") {
+				message = fmt.Sprintf("%s > %s", Options.username, message)
+			}
 			sendChan <- message
+			receiveChan <- message
 		}
 		v.Clear()
 		v.SetCursor(0, 0)
