@@ -78,6 +78,8 @@ func init() {
 		"adm",
 		"welcome",
 		"test",
+		"user",
+		"pass",
 		"password",
 		"motdepasse",
 	}
@@ -85,7 +87,7 @@ func init() {
 	passwordGenCmd.Flags().StringSliceVarP(&baseWordlistOption, "base-wordlist", "", baseWordlist, "baseWordlist.")
 	passwordGenCmd.Flags().StringSliceVarP(&wordlistOption, "wordlist", "w", []string{}, "Wordlist.")
 	passwordGenCmd.MarkFlagRequired("wordlist")
-	passwordGenCmd.Flags().IntVarP(&minYearOption, "min-year", "", 2010, "min year.")
+	passwordGenCmd.Flags().IntVarP(&minYearOption, "min-year", "", 2015, "min year.")
 	passwordGenCmd.Flags().IntVarP(&maxYearOption, "max-year", "", 2022, "max year.")
 	passwordGenCmd.Flags().StringVarP(&outFileOption, "outfile", "o", "gop_generate_passwords.txt", "File where the generated passwords are put.")
 	passwordGenCmd.Flags().BoolVarP(&stdinOption, "stdin", "", false, "Display generated passwords in stdin instead of in a file.")

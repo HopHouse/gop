@@ -48,6 +48,20 @@ func RunPasswordGen(wordlist []string, delimiters []string, minYear int, maxYear
 	}
 	generatedWordlist = append(generatedWordlist, computedWordlist...)
 
+	// Concatenante : [wordlist][delimiter][wordlist]
+	computedWordlist = []string{}
+	for _, word1 := range generatedWordlist {
+		for _, word2 := range generatedWordlist {
+			computed := fmt.Sprintf("%s%s", word1, word2)
+			computedWordlist = append(computedWordlist, computed)
+			for i := 0; i < 100; i++ {
+				computed := fmt.Sprintf("%s%2d%s", word1, i, word2)
+				computedWordlist = append(computedWordlist, computed)
+			}
+		}
+	}
+	generatedWordlist = append(generatedWordlist, computedWordlist...)
+
 	// Keep only unique values
 	generatedWordlist = unique(generatedWordlist)
 
