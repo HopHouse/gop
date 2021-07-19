@@ -1,4 +1,4 @@
-package gopsocks
+package goptunnel
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/hophouse/gop/utils"
 )
 
-func RunClientSocks() {
+func RunClientSocks(socks5Option bool) {
 	// Socks listener
 	addressSocks := "127.0.0.1:1337"
 	fmt.Println("[+] Start a socks server on ", addressSocks)
@@ -46,7 +46,7 @@ func RunClientSocks() {
 	}
 }
 
-func RunServerSocks() {
+func RunServerSocks(socks5Option bool) {
 	address := "127.0.0.1:1338"
 	fmt.Println("[+] Start the server tunnel on ", address)
 
@@ -80,9 +80,16 @@ func handleServerTunnelConnexion(conn net.Conn) {
 	if err != nil {
 		fmt.Println("\t[!] ", err)
 	}
+	fmt.Println("[+] Connexion to the socks client established", network, address)
 
-	fmt.Println("[+] Connexion to the socks client established")
-	newConn, _ := net.Dial(network, address)
+	if network == "" || address == "" {
+		utils.Log.Println("[!] Wrong info", network, address)
+		return
+	}
+	newConn, err := net.Dial(network, address)
+	if err != nil {
+		utils.Log.Panicln(err)
+	}
 	defer newConn.Close()
 
 	go io.Copy(newConn, conn)

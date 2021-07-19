@@ -22,14 +22,18 @@ THE SOFTWARE.
 package cmd
 
 import (
-	gopsocks "github.com/hophouse/gop/gopSocks"
+	goptunnel "github.com/hophouse/gop/gopTunnel"
 	"github.com/hophouse/gop/utils"
 	"github.com/spf13/cobra"
 )
 
+var (
+	socks5Option bool
+)
+
 // socksCmd represents the host command
-var socksCmd = &cobra.Command{
-	Use:   "socks",
+var tunnelCmd = &cobra.Command{
+	Use:   "tunnel",
 	Short: ".",
 	Long:  ".",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
@@ -37,27 +41,29 @@ var socksCmd = &cobra.Command{
 	},
 }
 
-var socksServerCmd = &cobra.Command{
+var tunnelServerCmd = &cobra.Command{
 	Use:   "server",
 	Short: ".",
 	Long:  ".",
 	Run: func(cmd *cobra.Command, args []string) {
-		gopsocks.RunServerSocks()
+		goptunnel.RunServerSocks(socks5Option)
 	},
 }
 
-var socksClientCmd = &cobra.Command{
+var tunnelClientCmd = &cobra.Command{
 	Use:   "client",
 	Short: ".",
 	Long:  ".",
 	Run: func(cmd *cobra.Command, args []string) {
-		gopsocks.RunClientSocks()
+		goptunnel.RunClientSocks(socks5Option)
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(socksCmd)
+	rootCmd.AddCommand(tunnelCmd)
 
-	socksCmd.AddCommand(socksServerCmd)
-	socksCmd.AddCommand(socksClientCmd)
+	tunnelCmd.AddCommand(tunnelServerCmd)
+	tunnelCmd.AddCommand(tunnelClientCmd)
+
+	tunnelCmd.PersistentFlags().BoolVarP(&socks5Option, "socks5", "", false, "Enable a socks5 server.")
 }

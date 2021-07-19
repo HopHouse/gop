@@ -1,4 +1,4 @@
-package gopsocks
+package goptunnel
 
 import (
 	"encoding/binary"
