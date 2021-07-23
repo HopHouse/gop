@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"net"
 	"os"
 
 	gopserve "github.com/hophouse/gop/gopServe"
@@ -10,6 +11,7 @@ import (
 
 var (
 	directoryServeOption string
+	interfaceOption      string
 	authOption           string
 	realmOption          string
 )
@@ -39,6 +41,26 @@ var serveCmd = &cobra.Command{
 		}
 
 		utils.Log.SetFlags(0)
+
+		if interfaceOption != "" {
+			ief, err := net.InterfaceByName(interfaceOption)
+			if err != nil { // get interface
+				return
+			}
+			addrs, err := ief.Addrs()
+			if err != nil { // get addresses
+				return
+			}
+			for _, addr := range addrs { // get ipv4 address
+				ipv4Addr := addr.(*net.IPNet).IP.To4()
+				if ipv4Addr != nil {
+					break
+				}
+				if ipv4Addr != nil {
+					hostOption = ipv4Addr.String()
+				}
+			}
+		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		gopserve.RunServeCmd(hostOption, portOption, directoryServeOption, authOption, realmOption)
@@ -48,7 +70,8 @@ var serveCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(serveCmd)
 
-	serveCmd.PersistentFlags().StringVarP(&hostOption, "Host", "H", "127.0.0.1", "Define the proxy host.")
+	serveCmd.PersistentFlags().StringVarP(&interfaceOption, "interface", "i", "", "Interface to take IP adress.")
+	serveCmd.PersistentFlags().StringVarP(&hostOption, "Host", "H", "0.0.0.0", "Define the proxy host.")
 	serveCmd.PersistentFlags().StringVarP(&portOption, "Port", "P", "8000", "Define the proxy port.")
 	serveCmd.PersistentFlags().StringVarP(&directoryServeOption, "directory", "d", ".", "Directory to serve.")
 	serveCmd.PersistentFlags().StringVarP(&authOption, "auth", "a", "", "Add an authentication option to the server. Could be either \"Basic\" or \"NTLM\".")
