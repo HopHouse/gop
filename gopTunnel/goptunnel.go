@@ -206,7 +206,8 @@ func handleServerSocks5Connexion(conn net.Conn) {
 	}
 	newConn, err := net.Dial(network, address)
 	if err != nil {
-		utils.Log.Panicln(err)
+		//utils.Log.Panicln(err)
+		return
 	}
 	defer newConn.Close()
 
