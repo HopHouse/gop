@@ -28,7 +28,8 @@ import (
 )
 
 var (
-	socks5Option bool
+	socketOption string
+	tunnelOption string
 )
 
 // socksCmd represents the host command
@@ -46,7 +47,7 @@ var tunnelServerCmd = &cobra.Command{
 	Short: ".",
 	Long:  ".",
 	Run: func(cmd *cobra.Command, args []string) {
-		goptunnel.RunServerSocks(socks5Option)
+		goptunnel.RunServer(tunnelOption, socketOption, modeOption)
 	},
 }
 
@@ -55,7 +56,7 @@ var tunnelClientCmd = &cobra.Command{
 	Short: ".",
 	Long:  ".",
 	Run: func(cmd *cobra.Command, args []string) {
-		goptunnel.RunClientSocks(socks5Option)
+		goptunnel.RunClient(tunnelOption, socketOption, modeOption)
 	},
 }
 
@@ -64,6 +65,7 @@ func init() {
 
 	tunnelCmd.AddCommand(tunnelServerCmd)
 	tunnelCmd.AddCommand(tunnelClientCmd)
-
-	tunnelCmd.PersistentFlags().BoolVarP(&socks5Option, "socks5", "", false, "Enable a socks5 server.")
+	tunnelCmd.PersistentFlags().StringVarP(&modeOption, "mode", "m", "", "Choose which mode use : send, listen, or socks5.")
+	tunnelCmd.PersistentFlags().StringVar(&tunnelOption, "tunnel", "127.0.0.1:6666", "Address where a socket will be open waiting for connexions to establish a tunnel.")
+	tunnelCmd.PersistentFlags().StringVar(&socketOption, "redirect", "127.0.0.1:4444", "Address where the traffic will be redirected.")
 }
