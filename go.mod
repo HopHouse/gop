@@ -17,6 +17,7 @@ require (
 	github.com/gocolly/colly v1.2.0
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
+	github.com/google/uuid v1.1.2
 	github.com/gookit/color v1.4.2
 	github.com/gorilla/mux v1.8.0
 	github.com/hophouse/golang-whois v0.0.0-20201201134657-ef4b2ee3bb08

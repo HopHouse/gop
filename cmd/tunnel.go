@@ -30,6 +30,7 @@ import (
 var (
 	socketOption string
 	tunnelOption string
+	typeOption   string
 )
 
 // socksCmd represents the host command
@@ -47,7 +48,7 @@ var tunnelServerCmd = &cobra.Command{
 	Short: ".",
 	Long:  ".",
 	Run: func(cmd *cobra.Command, args []string) {
-		goptunnel.RunServer(tunnelOption, socketOption, modeOption)
+		goptunnel.RunServer(tunnelOption, socketOption, typeOption, modeOption)
 	},
 }
 
@@ -56,7 +57,7 @@ var tunnelClientCmd = &cobra.Command{
 	Short: ".",
 	Long:  ".",
 	Run: func(cmd *cobra.Command, args []string) {
-		goptunnel.RunClient(tunnelOption, socketOption, modeOption)
+		goptunnel.RunClient(tunnelOption, socketOption, typeOption, modeOption)
 	},
 }
 
@@ -66,6 +67,7 @@ func init() {
 	tunnelCmd.AddCommand(tunnelServerCmd)
 	tunnelCmd.AddCommand(tunnelClientCmd)
 	tunnelCmd.PersistentFlags().StringVarP(&modeOption, "mode", "m", "", "Choose which mode use : send, listen, or socks5.")
+	tunnelCmd.PersistentFlags().StringVarP(&typeOption, "type", "t", "plain", "Choose which type of tunnel used : plain, tls.")
 	tunnelCmd.PersistentFlags().StringVar(&tunnelOption, "tunnel", "127.0.0.1:6666", "Address where a socket will be open waiting for connexions to establish a tunnel.")
-	tunnelCmd.PersistentFlags().StringVar(&socketOption, "redirect", "127.0.0.1:4444", "Address where the traffic will be redirected.")
+	tunnelCmd.PersistentFlags().StringVarP(&socketOption, "socket", "s", "127.0.0.1:4444", "Address where the traffic will be redirected.")
 }

@@ -5,90 +5,187 @@ import (
 	"io"
 	"net"
 
+	"github.com/google/uuid"
 	"github.com/hophouse/gop/utils"
 )
 
-func RunServer(tunnelAddress string, socketAddress string, mode string) {
-	fmt.Println("[+] Tunnel listen to :", tunnelAddress)
+func handleServerSend(currentTunnel tunnelInterface, socketAddress string, goRoutineUUID uuid.UUID) {
+	// Contact the host that will receive traffic
+	connSocket, err := net.Dial("tcp", socketAddress)
+	if err != nil {
+		utils.Log.Fatalln(err)
+		return
+	}
+	utils.Log.Println(goRoutineUUID.String(), "Socket received traffic. Will send message")
+
+	done := make(chan bool, 2)
+
+	go func(currentTunnel tunnelInterface, connSocket net.Conn) {
+		utils.Log.Println(goRoutineUUID.String(), "Copy currentTunnel<-connSocket")
+		io.Copy(currentTunnel, connSocket)
+		done <- true
+	}(currentTunnel, connSocket)
+
+	go func(currentTunnel tunnelInterface, connSocket net.Conn) {
+		utils.Log.Println(goRoutineUUID.String(), "Copy currentSocks<-connTunnel")
+		io.Copy(connSocket, currentTunnel)
+		done <- true
+	}(currentTunnel, connSocket)
+
+	<-done
+
+	func() {
+		utils.Log.Println(goRoutineUUID.String(), "Close the connection in ", connSocket.RemoteAddr())
+		connSocket.Close()
+	}()
+
+	func() {
+		utils.Log.Println(goRoutineUUID.String(), "Close the connection in ", currentTunnel.RemoteAddr())
+		currentTunnel.Close()
+	}()
+}
+
+func handleServerListen(currentTunnel tunnelInterface, socketListener net.Listener, goRoutineUUID uuid.UUID) {
+	connSocket, err := socketListener.Accept()
+	if err != nil {
+		utils.Log.Println(err)
+		return
+	}
+	utils.Log.Println(goRoutineUUID.String(), "Socket received traffic. Will send message")
+
+	currentTunnel.Write([]byte("send"))
+
+	done := make(chan bool)
+
+	go func(currentTunnel tunnelInterface, connSocket net.Conn) {
+		utils.Log.Println(goRoutineUUID.String(), "Copy currentSocks<-connTunnel")
+		_, err := io.Copy(connSocket, currentTunnel)
+		if err != nil {
+			utils.Log.Println(goRoutineUUID.String(), "Copy error :", err)
+		}
+
+		done <- true
+	}(currentTunnel, connSocket)
+
+	go func(currentTunnel tunnelInterface, connSocket net.Conn) {
+		utils.Log.Println(goRoutineUUID.String(), "Copy currentTunnel<-connSocket")
+		_, err := io.Copy(currentTunnel, connSocket)
+		if err != nil {
+			utils.Log.Println(goRoutineUUID.String(), "Copy error :", err)
+		}
+		done <- true
+	}(currentTunnel, connSocket)
+
+	<-done
+
+	func() {
+		utils.Log.Println(goRoutineUUID.String(), "Close the connection in ", currentTunnel.RemoteAddr())
+		currentTunnel.Close()
+	}()
+
+	func() {
+		utils.Log.Println(goRoutineUUID.String(), "Close the connection in ", connSocket.RemoteAddr())
+		connSocket.Close()
+	}()
+}
+
+func RunServer(tunnelAddress string, socketAddress string, tunnelType string, mode string) {
+	var tunnel tunnelInterface
+
+	switch tunnelType {
+	case "plain":
+		tunnel = &PlainTextTunnel{
+			Protocol: "tcp",
+			Address:  tunnelAddress,
+			Conn:     nil,
+			Listener: nil,
+		}
+		/*
+			case "udp-plain":
+				tunnel = &UDPPlainTextTunnel{
+					Protocol: "udp",
+					Address:  tunnelAddress,
+					Conn:     nil,
+					Listener: nil,
+				}
+		*/
+	case "tls":
+		tunnel = &TlsTunnel{
+			Protocol: "tcp",
+			Address:  tunnelAddress,
+			Conn:     nil,
+			Listener: nil,
+		}
+	case "http":
+		tunnel = &HTTPPlainTextTunnel{
+			Protocol: "tcp",
+			Address:  tunnelAddress,
+			Conn:     nil,
+			Listener: nil,
+		}
+	default:
+		utils.Log.Fatalln("Unknown type")
+	}
+
+	utils.Log.Println("Tunnel listen to :", tunnelAddress)
 
 	// Start a listener for the tunnel
-	tunnelListner, err := net.Listen("tcp", tunnelAddress)
+	err := tunnel.Listen()
 	if err != nil {
 		utils.Log.Fatalln(err)
 	}
+	utils.Log.Println("Traffic will be redirected to :", socketAddress)
 
 	switch mode {
 	case "send":
-		fmt.Println("[+] Traffic will be redirected to :", socketAddress)
-
 		for {
-			connTunnel, err := tunnelListner.Accept()
+			goRoutineUUID, _ := uuid.NewRandom()
+
+			currentTunnel := tunnel
+			err = currentTunnel.Accept()
 			if err != nil {
 				//utils.Log.Fatalln(err)
 				utils.Log.Println(err)
 				continue
 			}
-			fmt.Println("[+] Tunnel established with ", connTunnel.RemoteAddr().String())
+			utils.Log.Println(goRoutineUUID.String(), "Tunnel established with ", currentTunnel.RemoteAddr())
 
-			go func() {
-				// Contact the host that will receive traffic
-				connHost, err := net.Dial("tcp", socketAddress)
-				if err != nil {
-					//utils.Log.Fatalln(err)
-					utils.Log.Println(err)
-					return
-				}
+			go handleServerSend(currentTunnel, socketAddress, goRoutineUUID)
 
-				go io.Copy(connHost, connTunnel)
-				io.Copy(connTunnel, connHost)
-
-				connHost.Close()
-				connTunnel.Close()
-			}()
 		}
 	case "listen":
+
 		// Start a listener for the socket
 		socketListener, err := net.Listen("tcp", socketAddress)
 		if err != nil {
 			utils.Log.Fatalln(err)
 		}
-		fmt.Println("[+] Local listen address to send traffic is :", socketAddress)
+		utils.Log.Println("Local listen address to send traffic is :", socketAddress)
 
 		for {
-			connTunnel, err := tunnelListner.Accept()
+			goRoutineUUID, _ := uuid.NewRandom()
+
+			currentTunnel := tunnel.Clone()
+			err := currentTunnel.Accept()
 			if err != nil {
 				utils.Log.Fatalln(err)
-				//utils.Log.Println(err)
 			}
-			fmt.Println("[+] Tunnel established with ", connTunnel.RemoteAddr().String())
+			utils.Log.Println(goRoutineUUID.String(), "Tunnel established with ", currentTunnel.RemoteAddr())
 
-			go func() {
-				connListner, err := socketListener.Accept()
-				if err != nil {
-					utils.Log.Println(err)
-					return
-				}
-				fmt.Println("[+] Socket received traffic. Will send message")
-
-				connTunnel.Write([]byte("send"))
-
-				go io.Copy(connTunnel, connListner)
-				io.Copy(connListner, connTunnel)
-
-				connListner.Close()
-				connTunnel.Close()
-			}()
+			go handleServerListen(currentTunnel, socketListener, goRoutineUUID)
 		}
-
 	case "socks5":
 		for {
-			connTunnel, err := tunnelListner.Accept()
+			goRoutineUUID, _ := uuid.NewRandom()
+
+			currentTunnel := tunnel
+			err = currentTunnel.Accept()
 			if err != nil {
 				utils.Log.Fatalln(err)
 			}
-			fmt.Println("[+] Tunnel received a connexion from ", connTunnel.RemoteAddr().String())
+			utils.Log.Println(goRoutineUUID.String(), "Tunnel received a connexion from ", currentTunnel.RemoteAddr())
 
-			go handleServerSocks5Connexion(connTunnel)
+			go handleServerSocks5Connexion(currentTunnel)
 		}
 	default:
 		utils.Log.Fatalln("Unknown mode")
@@ -96,84 +193,186 @@ func RunServer(tunnelAddress string, socketAddress string, mode string) {
 
 }
 
-func RunClient(tunnelAddress string, socketAddress string, mode string) {
+func handleClientSend(currentTunnel tunnelInterface, socketAddress string, goRoutineUUID uuid.UUID) {
+	done := make(chan bool)
+	utils.Log.Printf("%s %x %#v\n", goRoutineUUID.String(), &currentTunnel, currentTunnel)
+
+	// Contact the host
+	connSocket, err := net.Dial("tcp", socketAddress)
+	if err != nil {
+		utils.Log.Fatalln(err)
+	}
+	utils.Log.Println(goRoutineUUID.String(), "Establish connexion with client established at", socketAddress)
+
+	go func(currentTunnel tunnelInterface, connSocket net.Conn) {
+		utils.Log.Println(goRoutineUUID.String(), "Copy currentTunnel<-connSocket")
+		_, err := io.Copy(currentTunnel, connSocket)
+		if err != nil {
+			utils.Log.Println(goRoutineUUID.String(), "Copy error :", err)
+		}
+		done <- true
+	}(currentTunnel, connSocket)
+
+	go func(currentTunnel tunnelInterface, connSocket net.Conn) {
+		utils.Log.Println(goRoutineUUID.String(), "Copy connSocket<-currentTunnel")
+		_, err := io.Copy(connSocket, currentTunnel)
+		if err != nil {
+			utils.Log.Println(goRoutineUUID.String(), "Copy error :", err)
+		}
+		done <- true
+	}(currentTunnel, connSocket)
+
+	<-done
+
+	func() {
+		utils.Log.Println(goRoutineUUID.String(), "Close the connection in ", connSocket.RemoteAddr())
+		connSocket.Close()
+	}()
+	func() {
+		utils.Log.Println(goRoutineUUID.String(), "Close the connection in ", currentTunnel.RemoteAddr())
+		currentTunnel.Close()
+	}()
+}
+
+func RunClient(tunnelAddress string, socketAddress string, tunnelType string, mode string) {
+	var tunnel tunnelInterface
+
+	switch tunnelType {
+	case "plain":
+		tunnel = &PlainTextTunnel{
+			Protocol: "tcp",
+			Address:  tunnelAddress,
+			Conn:     nil,
+			Listener: nil,
+		}
+		/*
+			case "udp-plain":
+				tunnel = &UDPPlainTextTunnel{
+					Protocol: "udp",
+					Address:  tunnelAddress,
+					Conn:     nil,
+					Listener: nil,
+				}
+		*/
+	case "tls":
+		tunnel = &TlsTunnel{
+			Protocol: "tcp",
+			Address:  tunnelAddress,
+			Conn:     nil,
+			Listener: nil,
+		}
+	case "http":
+		tunnel = &HTTPPlainTextTunnel{
+			Protocol: "tcp",
+			Address:  tunnelAddress,
+			Conn:     nil,
+			Listener: nil,
+		}
+	default:
+		utils.Log.Fatalln("Unknown type")
+	}
+
 	switch mode {
 	case "send":
 		for {
-			// Contact the tunnel
-			connTunnel, err := net.Dial("tcp", tunnelAddress)
-			if err != nil {
-				utils.Log.Fatalln(err)
-			}
-			fmt.Println("[+] Tunnel connexion established with", tunnelAddress)
+			goRoutineUUID, _ := uuid.NewRandom()
 
-			// Contact the host
-			connSocks, err := net.Dial("tcp", socketAddress)
+			// need to be defined
+			currentTunnel := tunnel.Clone()
+			err := currentTunnel.Dial()
 			if err != nil {
 				utils.Log.Fatalln(err)
 			}
-			fmt.Println("[+] Establish connexion with client established with", socketAddress)
+			utils.Log.Println(goRoutineUUID.String(), "Tunnel connexion established with", tunnelAddress)
 
 			for {
-				tun := make([]byte, 4096)
-				n, _ := connTunnel.Read(tun)
+				tun := make([]byte, 150)
+				n, _ := currentTunnel.Read(tun)
 
 				if n > 0 {
+					fmt.Printf("%v", tun[:n])
 					if string(tun[:n]) == "send" {
 						break
 					}
 				}
 			}
+			utils.Log.Println(goRoutineUUID.String(), "\"send\" message received", currentTunnel.RemoteAddr())
 
-			go func() {
-
-				go io.Copy(connSocks, connTunnel)
-				io.Copy(connTunnel, connSocks)
-
-				connSocks.Close()
-				connTunnel.Close()
-			}()
+			go handleClientSend(currentTunnel, socketAddress, goRoutineUUID)
 		}
 	case "listen":
-		fmt.Println("[+] Local listen address to send traffic is :", socketAddress)
+		utils.Log.Println("Local listen address to send traffic is :", socketAddress)
 		socketListen, err := net.Listen("tcp", socketAddress)
 		if err != nil {
 			utils.Log.Fatalln(err)
+			return
 		}
 
 		for {
-			connListner, err := socketListen.Accept()
+			goRoutineUUID, _ := uuid.NewRandom()
+
+			connSocket, err := socketListen.Accept()
 			if err != nil {
 				utils.Log.Fatalln(err)
+				continue
 			}
-			fmt.Println("[+] Establish connexion with", socketAddress)
+			utils.Log.Println(goRoutineUUID.String(), "Establish connexion with", socketAddress)
 
-			go func() {
+			go func(connSocket net.Conn) {
+				done := make(chan bool)
+
 				// Contact the tunnel
-				connTunnel, err := net.Dial("tcp", tunnelAddress)
+				currentTunnel := tunnel.Clone()
+				err := currentTunnel.Dial()
 				if err != nil {
 					utils.Log.Fatalln(err)
+					return
 				}
-				fmt.Println("[+] Tunnel connexion established with", tunnelAddress)
 
-				go io.Copy(connListner, connTunnel)
-				io.Copy(connTunnel, connListner)
+				defer func() {
+					utils.Log.Println(goRoutineUUID.String(), "Close the connection in ", currentTunnel.RemoteAddr())
+					currentTunnel.Close()
+				}()
 
-				connTunnel.Close()
-			}()
+				go func(currentTunnel tunnelInterface, connSocket net.Conn) {
+					utils.Log.Println(goRoutineUUID.String(), "Copy currentTunnel<-connSocket")
+					io.Copy(currentTunnel, connSocket)
+					done <- true
+				}(currentTunnel, connSocket)
+
+				go func(currentTunnel tunnelInterface, connSocket net.Conn) {
+					utils.Log.Println(goRoutineUUID.String(), "Copy connSocket<-currentTunnel")
+					io.Copy(connSocket, currentTunnel)
+					done <- true
+				}(currentTunnel, connSocket)
+
+				func() {
+					utils.Log.Println(goRoutineUUID.String(), "Close the connection in ", connSocket.RemoteAddr())
+					connSocket.Close()
+				}()
+			}(connSocket)
 		}
 	case "socks5":
 		for {
+			goRoutineUUID, _ := uuid.NewRandom()
+
 			// Contact the tunnel
-			connTunnel, err := net.Dial("tcp", tunnelAddress)
+			currentTunnel := tunnel.Clone()
+			err := currentTunnel.Dial()
 			if err != nil {
 				utils.Log.Fatalln(err)
+				continue
 			}
-			fmt.Println("[+] Tunnel connexion established with", tunnelAddress)
+			utils.Log.Println(goRoutineUUID.String(), "Tunnel connexion established with", tunnelAddress)
+
+			defer func() {
+				utils.Log.Println(goRoutineUUID.String(), "Close the connection in ", currentTunnel.RemoteAddr())
+				currentTunnel.Close()
+			}()
 
 			for {
-				tun := make([]byte, 4096)
-				n, _ := connTunnel.Read(tun)
+				tun := make([]byte, 150)
+				n, _ := currentTunnel.Read(tun)
 
 				if n > 0 {
 					if string(tun[:n]) == "send" {
@@ -182,23 +381,23 @@ func RunClient(tunnelAddress string, socketAddress string, mode string) {
 				}
 			}
 
-			go handleServerSocks5Connexion(connTunnel)
+			go handleServerSocks5Connexion(currentTunnel)
 		}
 	default:
 		utils.Log.Fatalln("Unknown mode")
 	}
-
 }
 
-func handleServerSocks5Connexion(conn net.Conn) {
-	defer conn.Close()
+func handleServerSocks5Connexion(tunnel tunnelInterface) {
+	done := make(chan bool)
 
-	fmt.Println("[+] Handling server tunnel negociation")
-	network, address, err := handleSocksServerNegociation(conn)
+	utils.Log.Println("[+] Handling server tunnel negociation")
+	network, address, err := handleSocksServerNegociation(tunnel)
 	if err != nil {
-		fmt.Println("\t[!] ", err)
+		utils.Log.Println("\t[!]", err)
+		return
 	}
-	fmt.Println("[+] Connexion to the socks client established", network, address)
+	utils.Log.Println("[+] Connexion to the socks client established", network, address)
 
 	if network == "" || address == "" {
 		utils.Log.Println("[!] Wrong info", network, address)
@@ -206,11 +405,22 @@ func handleServerSocks5Connexion(conn net.Conn) {
 	}
 	newConn, err := net.Dial(network, address)
 	if err != nil {
-		//utils.Log.Panicln(err)
+		utils.Log.Fatalln(err)
 		return
 	}
 	defer newConn.Close()
 
-	go io.Copy(newConn, conn)
-	io.Copy(conn, newConn)
+	go func() {
+		utils.Log.Println("Run io.Copy currentSocks <- connTunnel")
+		io.Copy(newConn, tunnel)
+		done <- true
+	}()
+
+	go func() {
+		utils.Log.Println("Run io.Copy currentTunnel <- connSocket")
+		io.Copy(tunnel, newConn)
+		done <- true
+	}()
+
+	<-done
 }

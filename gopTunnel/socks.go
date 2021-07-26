@@ -26,19 +26,26 @@ type versionMethodMessageStruct struct {
 }
 
 func (versionMethodMessage *versionMethodMessageStruct) read(buffer []byte) error {
-	if len(buffer) < 3 {
-		return errors.New("request size is lower than the minimal expected size (3 bytes)")
-	}
-	if len(buffer) > 257 {
-		return errors.New("request size is greater than the miximal expected size (257 bytes)")
-	}
+	/*
+		if len(buffer) < 3 {
+			errMsg := fmt.Sprintf("Request size %d is lower than the minimal expected size (3 bytes)", len(buffer))
+			return errors.New(errMsg)
+		}
+		if len(buffer) > 257 {
+			errMsg := fmt.Sprintf("Request size %d is greater than the maximal expected size (257 bytes)", len(buffer))
+			return errors.New(errMsg)
+		}
+	*/
 
 	versionMethodMessage.ver = buffer[0]
 	versionMethodMessage.nmethods = buffer[1]
 	methodsSize := int(versionMethodMessage.nmethods)
-	if len(buffer) != 2+methodsSize {
-		return errors.New("request size is is not the one expected")
-	}
+	/*
+		if len(buffer) != 2+methodsSize {
+			errMsg := fmt.Sprintf("Request size %d when compiled is not the one expected", len(buffer))
+			return errors.New(errMsg)
+		}
+	*/
 
 	versionMethodMessage.methods = buffer[2 : 2+methodsSize]
 
@@ -190,7 +197,8 @@ func (request requestStruct) testConnexion() byte {
 func (request *requestStruct) read(buffer []byte) error {
 	// Minimal valid request size is 8 bytes
 	if len(buffer) < 8 {
-		return errors.New("request size is lower than the minimal expected size (8 bytes)")
+		errorMsg := fmt.Sprintf("Request size %d is lower than the minimal expected size (8 bytes)", len(buffer))
+		return errors.New(errorMsg)
 	}
 
 	request.ver = buffer[0]
@@ -214,7 +222,7 @@ func (request *requestStruct) read(buffer []byte) error {
 		end = 4 + 16
 		request.dst_addr = buffer[4:end]
 	default:
-		errorMsg := fmt.Sprintf("request destination address size %x is not valid", request.atyp)
+		errorMsg := fmt.Sprintf("Request destination address size %x is not valid", request.atyp)
 		return errors.New(errorMsg)
 	}
 
@@ -282,19 +290,19 @@ func (response *responseStruct) toBytes() ([]byte, error) {
 	return buffer, nil
 }
 
-func handleSocksServerNegociation(conn net.Conn) (string, string, error) {
+func handleSocksServerNegociation(tunnel tunnelInterface) (string, string, error) {
 	fmt.Println("[+] Running socks proxy negociation phase.")
 	versionMethodMessage := versionMethodMessageStruct{}
 	methodSelectionMessage := methodSelectionMessageStruct{}
 	request := requestStruct{}
 	response := responseStruct{}
 
-	buf := make([]byte, 4096)
-	n, err := conn.Read(buf)
+	buf := make([]byte, 1500)
+	n, err := tunnel.Read(buf)
 	if err != nil {
 		return "", "", err
 	}
-	fmt.Println("\t[+] Received version method with ", n, " bytes.")
+	fmt.Println("\t[+] Received version method with", n, "bytes.")
 
 	err = versionMethodMessage.read(buf[:n])
 	if err != nil {
@@ -307,15 +315,16 @@ func handleSocksServerNegociation(conn net.Conn) (string, string, error) {
 		return "", "", err
 	}
 	fmt.Println("\t[+] Sending method selection")
-	conn.Write(methodSelectionMessageBuff)
+	tunnel.Write(methodSelectionMessageBuff)
 
 	// Receive first request
 	buf = make([]byte, 4096)
-	n, err = conn.Read(buf)
+	n, err = tunnel.Read(buf)
 	if err != nil {
 		return "", "", err
 	}
-	fmt.Println("\t[+] Received request with ", n, " bytes.")
+	fmt.Println("\t[+] Received request with", n, "bytes.")
+	fmt.Println("[=]", buf[:n])
 
 	err = request.read(buf[:n])
 	if err != nil {
@@ -336,7 +345,7 @@ func handleSocksServerNegociation(conn net.Conn) (string, string, error) {
 		return "", "", err
 	}
 	fmt.Println("\t[+] Send response with size :", len(responseBuff))
-	conn.Write(responseBuff)
+	tunnel.Write(responseBuff)
 
 	network, _ := request.getNetwork()
 	address, _ := request.getAddress()

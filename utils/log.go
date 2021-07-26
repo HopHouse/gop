@@ -30,7 +30,15 @@ func CloseLogger(file *os.File) {
 
 // New logger for commands that do not need to create a complete directory structure
 func NewLoggerStdout() {
+	Log = log.New(os.Stdout, "", -1)
+}
+
+func NewLoggerStdoutDateTimeFile() {
 	Log = log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)
+}
+
+func NewLoggerStdoutDateTime() {
+	Log = log.New(os.Stdout, "", log.LstdFlags)
 }
 
 func CreateOutputDir(directoryName string, commandName string) {
