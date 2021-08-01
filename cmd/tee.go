@@ -22,34 +22,29 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"github.com/hophouse/gop/gopOsintEmailGen"
+	"log"
+
+	goptee "github.com/hophouse/gop/gopTee"
 	"github.com/hophouse/gop/utils"
 	"github.com/spf13/cobra"
 )
 
-var (
-	firstNameOption      string
-	surnameOption        string
-	emailGenDomainOption string
-)
-
-// gopstaticcrawler represents the active command
-var osintEmailGenCmd = &cobra.Command{
-	Use:   "emailgen",
-	Short: "Generate email based on input data. It will create all the possible variations based on the allowed delimiters.",
+// teeCmd represents the proxy command
+var teeCmd = &cobra.Command{
+	Use:   "tee",
+	Short: "Act as the unix tee command but also display the executed command.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		utils.NewLoggerStdout()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gopOsintEmailGen.RunEmailGen(firstNameOption, surnameOption, emailGenDomainOption, delimitersOption)
+		err := goptee.RunTeeCmd(outFileOption, cmdOption)
+		if err != nil {
+			log.Fatal(err)
+		}
 	},
 }
 
 func init() {
-	osintEmailGenCmd.Flags().StringVarP(&firstNameOption, "firstname", "f", "", "First name.")
-	osintEmailGenCmd.MarkFlagRequired("firstname")
-	osintEmailGenCmd.Flags().StringVarP(&surnameOption, "surname", "s", "", "Surname.")
-	osintEmailGenCmd.MarkFlagRequired("surname")
-	osintEmailGenCmd.Flags().StringVarP(&emailGenDomainOption, "domain", "d", "", "Domain used into the email address.")
-	osintEmailGenCmd.MarkFlagRequired("domain")
+	teeCmd.PersistentFlags().StringVarP(&outFileOption, "output", "o", "", "Output of the tee command.")
+	teeCmd.PersistentFlags().StringVarP(&cmdOption, "command", "c", "", "Command to execute.")
 }

@@ -49,7 +49,9 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool) {
 
 	// Read domains, add them to the channel, then close it
 	for scanner.Scan() {
-		domainsChan <- scanner.Text()
+		domain := scanner.Text()
+		domainCleaned := strings.TrimSpace(domain)
+		domainsChan <- domainCleaned
 	}
 	close(domainsChan)
 

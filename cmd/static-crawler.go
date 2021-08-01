@@ -37,7 +37,7 @@ var staticCrawlerCmd = &cobra.Command{
 		gopstaticcrawler.NewOptions(&UrlOption, LogFile, &reportOption, &recursiveOption, &screenshotOption, &cookieOption, &proxyOption, &delayOption, &concurrencyOption)
 
 		// Screenshots directory and HTML page
-		if screenshotOption == true {
+		if screenshotOption {
 			if _, err := os.Stat("screenshots"); os.IsNotExist(err) {
 				os.Mkdir("screenshots", 0600)
 			}
@@ -55,8 +55,6 @@ var staticCrawlerCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(staticCrawlerCmd)
-
 	staticCrawlerCmd.PersistentFlags().StringVarP(&UrlOption, "url", "u", "", "URL to test.")
 	staticCrawlerCmd.MarkPersistentFlagRequired("url")
 	staticCrawlerCmd.PersistentFlags().BoolVarP(&reportOption, "report", "", false, "Generate a report.")

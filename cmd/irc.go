@@ -22,8 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"os/user"
-
 	gopirc "github.com/hophouse/gop/gopIrc"
 	"github.com/hophouse/gop/utils"
 	"github.com/spf13/cobra"
@@ -33,6 +31,8 @@ var (
 	usernameOption string
 )
 
+var userNameOptionDefaultValue string = "anonymous"
+
 // ircCmd represents the host command
 var ircCmd = &cobra.Command{
 	Use:   "irc",
@@ -40,6 +40,7 @@ var ircCmd = &cobra.Command{
 	Long:  "IRC module to chat.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		utils.NewLoggerStdout()
+
 	},
 }
 
@@ -64,19 +65,10 @@ var ircClientCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(ircCmd)
-
 	ircCmd.AddCommand(ircServerCmd)
 	ircCmd.AddCommand(ircClientCmd)
 
-	username := "Unknown"
-	user, err := user.Current()
-	if err != nil {
-		utils.Log.Fatalln("Could no retrieved username")
-	}
-	username = user.Username
-
 	ircCmd.PersistentFlags().StringVarP(&hostOption, "Host", "H", "127.0.0.1", "Define the irc server/client host.")
 	ircCmd.PersistentFlags().StringVarP(&portOption, "Port", "P", "1337", "Define the irc server/client port.")
-	ircCmd.PersistentFlags().StringVarP(&usernameOption, "username", "u", username, "Username of the user.")
+	ircCmd.PersistentFlags().StringVarP(&usernameOption, "username", "u", userNameOptionDefaultValue, "Username of the user.")
 }

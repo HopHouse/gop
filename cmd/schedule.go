@@ -93,7 +93,7 @@ var scheduleCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("[+] Secheduled execution time : %s\n", executionTime.String())
 		if cmdOption == "" {
-			erroMsg := fmt.Sprintf("No command passed as parameter. Please give a command as argument.\n")
+			erroMsg := "No command passed as parameter. Please give a command as argument.\n"
 			log.Fatal(erroMsg)
 		}
 		fmt.Printf("[+] Scheduled command : %s\n", cmdOption)
@@ -136,8 +136,6 @@ func executeCommand(command string) {
 }
 
 func init() {
-	rootCmd.AddCommand(scheduleCmd)
-
 	scheduleCmd.PersistentFlags().IntVarP(&secondOption, "second", "s", -1, "Second of the minute.")
 	scheduleCmd.PersistentFlags().IntVarP(&minuteOption, "minute", "m", -1, "Minute of the hour.")
 	scheduleCmd.PersistentFlags().IntVarP(&hourOption, "hour", "", -1, "Hour of the day.")

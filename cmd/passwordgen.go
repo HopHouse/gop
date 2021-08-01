@@ -52,8 +52,6 @@ var passwordGenCmd = &cobra.Command{
 }
 
 func init() {
-	generateCmd.AddCommand(passwordGenCmd)
-
 	Delimiters = []string{
 		".",
 		",",
@@ -85,8 +83,7 @@ func init() {
 	}
 
 	passwordGenCmd.Flags().StringSliceVarP(&baseWordlistOption, "base-wordlist", "", baseWordlist, "baseWordlist.")
-	passwordGenCmd.Flags().StringSliceVarP(&wordlistOption, "wordlist", "w", []string{}, "Wordlist.")
-	passwordGenCmd.MarkFlagRequired("wordlist")
+	passwordGenCmd.Flags().StringSliceVarP(&wordlistOption, "wordlist", "w", []string{}, "Word that will be append to the base-wordlist list.")
 	passwordGenCmd.Flags().IntVarP(&minYearOption, "min-year", "", 2015, "min year.")
 	passwordGenCmd.Flags().IntVarP(&maxYearOption, "max-year", "", 2022, "max year.")
 	passwordGenCmd.Flags().StringVarP(&outFileOption, "outfile", "o", "gop_generate_passwords.txt", "File where the generated passwords are put.")

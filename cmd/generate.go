@@ -38,7 +38,8 @@ var generateCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(generateCmd)
+	generateCmd.AddCommand(osintEmailGenCmd)
+	generateCmd.AddCommand(passwordGenCmd)
 
 	Delimiters = []string{
 		".",

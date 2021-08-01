@@ -48,7 +48,8 @@ var screenCmd = &cobra.Command{
 
 		stat, err := reader.Stat()
 		if err != nil {
-			fmt.Errorf("Error found in stdin:%s", err)
+			fmt.Println("Error found in stdin:", err)
+			os.Exit(2)
 		}
 
 		if inputFileOption != "" {
@@ -78,11 +79,9 @@ var screenCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(screenCmd)
-
 	screenCmd.Flags().StringVarP(&inputFileOption, "input-file", "i", "", "Use the specified file as input.")
 	screenCmd.Flags().StringVarP(&proxyOption, "proxy", "p", "", "Use this proxy to visit the pages.")
 	screenCmd.Flags().IntVarP(&delayOption, "delay", "", 1, "Use this delay in seconds between requests.")
-	screenCmd.Flags().IntVarP(&concurrencyOption, "concurrency", "t", 5, "Thread used to take screenshot.")
+	screenCmd.Flags().IntVarP(&concurrencyOption, "concurrency", "t", 2, "Thread used to take screenshot.")
 	screenCmd.Flags().StringVarP(&cookieOption, "cookie", "c", "", "Use the specified cookie.")
 }

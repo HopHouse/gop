@@ -46,7 +46,8 @@ var visitCmd = &cobra.Command{
 
 		stat, err := reader.Stat()
 		if err != nil {
-			fmt.Errorf("Error found in stdin:%s", err)
+			fmt.Println("Error found in stdin:", err)
+			os.Exit(2)
 		}
 
 		if inputFileOption != "" {
@@ -67,7 +68,7 @@ var visitCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if proxyOption == "" && burpOption == true {
+		if proxyOption == "" && burpOption {
 			proxyOption = "http://127.0.0.1:8080"
 		}
 		gopvisit.RunVisitCmd(reader, proxyOption)
@@ -75,8 +76,6 @@ var visitCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(visitCmd)
-
 	visitCmd.Flags().StringVarP(&inputFileOption, "input-file", "i", "", "Use the specified cookie.")
 	visitCmd.Flags().StringVarP(&proxyOption, "proxy", "p", "", "Use this proxy to visit the pages.")
 	visitCmd.Flags().BoolVarP(&burpOption, "burp", "", false, "Set the proxy directly to the default address and port of burp.")

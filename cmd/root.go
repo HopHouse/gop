@@ -37,7 +37,6 @@ var (
 	proxyOption         string
 	directoryNameOption string
 	logFileNameOption   string
-	directoryName       string
 	inputFileOption     string
 	stdinOption         bool
 	reader              *os.File
@@ -84,6 +83,25 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&logFileNameOption, "logfile", "", "logs.txt", "Set a custom log file.")
-	rootCmd.PersistentFlags().StringVarP(&directoryNameOption, "output-directory", "", "", "Use the following directory to output results.")
+	InitRootCmd(rootCmd)
+}
+
+func InitRootCmd(cmd *cobra.Command) {
+	cmd.PersistentFlags().StringVarP(&logFileNameOption, "logfile", "", "logs.txt", "Set a custom log file.")
+	cmd.PersistentFlags().StringVarP(&directoryNameOption, "output-directory", "", "", "Use the following directory to output results.")
+
+	cmd.AddCommand(crawlerCmd)
+	cmd.AddCommand(generateCmd)
+	cmd.AddCommand(hostCmd)
+	cmd.AddCommand(ircCmd)
+	cmd.AddCommand(proxyCmd)
+	cmd.AddCommand(scanCmd)
+	cmd.AddCommand(scheduleCmd)
+	cmd.AddCommand(screenCmd)
+	cmd.AddCommand(serverCmd)
+	cmd.AddCommand(shellCmd)
+	cmd.AddCommand(staticCrawlerCmd)
+	cmd.AddCommand(teeCmd)
+	cmd.AddCommand(tunnelCmd)
+	cmd.AddCommand(visitCmd)
 }

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -30,7 +31,11 @@ func CloseLogger(file *os.File) {
 
 // New logger for commands that do not need to create a complete directory structure
 func NewLoggerStdout() {
-	Log = log.New(os.Stdout, "", -1)
+	Log = log.New(os.Stdout, "", log.Lmsgprefix)
+}
+
+func NewLoggerNull() {
+	Log = log.New(ioutil.Discard, "", log.Lmsgprefix)
 }
 
 func NewLoggerStdoutDateTimeFile() {

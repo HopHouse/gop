@@ -45,8 +45,6 @@ var shellCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(shellCmd)
-
 	shellCmd.PersistentFlags().StringVarP(&hostOption, "Host", "H", "127.0.0.1", "Define the proxy host.")
 	shellCmd.PersistentFlags().StringVarP(&portOption, "Port", "P", "8000", "Define the proxy port.")
 	shellCmd.PersistentFlags().StringVarP(&modeOption, "Mode", "m", "reverse", "Define the mode where the shell is runned : blind or reverse.")

@@ -48,7 +48,9 @@ var hostCmd = &cobra.Command{
 
 		stat, err := reader.Stat()
 		if err != nil {
-			fmt.Errorf("Error found in stdin:%s", err)
+			fmt.Println("Error found in stdin:", err)
+			os.Exit(2)
+
 		}
 
 		if inputFileOption != "" {
@@ -74,8 +76,6 @@ var hostCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(hostCmd)
-
 	hostCmd.PersistentFlags().StringVarP(&inputFileOption, "input-file", "i", "", "Specify domain names to check host.")
 	hostCmd.PersistentFlags().IntVarP(&concurrencyOption, "concurrency", "t", 10, "Number of thread used to check hosts.")
 	hostCmd.PersistentFlags().BoolVarP(&petitPoucetOption, "petit-poucet", "", false, "Activate the petit poucet option which display all the CNAMES during the resolve process.")

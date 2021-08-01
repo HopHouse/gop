@@ -14,11 +14,13 @@ import (
 func RunShellCmd(mode string, host string, port string) {
 	fmt.Println("[+] Start the shell as mode :", mode)
 
-	if mode == "bind" {
+	switch mode {
+	case "bind":
 		bindShell(host, port)
-	}
-	if mode == "reverse" {
+	case "reverse":
 		reverseShell(host, port)
+	default:
+		log.Fatal("Unknown mode")
 	}
 }
 

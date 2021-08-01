@@ -17,7 +17,9 @@ var (
 )
 
 // RunSearchCmd : Run the Search command
-func RunSearchCmd(patternList []string, pathList []string, locationBlackList []string, extensionWhiteList []string, extensionBlackList []string, onlyFiles bool) {
+func RunSearchCmd(patternList []string, pathList []string, locationBlackList []string, extensionWhiteList []string, extensionBlackList []string, onlyFiles bool, concurrency int) {
+	inputChan := make(chan string)
+	workerChan := make(chan bool, concurrency)
 	locationBlackListPtr = &locationBlackList
 	extensionWhiteListPtr = &extensionWhiteList
 	extensionBlackListPtr = &extensionBlackList
@@ -33,14 +35,31 @@ func RunSearchCmd(patternList []string, pathList []string, locationBlackList []s
 		regList = append(regList, regExp)
 	}
 
+	// Run workers
+	for i := 0; i < concurrency; i++ {
+		go func(inputChan chan string, workerChan chan bool) {
+			for path := range inputChan {
+				err := filepath.Walk(path, findInPath)
+				if err != nil {
+					fmt.Printf("Error during walk in location : %s\n", path)
+					fmt.Println(err)
+				}
+			}
+			workerChan <- true
+		}(inputChan, workerChan)
+	}
+
 	// Walk from each given location in order to found files
 	for _, path := range pathList {
-		err := filepath.Walk(path, findInPath)
-		if err != nil {
-			fmt.Printf("Error during walk in location : %s\n", path)
-			fmt.Println(err)
-		}
+		inputChan <- path
 	}
+	close(inputChan)
+
+	// Wait for the workers to finish their jobs
+	for i := 0; i < concurrency; i++ {
+		<-workerChan
+	}
+	close(workerChan)
 }
 
 func findInPath(path string, info os.FileInfo, err error) error {
@@ -65,14 +84,15 @@ func findInPath(path string, info os.FileInfo, err error) error {
 			}
 		}
 
-		if found == false {
+		if !found {
 			return nil
 		}
 
 	} else {
 		// Apply black list option. If extension file is blacklist then do to check the file
 		for _, extension := range *extensionBlackListPtr {
-			if strings.HasSuffix(info.Name(), "."+extension) {
+			extensionClean := strings.TrimSpace(extension)
+			if strings.HasSuffix(info.Name(), "."+extensionClean) {
 				return nil
 			}
 		}
@@ -80,7 +100,7 @@ func findInPath(path string, info os.FileInfo, err error) error {
 
 	for _, re := range regList {
 		res := re.MatchString(info.Name())
-		if res == true {
+		if res {
 			if info.IsDir() && *onlyFilesPtr == false {
 				fmt.Printf("[+] [D] %s\n", path)
 			} else {

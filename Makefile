@@ -7,13 +7,13 @@ default: build
 workdir:
 		mkdir -p workdir
 
-build: workdir/linux workdir/windows
+build: workdir/gop-linux workdir/gop-windows workdir/windows
 
-workdir/linux: $(GOFILES)
-		GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o workdir/$(GONAME) .
+workdir/gop-linux: $(GOFILES)
+		GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-w -s" -o workdir/$(GONAME) .
 
-workdir/windows: $(GOFILES)
-		GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o workdir/$(GONAME).exe .
+workdir/gop-windows: $(GOFILES)
+		GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-w -s" -o workdir/$(GONAME).exe .
 
 install: $(GOFILES)
 		go install .

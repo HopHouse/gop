@@ -366,6 +366,9 @@ Global Flags:
       --output-directory string   Use the following directory to output results.
 ```          
 
+## Tee
+	- [ ] Tee command to load also load the command into a file
+	
 ## CI/CD
 .gitlab-co.yml file.
 ```

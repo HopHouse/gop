@@ -45,8 +45,6 @@ var proxyCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(proxyCmd)
-
 	proxyCmd.PersistentFlags().StringVarP(&hostOption, "Host", "H", "127.0.0.1", "Define the proxy host.")
 	proxyCmd.PersistentFlags().StringVarP(&portOption, "Port", "P", "8080", "Define the proxy port.")
 	proxyCmd.PersistentFlags().StringVarP(&caFileOption, "ca-file", "", "", "Certificate Authority certficate file.")

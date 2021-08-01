@@ -28,7 +28,6 @@ import (
 )
 
 var (
-	patternFileOption        string
 	patternListOption        []string
 	locationListOption       []string
 	locationBlackListOption  []string
@@ -46,13 +45,11 @@ var scanFileCmd = &cobra.Command{
 		utils.NewLoggerStdout()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gopsearch.RunSearchCmd(patternListOption, locationListOption, locationBlackListOption, extensionWhiteListOption, extensionBlackListOption, onlyFilesOption)
+		gopsearch.RunSearchCmd(patternListOption, locationListOption, locationBlackListOption, extensionWhiteListOption, extensionBlackListOption, onlyFilesOption, concurrencyOption)
 	},
 }
 
 func init() {
-	scanCmd.AddCommand(scanFileCmd)
-
 	patternList := []string{
 		"(?i)identifiants",
 		"(?i)password",
@@ -81,6 +78,7 @@ func init() {
 		"js",
 		"yar",
 		"md",
+		".lnk",
 		"tex",
 	}
 
@@ -95,4 +93,5 @@ func init() {
 	scanFileCmd.Flags().StringSliceVarP(&extensionWhiteListOption, "whitelist-extensions", "", []string{}, "Extension that will be whithelisted. If specified the black list option is taken in consideration by the program. Exemple : msg, squlite, zip, backup")
 	scanFileCmd.Flags().StringSliceVarP(&extensionBlackListOption, "blacklist-extensions", "", extensionBlackList, "Extension that will be blacklisted.")
 	scanFileCmd.Flags().BoolVarP(&onlyFilesOption, "only-files", "", false, "Only display found items that are files.")
+	scanFileCmd.Flags().IntVarP(&concurrencyOption, "concurrency", "t", 10, "Number of threads used.")
 }

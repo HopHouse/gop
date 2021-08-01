@@ -28,8 +28,14 @@ func RunHTTPProxyCmd(options *Options) {
 		return
 	}
 
+	certManager, err := InitCertManager(options.caFileOption, options.caPrivKeyFileOption)
+	if err != nil {
+		utils.Log.Fatal(err)
+		return
+	}
+
 	proxy := &Proxy{
-		certManager: InitCertManager(options.caFileOption, options.caPrivKeyFileOption),
+		certManager: certManager,
 	}
 
 	server := &http.Server{Addr: addr, Handler: proxy}
@@ -102,7 +108,10 @@ func (p Proxy) handleHTTPSMethod(w http.ResponseWriter, req *http.Request) error
 		return err
 	}
 
-	cer := p.certManager.CreateCertificate(req.URL.Hostname())
+	cer, err := p.certManager.CreateCertificate(req.URL.Hostname())
+	if err != nil {
+		return err
+	}
 	config := &tls.Config{
 		Certificates:       []tls.Certificate{cer},
 		InsecureSkipVerify: true,

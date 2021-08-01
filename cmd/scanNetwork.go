@@ -50,7 +50,8 @@ var scanNetworkCmd = &cobra.Command{
 
 		stat, err := reader.Stat()
 		if err != nil {
-			fmt.Errorf("Error found in stdin:%s", err)
+			fmt.Println("Error found in stdin:", err)
+			os.Exit(2)
 		}
 
 		if inputFileOption != "" {
@@ -82,8 +83,6 @@ var scanNetworkCmd = &cobra.Command{
 }
 
 func init() {
-	scanCmd.AddCommand(scanNetworkCmd)
-
 	scanNetworkCmd.Flags().StringVarP(&inputFileOption, "input-file", "i", "", "Input file with the IP addresses to scan. If no file is passed, then the stdin will be taken.")
 	scanNetworkCmd.Flags().BoolVarP(&tcpScanOption, "tcp", "", false, "Scan with the TCP protocol.")
 	scanNetworkCmd.Flags().BoolVarP(&udpScanOption, "udp", "", false, "[WIP] Scan with the UDP protocol.")

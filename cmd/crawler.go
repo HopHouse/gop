@@ -37,7 +37,7 @@ var crawlerCmd = &cobra.Command{
 		gopdynamiccrawler.NewOptions(&UrlOption, LogFile, &reportOption, &recursiveOption, &screenshotOption, &cookieOption, &proxyOption, &delayOption, &concurrencyOption)
 
 		// Screenshots directory and HTML page
-		if screenshotOption == true {
+		if screenshotOption {
 			if _, err := os.Stat("screenshots"); os.IsNotExist(err) {
 				os.Mkdir("screenshots", 0600)
 			}
@@ -52,8 +52,6 @@ var crawlerCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(crawlerCmd)
-
 	crawlerCmd.PersistentFlags().StringVarP(&UrlOption, "url", "u", "", "URL to test.")
 	crawlerCmd.MarkPersistentFlagRequired("url")
 	crawlerCmd.PersistentFlags().BoolVarP(&recursiveOption, "recursive", "r", false, "Crawl the website recursively.")

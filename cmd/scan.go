@@ -29,11 +29,9 @@ import (
 var scanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "Scan commands to scan any kind of assets.",
-	Long:  "Scan commands to scan any kind of assets.",
-	PreRun: func(cmd *cobra.Command, args []string) {
-	},
 }
 
 func init() {
-	rootCmd.AddCommand(scanCmd)
+	scanCmd.AddCommand(scanNetworkCmd)
+	scanCmd.AddCommand(scanFileCmd)
 }

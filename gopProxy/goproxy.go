@@ -29,7 +29,10 @@ func RunNetProxyCmd(options *Options) {
 	_, err := net.ResolveTCPAddr("tcp4", addr)
 	utils.CheckErrorExit(err)
 
-	certManager := InitCertManager(options.caFileOption, options.caPrivKeyFileOption)
+	certManager, err := InitCertManager(options.caFileOption, options.caPrivKeyFileOption)
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
 
 	l, err := net.Listen("tcp4", addr)
 	utils.CheckErrorExit(err)
@@ -88,7 +91,12 @@ func handleConnection(conn net.Conn, certManager *CertManager) {
 
 		conn.Write([]byte("HTTP/1.1 200 OK\r\nProxy-agent: GoPentest/1.0\r\n\r\n"))
 
-		cer := certManager.CreateCertificate(req.URL.Hostname())
+		cer, err := certManager.CreateCertificate(req.URL.Hostname())
+		if err != nil {
+			utils.Log.Println(err)
+			return
+		}
+
 		config := &tls.Config{
 			Certificates:       []tls.Certificate{cer},
 			InsecureSkipVerify: true,
