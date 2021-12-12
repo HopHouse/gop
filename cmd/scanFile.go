@@ -80,10 +80,18 @@ func init() {
 		"md",
 		".lnk",
 		"tex",
+		"settingcontent-ms",
+		"template",
+		"lnk",
+		"nasl",
+		"sys",
+		"nse",
+		"lib",
 	}
 
 	locationBlackList := []string{
 		"C:\\Windows",
+		"C:\\Users\\Public",
 	}
 
 	scanFileCmd.Flags().StringSliceVarP(&patternListOption, "search", "s", patternList, "Specify a file will all the pattern that need to be checked.")

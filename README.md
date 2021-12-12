@@ -176,7 +176,7 @@ Global Flags:
 Use "gop scan [command] --help" for more information about a command.
 ```     
 
-### File
+#### File
 ```
 Search for files on disk that matches a specific patterne. Regex or partial filename can be passed to the script.
 
@@ -184,14 +184,14 @@ Usage:
   gop scan file [flags]
 
 Flags:
-      --blacklist-extensions strings   Extension that will be blacklisted. (default [exe,ttf,dll,svg,go,py,html,css,js,yar,json,md,tex])
-      --blacklist-location strings     Locations were the script will not look. (default [C:\Windows])
+      --blacklist-extensions strings   Extension that will be blacklisted. (default [exe,ttf,dll,svg,go,pyi,html,css,js,yar,md,.lnk,tex,settingcontent-ms,template,lnk,nasl,sys,nse,lib])
+      --blacklist-location strings     Locations were the script will not look. (default [C:\Windows,C:\Users\Public])
+  -t, --concurrency int                Number of threads used. (default 10)
   -h, --help                           help for file
       --only-files                     Only display found items that are files.
   -p, --path strings                   Locations were to look the script have to look.
-  -s, --search strings                 Specify a file will all the pattern that need to be checked. (default [(?i)identifiants,(?i)password,(?i)mot de passe,(?i)motdepasse,(?i)compte(s)?,kdb(x)?,(?i)secret,key[0-9].db$,(?i)backup,.ntds$,SYSTEM$,SAM$])
-      --whitelist-extensions strings   Extension that will be whithelisted. If specified the black list option is taken in consideration by the program. Exemple : msg, 
-squlite, zip, backup
+  -s, --search strings                 Specify a file will all the pattern that need to be checked. (default [(?i)identifiants,(?i)password,(?i)mot de passe,(?i)motdepasse,(?i)compte(s)?,kdb(x)?,(?i)secret,key[0-9].db$,(?i)backup,.ntds$,SYSTEM$,SAM$,id_rsa.*])
+      --whitelist-extensions strings   Extension that will be whithelisted. If specified the black list option is taken in consideration by the program. Exemple : msg, squlite, zip, backup
 
 Global Flags:
       --logfile string            Set a custom log file. (default "logs.txt")
