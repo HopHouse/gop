@@ -7,7 +7,7 @@ default: build
 workdir:
 		mkdir -p workdir
 
-build: workdir/gop-linux workdir/gop-windows workdir/windows
+build: workdir/gop-linux workdir/gop-windows
 
 workdir/gop-linux: $(GOFILES)
 		GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-w -s" -o workdir/$(GONAME) .
