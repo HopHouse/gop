@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hophouse/gop/notification"
 	"github.com/hophouse/gop/utils"
 	"github.com/spf13/cobra"
 	"github.com/vbauerster/mpb/v7"
@@ -50,11 +51,16 @@ var pomodoroCmd = &cobra.Command{
 			for i := 1; i < cycleNbOption+1; i++ {
 				displayBar("Work", periodOption)
 
+				notification.Notify("Short Break")
 				displayBar("Short break", shortBreakOption)
+				notification.Notify("Work")
 			}
 
 			displayBar("Work", periodOption)
+
+			notification.Notify("Long break")
 			displayBar("Long break", longBreakOption)
+			notification.Notify("Work")
 		}
 	},
 }
