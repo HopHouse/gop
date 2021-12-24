@@ -36,10 +36,6 @@ var serverCmd = &cobra.Command{
 			} else {
 				utils.CreateOutputDir(directoryNameOption, cmd.Name())
 			}
-
-			// Init the logger and let close it later
-			utils.NewLogger(LogFile, logFileNameOption)
-			defer utils.CloseLogger(LogFile)
 		}
 
 		utils.Log.SetFlags(0)

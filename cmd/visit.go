@@ -39,6 +39,8 @@ var visitCmd = &cobra.Command{
 	Short: "Visit supplied URLs.",
 	Long:  "Visit supplied URLs.",
 	PreRun: func(cmd *cobra.Command, args []string) {
+		rootCmd.PersistentPreRun(cmd, args)
+
 		var err error
 
 		// Parse options

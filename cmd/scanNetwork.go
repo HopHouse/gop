@@ -43,6 +43,8 @@ var scanNetworkCmd = &cobra.Command{
 	Short: "Port scan the network. Only valid IP address must be passed as input.",
 	Long:  "Port scan the network. Only valid IP address must be passed as input.",
 	PreRun: func(cmd *cobra.Command, args []string) {
+		rootCmd.PersistentPreRun(cmd, args)
+
 		var err error
 
 		// Parse options

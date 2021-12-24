@@ -67,9 +67,7 @@ var rootCmd = &cobra.Command{
 			utils.CreateOutputDir(directoryNameOption, cmd.Use)
 		}
 
-		// Init the logger and let close it later
-		utils.NewLogger(LogFile, logFileNameOption)
-		//defer utils.CloseLogger(LogFile)
+		utils.NewLogger("logs.txt")
 	},
 }
 
@@ -83,25 +81,22 @@ func Execute() {
 }
 
 func init() {
-	InitRootCmd(rootCmd)
-}
+	rootCmd.PersistentFlags().StringVarP(&logFileNameOption, "logfile", "", "logs.txt", "Set a custom log file.")
+	rootCmd.PersistentFlags().StringVarP(&directoryNameOption, "output-directory", "", "", "Use the following directory to output results.")
 
-func InitRootCmd(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&logFileNameOption, "logfile", "", "logs.txt", "Set a custom log file.")
-	cmd.PersistentFlags().StringVarP(&directoryNameOption, "output-directory", "", "", "Use the following directory to output results.")
-
-	cmd.AddCommand(crawlerCmd)
-	cmd.AddCommand(generateCmd)
-	cmd.AddCommand(hostCmd)
-	cmd.AddCommand(ircCmd)
-	cmd.AddCommand(proxyCmd)
-	cmd.AddCommand(scanCmd)
-	cmd.AddCommand(scheduleCmd)
-	cmd.AddCommand(screenCmd)
-	cmd.AddCommand(serverCmd)
-	cmd.AddCommand(shellCmd)
-	cmd.AddCommand(staticCrawlerCmd)
-	cmd.AddCommand(teeCmd)
-	cmd.AddCommand(tunnelCmd)
-	cmd.AddCommand(visitCmd)
+	rootCmd.AddCommand(generateCmd)
+	rootCmd.AddCommand(hostCmd)
+	rootCmd.AddCommand(ircCmd)
+	rootCmd.AddCommand(proxyCmd)
+	rootCmd.AddCommand(scanCmd)
+	rootCmd.AddCommand(scheduleCmd)
+	rootCmd.AddCommand(serverCmd)
+	rootCmd.AddCommand(shellCmd)
+	rootCmd.AddCommand(teeCmd)
+	rootCmd.AddCommand(tunnelCmd)
+	// rootCmd.AddCommand(webCmd)
+	rootCmd.AddCommand(crawlerCmd)
+	rootCmd.AddCommand(screenshotCmd)
+	rootCmd.AddCommand(staticCrawlerCmd)
+	rootCmd.AddCommand(visitCmd)
 }

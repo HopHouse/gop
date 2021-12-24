@@ -34,6 +34,7 @@ var staticCrawlerCmd = &cobra.Command{
 	Short: "The static crawler command will visit the supplied Website found link, script and style sheet inside it.",
 	Long:  "The static crawler command will visit the supplied Website found link, script and style sheet inside it.",
 	PreRun: func(cmd *cobra.Command, args []string) {
+		rootCmd.PersistentPreRun(cmd, args)
 		gopstaticcrawler.NewOptions(&UrlOption, LogFile, &reportOption, &recursiveOption, &screenshotOption, &cookieOption, &proxyOption, &delayOption, &concurrencyOption)
 
 		// Screenshots directory and HTML page

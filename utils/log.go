@@ -12,11 +12,15 @@ var (
 	Log *log.Logger
 )
 
-func NewLogger(file *os.File, logFileName string) {
+//func init() {
+//	NewLogger("log-f")
+//}
+
+func NewLogger(logFileName string) {
 	var err error
 
 	// Open Log File
-	file, err = os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+	file, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		fmt.Printf("error opening file: %v", err)
 	}

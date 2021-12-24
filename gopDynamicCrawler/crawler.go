@@ -9,7 +9,7 @@ import (
 
 	"github.com/chromedp/chromedp"
 	gopstaticcrawler "github.com/hophouse/gop/gopStaticCrawler"
-	"github.com/hophouse/gop/screenshot"
+	"github.com/hophouse/gop/gopchromedp"
 	"github.com/hophouse/gop/utils"
 
 	"github.com/PuerkitoBio/goquery"
@@ -24,7 +24,7 @@ var (
 	Internal_ressources []gopstaticcrawler.Ressource
 	External_ressources []gopstaticcrawler.Ressource
 	URLVisited          URLVisitedStruct
-	ScreenshotList      []screenshot.Screenshot
+	ScreenshotList      []gopchromedp.Item
 	ScreenshotChan      chan struct{}
 	UrlChan             chan string
 )
@@ -34,7 +34,7 @@ func InitCrawler() {
 	Internal_ressources = make([]gopstaticcrawler.Ressource, 0)
 	External_ressources = make([]gopstaticcrawler.Ressource, 0)
 	URLVisited.slice = make([]string, 0)
-	ScreenshotList = make([]screenshot.Screenshot, 0)
+	ScreenshotList = make([]gopchromedp.Item, 0)
 	ScreenshotChan = make(chan struct{}, *GoCrawlerOptions.ConcurrencyPtr)
 	UrlChan = make(chan string)
 }

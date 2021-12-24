@@ -27,7 +27,6 @@ import (
 	"path/filepath"
 
 	gopscreen "github.com/hophouse/gop/gopScreen"
-	"github.com/hophouse/gop/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -36,11 +35,13 @@ var (
 )
 
 // screenCmd represents the screen command
-var screenCmd = &cobra.Command{
+var screenshotCmd = &cobra.Command{
 	Use:   "screenshot",
 	Short: "Take screenshots of the supplied URLs. The program will take the stdin if no input file is passed as argument.",
 	Long:  "Take screenshots of the supplied URLs. The program will take the stdin if no input file is passed as argument.",
 	PreRun: func(cmd *cobra.Command, args []string) {
+		rootCmd.PersistentPreRun(cmd, args)
+
 		var err error
 
 		// Parse options
@@ -71,7 +72,8 @@ var screenCmd = &cobra.Command{
 		}
 
 		// Create a specific log file for the screenshots
-		utils.CreateOutputDir("screenshots", cmd.Name())
+		os.Mkdir("screenshots", 0755)
+		os.Mkdir("html", 0755)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		gopscreen.RunScreenCmd(reader, proxyOption, concurrencyOption, timeoutOption, delayOption, cookieOption)
@@ -79,9 +81,10 @@ var screenCmd = &cobra.Command{
 }
 
 func init() {
-	screenCmd.Flags().StringVarP(&inputFileOption, "input-file", "i", "", "Use the specified file as input.")
-	screenCmd.Flags().StringVarP(&proxyOption, "proxy", "p", "", "Use this proxy to visit the pages.")
-	screenCmd.Flags().IntVarP(&delayOption, "delay", "", 1, "Use this delay in seconds between requests.")
-	screenCmd.Flags().IntVarP(&concurrencyOption, "concurrency", "t", 2, "Thread used to take screenshot.")
-	screenCmd.Flags().StringVarP(&cookieOption, "cookie", "c", "", "Use the specified cookie.")
+	screenshotCmd.Flags().StringVarP(&inputFileOption, "input-file", "i", "", "Use the specified file as input.")
+	screenshotCmd.Flags().StringVarP(&proxyOption, "proxy", "p", "", "Use this proxy to visit the pages.")
+	screenshotCmd.Flags().IntVarP(&delayOption, "delay", "", 0, "Use this delay in seconds between requests.")
+	screenshotCmd.Flags().IntVarP(&timeoutOption, "timeout", "", 60, "Timeout before the chrome context is canceled.")
+	screenshotCmd.Flags().IntVarP(&concurrencyOption, "concurrency", "t", 2, "Thread used to take screenshot.")
+	screenshotCmd.Flags().StringVarP(&cookieOption, "cookie", "c", "", "Use the specified cookie.")
 }

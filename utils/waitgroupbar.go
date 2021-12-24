@@ -52,6 +52,15 @@ func (groupBar *WaitGroupBar) AddBar(name string, main bool) (newBar Bar) {
 	return newBar
 }
 
+func (groupBar *WaitGroupBar) Wait() {
+	groupBar.waitGroup.Wait()
+	for _, item := range groupBar.bars {
+		item.Wait()
+		item.bar.SetTotal(int64(item.total), true)
+	}
+	groupBar.progress.Wait()
+}
+
 func (bar *Bar) Add(delta int) {
 	bar.mutex.Lock()
 	bar.total += delta
@@ -67,10 +76,8 @@ func (bar *Bar) Done() {
 	bar.mutex.Unlock()
 }
 
-func (groupBar *WaitGroupBar) Wait() {
-	groupBar.waitGroup.Wait()
-	for _, item := range groupBar.bars {
-		item.bar.SetTotal(int64(item.total), true)
-	}
-	groupBar.progress.Wait()
+func (bar *Bar) Wait() {
+	bar.waitGroup.Wait()
+
+	bar.bar.SetTotal(int64(bar.total), true)
 }
