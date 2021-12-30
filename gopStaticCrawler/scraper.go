@@ -114,7 +114,7 @@ func unique(stringSlice []string) []string {
 func defineCallBacks(c *colly.Collector) {
 	c.OnRequest(func(r *colly.Request) {
 		utils.Log.Printf("[+] Sending request to %s\n", r.URL)
-		utils.CrawlerBar.Add(1)
+		utils.CrawlerBar.AddAndIncrementTotal(1)
 		if *GoCrawlerOptions.CookiePtr != "" {
 			r.Headers.Set("cookie", *GoCrawlerOptions.CookiePtr)
 		}
@@ -125,17 +125,14 @@ func defineCallBacks(c *colly.Collector) {
 
 		// Take a screenshot if the option was set
 		if *GoCrawlerOptions.ScreenshotPtr == true {
-			utils.ScreenshotBar.Add(1)
+			utils.ScreenshotBar.AddAndIncrementTotal(1)
 
 			go func() {
-				ConcurrencyChan <- struct{}{}
-
-				gopchromedp.TakeScreenShot(r.Request.URL.String(), "screenshots/", *GoCrawlerOptions.ProxyPtr, *GoCrawlerOptions.CookiePtr, *GoCrawlerOptions.DelayPtr)
+				item := gopchromedp.NewItem(r.Request.URL.String())
+				gopchromedp.TakeScreenShot(&item, "screenshots/", *GoCrawlerOptions.ProxyPtr, *GoCrawlerOptions.CookiePtr, *GoCrawlerOptions.DelayPtr)
 
 				// Add screenshot to list
-				ScreenshotList = append(ScreenshotList, gopchromedp.Item{
-					Url: r.Request.URL.String(),
-				})
+				ScreenshotList = append(ScreenshotList, item)
 
 				<-ConcurrencyChan
 			}()

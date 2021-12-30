@@ -64,6 +64,12 @@ func (groupBar *WaitGroupBar) Wait() {
 func (bar *Bar) Add(delta int) {
 	bar.mutex.Lock()
 	bar.total += delta
+	bar.waitGroup.Add(delta)
+	bar.mutex.Unlock()
+}
+func (bar *Bar) AddAndIncrementTotal(delta int) {
+	bar.mutex.Lock()
+	bar.total += delta
 	bar.bar.SetTotal(int64(bar.total), false)
 	bar.waitGroup.Add(delta)
 	bar.mutex.Unlock()
@@ -78,6 +84,12 @@ func (bar *Bar) Done() {
 
 func (bar *Bar) Wait() {
 	bar.waitGroup.Wait()
-
 	bar.bar.SetTotal(int64(bar.total), true)
+}
+
+func (bar *Bar) SetTotal(total int) {
+	bar.mutex.Lock()
+	bar.total = total
+	bar.bar.SetTotal(int64(bar.total), false)
+	bar.mutex.Unlock()
 }

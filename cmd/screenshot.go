@@ -31,14 +31,16 @@ import (
 )
 
 var (
-	timeoutOption int
+	timeoutOption    int
+	doNotAppendSlash bool
 )
 
 // screenCmd represents the screen command
 var screenshotCmd = &cobra.Command{
-	Use:   "screenshot",
-	Short: "Take screenshots of the supplied URLs. The program will take the stdin if no input file is passed as argument.",
-	Long:  "Take screenshots of the supplied URLs. The program will take the stdin if no input file is passed as argument.",
+	Use:     "screenshot",
+	Short:   "Take screenshots of the supplied URLs. The program will take the stdin if no input file is passed as argument.",
+	Long:    "Take screenshots of the supplied URLs. The program will take the stdin if no input file is passed as argument.",
+	Version: "0.2",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		rootCmd.PersistentPreRun(cmd, args)
 
@@ -70,13 +72,9 @@ var screenshotCmd = &cobra.Command{
 				os.Exit(1)
 			}
 		}
-
-		// Create a specific log file for the screenshots
-		os.Mkdir("screenshots", 0755)
-		os.Mkdir("html", 0755)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gopscreen.RunScreenCmd(reader, proxyOption, concurrencyOption, timeoutOption, delayOption, cookieOption)
+		gopscreen.RunScreenCmd(reader, proxyOption, concurrencyOption, timeoutOption, delayOption, cookieOption, doNotAppendSlash)
 	},
 }
 
@@ -87,4 +85,5 @@ func init() {
 	screenshotCmd.Flags().IntVarP(&timeoutOption, "timeout", "", 60, "Timeout before the chrome context is canceled.")
 	screenshotCmd.Flags().IntVarP(&concurrencyOption, "concurrency", "t", 2, "Thread used to take screenshot.")
 	screenshotCmd.Flags().StringVarP(&cookieOption, "cookie", "c", "", "Use the specified cookie.")
+	screenshotCmd.Flags().BoolVarP(&doNotAppendSlash, "do-not-append-slash", "", false, "Do not append slash (\"/\") at the end of the URL if there is not.")
 }

@@ -15,10 +15,10 @@ import (
 )
 
 // TakeScreenShot Take screenshot of the pages.
-func TakeScreenShot(url string, directory string, proxy string, cookie string, timeout int) {
-	// take screenshot for all urls
-	if strings.HasSuffix(url, ".pdf") {
-		utils.Log.Println("[+] Do not take a screenshot of the PDF ", url)
+func TakeScreenShot(item *Item, directory string, proxy string, cookie string, timeout int) {
+	// take screenshot for all item.Urls
+	if strings.HasSuffix(item.Url, ".pdf") {
+		utils.Log.Println("[+] Do not take a screenshot of the PDF ", item.Url)
 		return
 	}
 
@@ -39,7 +39,9 @@ func TakeScreenShot(url string, directory string, proxy string, cookie string, t
 	ccontext, ccancel := chromedp.NewContext(ctxBase)
 	defer ccancel()
 
-	// Visit the URL
+	getHTTPResponseHeaders(ccontext, item)
+
+	// Visit the item.Url
 	err := chromedp.Run(ccontext,
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			if cookie != "" {
@@ -49,7 +51,7 @@ func TakeScreenShot(url string, directory string, proxy string, cookie string, t
 				var cookieName, cookieValue string
 				cookieName = strings.Split(cookie, "=")[0]
 				cookieValue = strings.Split(cookie, "=")[1]
-				domain := strings.Split(url, "/")[2]
+				domain := strings.Split(item.Url, "/")[2]
 				// fmt.Printf("Cookie info %s %s %s\n", cookieName, cookieValue, domain)
 
 				err := network.SetCookie(cookieName, cookieValue).
@@ -63,10 +65,10 @@ func TakeScreenShot(url string, directory string, proxy string, cookie string, t
 			}
 			return nil
 		}),
-		chromedp.Navigate(url),
+		chromedp.Navigate(item.Url),
 	)
 	if err != nil {
-		utils.Log.Println("[+] Error visiting the url : ", url, " - ", err)
+		utils.Log.Println("[+] Error visiting the item.Url : ", item.Url, " - ", err)
 		return
 	}
 
@@ -77,23 +79,23 @@ func TakeScreenShot(url string, directory string, proxy string, cookie string, t
 	// buffer
 	var buf []byte
 
-	utils.Log.Println("[+] Taking a screenshot of ", url)
+	utils.Log.Println("[+] Taking a screenshot of ", item.Url)
 
 	// capture entire browser viewport, returning png with quality=90
-	if err := chromedp.Run(tcontext, fullScreenshot(url, cookie, 90, &buf)); err != nil {
+	if err := chromedp.Run(tcontext, fullScreenshot(90, &buf)); err != nil {
 		if strings.HasPrefix(err.Error(), "context deadline exceeded") {
-			utils.Log.Printf("[!] Timeout error for URL %s - %s\n", url, err)
+			utils.Log.Printf("[!] Timeout error for item.Url %s - %s\n", item.Url, err)
 		} else {
-			utils.Log.Println("[!] Error in chromedp. Run for URL ", url, " : ", err)
+			utils.Log.Println("[!] Error in chromedp. Run for item.Url ", item.Url, " : ", err)
 		}
-		utils.Log.Println("[-] Retry on :", url)
+		utils.Log.Println("[-] Retry on :", item.Url)
 
 		// Retry
-		if err := chromedp.Run(tcontext, fullScreenshot(url, cookie, 90, &buf)); err != nil {
+		if err := chromedp.Run(tcontext, fullScreenshot(90, &buf)); err != nil {
 			if strings.HasPrefix(err.Error(), "context deadline exceeded") {
-				utils.Log.Printf("[!] 2nd time, timeout error for URL %s - %s\n", url, err)
+				utils.Log.Printf("[!] 2nd time, timeout error for item.Url %s - %s\n", item.Url, err)
 			} else {
-				utils.Log.Println("[!] 2nd time, error in chromedp.Run for URL ", url, " : ", err)
+				utils.Log.Println("[!] 2nd time, error in chromedp.Run for item.Url ", item.Url, " : ", err)
 			}
 		}
 		return
@@ -101,35 +103,30 @@ func TakeScreenShot(url string, directory string, proxy string, cookie string, t
 
 	// Check if the screenshot was taken
 	if len(buf) == 0 || len(buf) == 3249 {
-		utils.Log.Println("[!] Error, screenshot not taken for ", url, " because it had a size of 0 bytes")
+		utils.Log.Println("[!] Error, screenshot not taken for ", item.Url, " because it had a size of 0 bytes")
 		return
 	}
-	filename := filepath.Join(directory, GetScreenshotFileName(url))
+	filename := filepath.Join(directory, GetScreenshotFileName(item.Url))
 
 	if err := ioutil.WriteFile(filename, buf, 0644); err != nil {
-		utils.Log.Println("Error in ioutil.WriteFile ", err, " for url ", url, " with filename ", filename, " and size of ", len(buf))
+		utils.Log.Println("Error in ioutil.WriteFile ", err, " for item.Url ", item.Url, " with filename ", filename, " and size of ", len(buf))
 		return
 	}
 
-	utils.Log.Println("[+] Took a screenshot of ", url, " - ", filename, " with a size of ", len(buf))
+	utils.Log.Println("[+] Took a screenshot of ", item.Url, " - ", filename, " with a size of ", len(buf))
 }
 
-// GetScreenshotFileName Compute the filename based on the URL.
+// GetScreenshotFileName Compute the filename based on the item.Url.
 func GetScreenshotFileName(url string) string {
-	filename := strings.ReplaceAll(url, ":", "-")
-	filename = strings.ReplaceAll(filename, "/", "")
-	filename = strings.ReplaceAll(filename, ".", "_")
-	filename = strings.ReplaceAll(filename, "?", "-")
-	filename += ".png"
-	return filename
+	return GetFileName(url) + ".png"
 }
 
 // fullScreenshot takes a screenshot of the entire browser viewport.
-// Liberally copied from puppeteer's source.
-func fullScreenshot(urlstr string, cookie string, quality int64, res *[]byte) chromedp.Tasks {
+func fullScreenshot(quality int64, res *[]byte) chromedp.Tasks {
 	return chromedp.Tasks{
 		chromedp.FullScreenshot(res, int(quality)),
 		/*
+			// Liberally copied from puppeteer's source.
 			chromedp.ActionFunc(func(ctx context.Context) error {
 				// get layout metrics
 				_, _, _, _, _, contentSize, err := page.GetLayoutMetrics().Do(ctx)

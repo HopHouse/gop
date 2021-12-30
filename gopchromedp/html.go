@@ -125,10 +125,5 @@ func takeHTML(urlstr string, html *string) chromedp.Tasks {
 
 // GetHTMLFileName Compute the filename based on the URL.
 func GetHTMLFileName(url string) string {
-	filename := strings.ReplaceAll(url, ":", "-")
-	filename = strings.ReplaceAll(filename, "/", "")
-	filename = strings.ReplaceAll(filename, ".", "_")
-	filename = strings.ReplaceAll(filename, "?", "-")
-	filename += ".html"
-	return filename
+	return GetFileName(url) + ".html"
 }

@@ -156,7 +156,7 @@ func workerVisit() {
 			}
 		}
 
-		utils.CrawlerBar.Add(len(uniqueResults))
+		utils.CrawlerBar.AddAndIncrementTotal(len(uniqueResults))
 
 		go func() {
 			for _, i := range uniqueResults {

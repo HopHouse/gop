@@ -1,12 +1,27 @@
 package gopchromedp
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/gobuffalo/packr"
 	"github.com/hophouse/gop/utils"
 )
+
+// GetScreenshotHTML Create the HTML page that references all the taken screenshots.
+func ExportHTMLPage() string {
+	var htmlCode string
+
+	box := packr.NewBox("./template")
+
+	htmlCode, err := box.FindString("base.html")
+	if err != nil {
+		utils.Log.Fatal(err)
+	}
+
+	return htmlCode
+}
 
 // GetScreenshotHTML Create the HTML page that references all the taken screenshots.
 func ExportScreenshotsToHTML(items []Item) string {
@@ -31,7 +46,7 @@ func ExportScreenshotsToHTML(items []Item) string {
 		htmlCode += " <div class=\"modal-dialog modal-lg\">\n"
 		htmlCode += "  <div class=\"modal-content\">\n"
 		htmlCode += "   <div class=\"modal-header\">\n"
-		htmlCode += fmt.Sprintf("<h5 class=\"modal-title text-center\">%s</h5>\n", item.Url)
+		htmlCode += fmt.Sprintf("<h5 class=\"modal-title\" style=\"margin: 0 auto;\">%s - %s:%s</h5>\n", item.Url, item.RemoteIP, item.RemotePort)
 		htmlCode += "   </div>\n"
 		htmlCode += "   <div class=\"modal-body\">\n"
 		htmlCode += fmt.Sprintf("    <img class=\"bd-placeholder-img card-img-top\" width=\"100%%\" height=\"100%%\" focusable=\"false\" src=\"%s\" />\n", screenshotFileName)
@@ -48,7 +63,7 @@ func ExportScreenshotsToHTML(items []Item) string {
 		htmlCode += " <div class=\"modal-dialog modal-lg\">\n"
 		htmlCode += "  <div class=\"modal-content\">\n"
 		htmlCode += "   <div class=\"modal-header\">\n"
-		htmlCode += "    <h5 class=\"modal-title text-center\">Requests</h5>\n"
+		htmlCode += fmt.Sprintf("<h5 class=\"modal-title\" style=\"margin: 0 auto;\">%s - %s:%s</h5>\n", item.Url, item.RemoteIP, item.RemotePort)
 		htmlCode += "   </div>\n"
 		htmlCode += "   <div class=\"modal-body\">\n"
 		htmlCode += "    <pre>\n"
@@ -83,13 +98,17 @@ func ExportScreenshotsToHTML(items []Item) string {
 		htmlCode += "   <hr>\n"
 		htmlCode += "   <div class=\"btn-toolbar justify-content-between\" role=\"toolbar\">\n"
 		htmlCode += " 	 <div class=\"btn-group me-2\" role=\"group\">\n"
-		htmlCode += fmt.Sprintf("    <button type=\"button\" class=\"btn btn-primary\" style=\"user-select: all;\" disabled>%s %s</button>\n", item.ResponseStatus, item.ResponseStatusText)
+		htmlCode += fmt.Sprintf("    <button type=\"button\" class=\"btn btn-outline-primary\" style=\"user-select: all;\" disabled>%s %s</button>\n", item.ResponseStatus, item.ResponseStatusText)
 		htmlCode += "    </div>\n"
 		htmlCode += "    <div class=\"btn-group me-2\" role=\"group\">\n"
-		htmlCode += fmt.Sprintf("    <button type=\"button\" class=\"btn btn-primary\" style=\"user-select: all;\" disabled>%s</button>\n", item.ResponseProtocol)
+		htmlCode += fmt.Sprintf("    <button type=\"button\" class=\"btn btn-outline-primary\" style=\"user-select: all;\" disabled>%s</button>\n", item.ResponseProtocol)
 		htmlCode += "    </div>\n"
+		htmlCode += "   </div>\n"
+		htmlCode += "   </br>\n"
+
+		htmlCode += "   <div class=\"btn-toolbar justify-content-center\" role=\"toolbar\">\n"
 		htmlCode += " 	 <div class=\"btn-group me-2\" role=\"group\">\n"
-		htmlCode += fmt.Sprintf("      <button type=\"button\" class=\"btn btn-info\" style=\"user-select: all;\" disabled>%s:%s</button>\n", item.RemoteIP, item.RemotePort)
+		htmlCode += fmt.Sprintf("      <button type=\"button\" class=\"btn btn-outline-success\" style=\"user-select: all;\" disabled>%s:%s</button>\n", item.RemoteIP, item.RemotePort)
 		htmlCode += " 	 </div>\n"
 		htmlCode += "   </div>\n"
 		htmlCode += "   </br>\n"
@@ -155,4 +174,12 @@ func ExportLoadedResources(items []Item) string {
 		}
 	}
 	return text
+}
+
+func ExportItemsToJSON(items []Item) string {
+	b, err := json.Marshal(items)
+	if err != nil {
+		utils.Log.Println("Error :", err)
+	}
+	return string(b)
 }
