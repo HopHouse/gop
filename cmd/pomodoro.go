@@ -51,16 +51,16 @@ var pomodoroCmd = &cobra.Command{
 			for i := 1; i < cycleNbOption+1; i++ {
 				displayBar("Work", periodOption)
 
-				notification.Notify("Short Break")
+				notification.NotifyAndWait("Short Break")
 				displayBar("Short break", shortBreakOption)
-				notification.Notify("Work")
+				notification.NotifyAndWait("Work")
 			}
 
 			displayBar("Work", periodOption)
 
-			notification.Notify("Long break")
+			notification.NotifyAndWait("Long break")
 			displayBar("Long break", longBreakOption)
-			notification.Notify("Work")
+			notification.NotifyAndWait("Work")
 		}
 	},
 }

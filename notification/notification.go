@@ -33,6 +33,17 @@ func init() {
 	}
 }
 
+func NotifyAndWait(notification string) {
+	if Notifier.OperatingSystem == "windows" {
+		cmd := exec.Command("C:\\Windows\\System32\\msg.exe", Notifier.User, "/W", notification)
+		err := cmd.Start()
+		if err != nil {
+			utils.Log.Println(err)
+		}
+		cmd.Wait()
+	}
+}
+
 func Notify(notification string) {
 	if Notifier.OperatingSystem == "windows" {
 		err := exec.Command("C:\\Windows\\System32\\msg.exe", Notifier.User, notification).Start()
