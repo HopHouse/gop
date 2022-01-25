@@ -39,10 +39,14 @@ func GetHTMLCode(item *Item, url string, directory string, proxy string, cookie 
 	ccontext, ccancel := chromedp.NewContext(ctxBase)
 	defer ccancel()
 
-	getHTTPResponseHeaders(ccontext, item)
+	// ctx, ccancel := chromedp.NewContext(ctxBase)
+	tcontext, tcancel := context.WithTimeout(ccontext, time.Duration(timeout)*time.Second)
+	defer tcancel()
+
+	getHTTPResponseHeaders(tcontext, item)
 
 	// Visit the URL
-	err := chromedp.Run(ccontext,
+	err := chromedp.Run(tcontext,
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			if cookie != "" {
 				// create cookie expiration
@@ -71,10 +75,6 @@ func GetHTMLCode(item *Item, url string, directory string, proxy string, cookie 
 		utils.Log.Println("[+] Error visiting the url : ", url, " - ", err)
 		return
 	}
-
-	// ctx, ccancel := chromedp.NewContext(ctxBase)
-	tcontext, tcancel := context.WithTimeout(ccontext, time.Duration(timeout)*time.Second)
-	defer tcancel()
 
 	// buffer
 	var outerHTML string
