@@ -39,10 +39,14 @@ func TakeScreenShot(item *Item, directory string, proxy string, cookie string, t
 	ccontext, ccancel := chromedp.NewContext(ctxBase)
 	defer ccancel()
 
-	getHTTPResponseHeaders(ccontext, item)
+	// ctx, ccancel := chromedp.NewContext(ctxBase)
+	tcontext, tcancel := context.WithTimeout(ccontext, time.Duration(timeout)*time.Second)
+	defer tcancel()
+
+	getHTTPResponseHeaders(tcontext, item)
 
 	// Visit the item.Url
-	err := chromedp.Run(ccontext,
+	err := chromedp.Run(tcontext,
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			if cookie != "" {
 				// create cookie expiration
@@ -71,10 +75,6 @@ func TakeScreenShot(item *Item, directory string, proxy string, cookie string, t
 		utils.Log.Println("[+] Error visiting the item.Url : ", item.Url, " - ", err)
 		return
 	}
-
-	// ctx, ccancel := chromedp.NewContext(ctxBase)
-	tcontext, tcancel := context.WithTimeout(ccontext, time.Duration(timeout)*time.Second)
-	defer tcancel()
 
 	// buffer
 	var buf []byte
