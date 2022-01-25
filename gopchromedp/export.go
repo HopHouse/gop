@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gobuffalo/packr"
+	"github.com/gobuffalo/packr/v2"
 	"github.com/hophouse/gop/utils"
 )
 
@@ -13,7 +13,7 @@ import (
 func ExportHTMLPage() string {
 	var htmlCode string
 
-	box := packr.NewBox("./template")
+	box := packr.New("Application", "./template")
 
 	htmlCode, err := box.FindString("base.html")
 	if err != nil {
@@ -27,7 +27,7 @@ func ExportHTMLPage() string {
 func ExportScreenshotsToHTML(items []Item) string {
 	var htmlCode string
 
-	box := packr.NewBox("./template")
+	box := packr.New("Application", "./template")
 
 	htmlHeader, err := box.FindString("base_header.html")
 	if err != nil {

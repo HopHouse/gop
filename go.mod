@@ -10,9 +10,9 @@ require (
 	github.com/antchfx/xpath v1.2.0 // indirect
 	github.com/chromedp/cdproto v0.0.0-20210706234513-2bc298e8be7f
 	github.com/chromedp/chromedp v0.7.3
-	github.com/gobuffalo/envy v1.9.0 // indirect
-	github.com/gobuffalo/packd v1.0.0 // indirect
-	github.com/gobuffalo/packr v1.30.1
+	github.com/gobuffalo/envy v1.10.1 // indirect
+	github.com/gobuffalo/packd v1.0.1 // indirect
+	github.com/gobuffalo/packr/v2 v2.5.1
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gocolly/colly v1.2.0
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -26,7 +26,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/miekg/dns v1.1.43
 	github.com/nsf/termbox-go v1.1.1 // indirect
-	github.com/rogpeppe/go-internal v1.8.0 // indirect
+	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/spf13/cobra v1.2.1
 	github.com/temoto/robotstxt v1.1.2 // indirect
