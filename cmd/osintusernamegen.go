@@ -22,48 +22,31 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"github.com/hophouse/gop/gopOsintUsernameGen"
+	"github.com/hophouse/gop/utils"
 	"github.com/spf13/cobra"
 )
 
 var (
-	delimitersOption []string
-	Delimiters       []string
+	firstNameOption string
+	surnameOption   string
 )
 
 // gopstaticcrawler represents the active command
-var generateCmd = &cobra.Command{
-	Use:   "generate",
-	Short: "Generate module.",
-	Long:  "Generate module.",
+var osintUsernameGenCmd = &cobra.Command{
+	Use:   "username",
+	Short: "Generate username based on input data. It will create all the possible variations based on the allowed delimiters.",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		utils.NewLoggerStdout()
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		gopOsintUsernameGen.RunUsernameGen(firstNameOption, surnameOption, delimitersOption)
+	},
 }
 
 func init() {
-	generateCmd.AddCommand(osintEmailGenCmd)
-	generateCmd.AddCommand(osintUsernameGenCmd)
-	generateCmd.AddCommand(passwordGenCmd)
-
-	Delimiters = []string{
-		".",
-		"-",
-		"_",
-		"#",
-		"$",
-		"%",
-		"&",
-		"*",
-		"+",
-		"/",
-		"=",
-		"!",
-		"?",
-		"^",
-		"'",
-		"`",
-		"{",
-		"|",
-		"}",
-		"~",
-	}
-
-	generateCmd.Flags().StringSliceVarP(&delimitersOption, "delimiters", "", Delimiters, "Delimiters to construct the mail address.")
+	osintUsernameGenCmd.Flags().StringVarP(&firstNameOption, "firstname", "f", "", "First name.")
+	osintUsernameGenCmd.MarkFlagRequired("firstname")
+	osintUsernameGenCmd.Flags().StringVarP(&surnameOption, "surname", "s", "", "Surname.")
+	osintUsernameGenCmd.MarkFlagRequired("surname")
 }

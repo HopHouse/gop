@@ -28,14 +28,12 @@ import (
 )
 
 var (
-	firstNameOption      string
-	surnameOption        string
 	emailGenDomainOption string
 )
 
 // gopstaticcrawler represents the active command
 var osintEmailGenCmd = &cobra.Command{
-	Use:   "emailgen",
+	Use:   "email",
 	Short: "Generate email based on input data. It will create all the possible variations based on the allowed delimiters.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		utils.NewLoggerStdout()
