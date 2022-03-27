@@ -64,6 +64,13 @@ func init() {
 		"SYSTEM$",
 		"SAM$",
 		"id_rsa.*",
+		"azureProfile.json",
+		"accessTokens.json",
+		"TokenCache.dat",
+		"AzureRmContext.json",
+		".pfx$",
+		".p12$",
+		"PowerShell_transcript*.txt$",
 	}
 
 	extensionBlackList := []string{
