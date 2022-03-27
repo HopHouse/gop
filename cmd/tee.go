@@ -31,7 +31,7 @@ import (
 
 // teeCmd represents the proxy command
 var teeCmd = &cobra.Command{
-	Use:   "tee",
+	Use:   "[WIP]tee",
 	Short: "Act as the unix tee command but also display the executed command.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		utils.NewLoggerStdout()
