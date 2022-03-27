@@ -14,4 +14,5 @@ func init() {
 	webCmd.AddCommand(staticCrawlerCmd)
 	webCmd.AddCommand(screenshotCmd)
 	webCmd.AddCommand(visitCmd)
+	webCmd.AddCommand(headerTamperingCmd)
 }

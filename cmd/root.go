@@ -94,7 +94,7 @@ func init() {
 	rootCmd.AddCommand(shellCmd)
 	rootCmd.AddCommand(teeCmd)
 	rootCmd.AddCommand(tunnelCmd)
-	// rootCmd.AddCommand(webCmd)
+	rootCmd.AddCommand(webCmd)
 	rootCmd.AddCommand(crawlerCmd)
 	rootCmd.AddCommand(screenshotCmd)
 	rootCmd.AddCommand(staticCrawlerCmd)
