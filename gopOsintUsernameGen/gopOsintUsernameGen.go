@@ -14,17 +14,17 @@ func RunUsernameGen(firstname string, surname string, delimiters []string) {
 
 	if len(firstname) > 2 {
 		// [fi][surname]
-		fmt.Printf("%s%s\n", firstname[0:1], surname)
+		fmt.Printf("%s%s\n", firstname[0:2], surname)
 	}
 
 	if len(firstname) > 3 {
 		// [fir][surname]
-		fmt.Printf("%s%s\n", firstname[0:2], surname)
+		fmt.Printf("%s%s\n", firstname[0:3], surname)
 	}
 
 	if len(firstname) > 4 {
 		// [firs][surname]
-		fmt.Printf("%s%s\n", firstname[0:3], surname)
+		fmt.Printf("%s%s\n", firstname[0:4], surname)
 	}
 
 	// [surname][firstname]
@@ -37,17 +37,17 @@ func RunUsernameGen(firstname string, surname string, delimiters []string) {
 
 	if len(firstname) > 2 {
 		// [surname][fi]
-		fmt.Printf("%s%s\n", surname, firstname[0:1])
+		fmt.Printf("%s%s\n", surname, firstname[0:2])
 	}
 
 	if len(firstname) > 3 {
 		// [surname][fir]
-		fmt.Printf("%s%s\n", surname, firstname[0:2])
+		fmt.Printf("%s%s\n", surname, firstname[0:3])
 	}
 
 	if len(firstname) > 4 {
 		// [surname][firs]
-		fmt.Printf("%s%s\n", surname, firstname[0:3])
+		fmt.Printf("%s%s\n", surname, firstname[0:4])
 	}
 
 	for _, delimiter := range delimiters {
@@ -61,17 +61,17 @@ func RunUsernameGen(firstname string, surname string, delimiters []string) {
 
 		if len(firstname) > 2 {
 			// [fi][delimiters][surname]
-			fmt.Printf("%s%s%s\n", firstname[0:1], delimiter, surname)
+			fmt.Printf("%s%s%s\n", firstname[0:2], delimiter, surname)
 		}
 
 		if len(firstname) > 3 {
 			// [fir][delimiters][surname]
-			fmt.Printf("%s%s%s\n", firstname[0:2], delimiter, surname)
+			fmt.Printf("%s%s%s\n", firstname[0:3], delimiter, surname)
 		}
 
 		if len(firstname) > 4 {
 			// [firs][delimiters][surname]
-			fmt.Printf("%s%s%s\n", firstname[0:3], delimiter, surname)
+			fmt.Printf("%s%s%s\n", firstname[0:4], delimiter, surname)
 		}
 
 		// [surname][delimiters][firstname]
@@ -84,17 +84,17 @@ func RunUsernameGen(firstname string, surname string, delimiters []string) {
 
 		if len(firstname) > 2 {
 			// [surname][delimiters][fi]
-			fmt.Printf("%s%s%s\n", surname, delimiter, firstname[0:1])
+			fmt.Printf("%s%s%s\n", surname, delimiter, firstname[0:2])
 		}
 
 		if len(firstname) > 3 {
 			// [surname][delimiters][fir]
-			fmt.Printf("%s%s%s\n", surname, delimiter, firstname[0:2])
+			fmt.Printf("%s%s%s\n", surname, delimiter, firstname[0:3])
 		}
 
 		if len(firstname) > 4 {
 			// [surname][delimiters][firs]
-			fmt.Printf("%s%s%s\n", surname, delimiter, firstname[0:3])
+			fmt.Printf("%s%s%s\n", surname, delimiter, firstname[0:4])
 		}
 	}
 }
