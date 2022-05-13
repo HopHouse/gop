@@ -1,7 +1,6 @@
 package goptunnel
 
 import (
-	"fmt"
 	"io"
 	"net"
 
@@ -53,7 +52,9 @@ func handleServerListen(currentTunnel tunnelInterface, socketListener net.Listen
 	}
 	utils.Log.Println(goRoutineUUID.String(), "Socket received traffic. Will send message")
 
+	utils.Log.Println("Send \"send\" message")
 	currentTunnel.Write([]byte("send"))
+	utils.Log.Println("Sent \"send\" message")
 
 	done := make(chan bool)
 
@@ -134,7 +135,6 @@ func RunServer(tunnelAddress string, socketAddress string, tunnelType string, mo
 	if err != nil {
 		utils.Log.Fatalln(err)
 	}
-	utils.Log.Println("Traffic will be redirected to :", socketAddress)
 
 	switch mode {
 	case "send":
@@ -160,7 +160,7 @@ func RunServer(tunnelAddress string, socketAddress string, tunnelType string, mo
 		if err != nil {
 			utils.Log.Fatalln(err)
 		}
-		utils.Log.Println("Local listen address to send traffic is :", socketAddress)
+		utils.Log.Println("Local listen address to send traffic to is :", socketAddress)
 
 		for {
 			goRoutineUUID, _ := uuid.NewRandom()
@@ -290,7 +290,6 @@ func RunClient(tunnelAddress string, socketAddress string, tunnelType string, mo
 				n, _ := currentTunnel.Read(tun)
 
 				if n > 0 {
-					fmt.Printf("%v", tun[:n])
 					if string(tun[:n]) == "send" {
 						break
 					}
@@ -372,9 +371,15 @@ func RunClient(tunnelAddress string, socketAddress string, tunnelType string, mo
 
 			for {
 				tun := make([]byte, 150)
-				n, _ := currentTunnel.Read(tun)
+				n, err := currentTunnel.Read(tun)
+				if err != nil {
+					utils.Log.Println(err)
+					continue
+				}
+				utils.Log.Println("Read content")
 
 				if n > 0 {
+					utils.Log.Printf("Received : %#v\n", n)
 					if string(tun[:n]) == "send" {
 						break
 					}
@@ -405,7 +410,7 @@ func handleServerSocks5Connexion(tunnel tunnelInterface) {
 	}
 	newConn, err := net.Dial(network, address)
 	if err != nil {
-		utils.Log.Fatalln(err)
+		utils.Log.Println(err)
 		return
 	}
 	defer newConn.Close()

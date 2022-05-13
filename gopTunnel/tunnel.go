@@ -170,7 +170,7 @@ func (t *TlsTunnel) RemoteAddr() string {
 }
 
 func (t *TlsTunnel) Clone() tunnelInterface {
-	newTun := PlainTextTunnel{
+	newTun := TlsTunnel{
 		Protocol: t.Protocol,
 		Address:  t.Address,
 		Conn:     t.Conn,

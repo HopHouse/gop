@@ -65,5 +65,5 @@ func init() {
 		"~",
 	}
 
-	generateCmd.Flags().StringSliceVarP(&delimitersOption, "delimiters", "", Delimiters, "Delimiters to construct the mail address.")
+	generateCmd.PersistentFlags().StringSliceVarP(&delimitersOption, "delimiters", "", Delimiters, "Delimiters to construct the mail address.")
 }
