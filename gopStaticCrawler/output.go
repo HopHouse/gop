@@ -56,7 +56,7 @@ func PrintStatistics(duration time.Duration, internal_ressources *[]Ressource, e
 
 	counterStyle, counterScript, counterLink, counterImage, counterUnknown = 0, 0, 0, 0, 0
 	color.Printf("\n[+] Statistics\n")
-	color.Printf(" -  Number of internal ressources: %s\n", Cyan(len(*internal_ressources)))
+	color.Printf(" -  Number of internal resources: %s\n", Cyan(len(*internal_ressources)))
 	for _, item := range *internal_ressources {
 		switch item.Type {
 		case "link":
@@ -78,7 +78,7 @@ func PrintStatistics(duration time.Duration, internal_ressources *[]Ressource, e
 	color.Printf("    - Number of unknowns: %s\n", Cyan(counterUnknown))
 
 	counterStyle, counterScript, counterLink, counterImage, counterUnknown = 0, 0, 0, 0, 0
-	color.Printf("\n -  Number of external ressources: %s\n", Cyan(len(*external_ressources)))
+	color.Printf("\n -  Number of external resources: %s\n", Cyan(len(*external_ressources)))
 	for _, item := range *external_ressources {
 		switch item.Type {
 		case "link":
