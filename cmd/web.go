@@ -15,4 +15,5 @@ func init() {
 	webCmd.AddCommand(screenshotCmd)
 	webCmd.AddCommand(visitCmd)
 	webCmd.AddCommand(headerTamperingCmd)
+	webCmd.AddCommand(NginxOffySlashCmd)
 }

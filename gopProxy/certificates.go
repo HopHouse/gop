@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"net"
+	"os"
 	"time"
 
 	"github.com/hophouse/gop/utils"
@@ -34,19 +35,19 @@ func (certManager CertManager) SaveKeysToDisk() error {
 	var err error
 
 	// CA Certificate
-	err = ioutil.WriteFile("ca.crt", certManager.CaCertPEM.Bytes(), 0644)
+	err = os.WriteFile("ca.crt", certManager.CaCertPEM.Bytes(), 0644)
 	if err != nil {
 		return err
 	}
 
 	// CA Private Key
-	err = ioutil.WriteFile("ca-privkey.key", certManager.CaPrivKeyPem.Bytes(), 0644)
+	err = os.WriteFile("ca-privkey.key", certManager.CaPrivKeyPem.Bytes(), 0644)
 	if err != nil {
 		return err
 	}
 
 	// Certificate Private Key
-	err = ioutil.WriteFile("cert-privkey.key", certManager.CertPrivKeyPEM.Bytes(), 0644)
+	err = os.WriteFile("cert-privkey.key", certManager.CertPrivKeyPEM.Bytes(), 0644)
 	if err != nil {
 		return err
 	}
@@ -60,7 +61,7 @@ func (certManager CertManager) SaveKeysToDisk() error {
 				Type:  "CERTIFICATE",
 				Bytes: cert.Certificate[0][:],
 			})
-			err := ioutil.WriteFile(fileName, certPEM.Bytes(), 0644)
+			err := os.WriteFile(fileName, certPEM.Bytes(), 0644)
 			if err != nil {
 				return err
 			}
@@ -121,7 +122,7 @@ func (certManager CertManager) CreateCertificate(host string) (tls.Certificate, 
 	})
 
 	//Save it
-	//ioutil.WriteFile("server.crt", certPEM.Bytes(), 0644)
+	//os.WriteFile("server.crt", certPEM.Bytes(), 0644)
 
 	cer, err := tls.X509KeyPair(certPEM.Bytes(), certManager.CertPrivKeyPEM.Bytes())
 	if err != nil {
@@ -210,7 +211,7 @@ func InitCertManager(caFile string, caPrivKeyFile string) (CertManager, error) {
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(certManager.CertPrivKey),
 	})
-	//ioutil.WriteFile("server.key", certPrivKeyPEM.Bytes(), 0644)
+	//os.WriteFile("server.key", certPrivKeyPEM.Bytes(), 0644)
 
 	return certManager, nil
 }

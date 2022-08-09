@@ -3,7 +3,7 @@ package gopchromedp
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -108,8 +108,8 @@ func TakeScreenShot(item *Item, directory string, proxy string, cookie string, t
 	}
 	filename := filepath.Join(directory, GetScreenshotFileName(item.Url))
 
-	if err := ioutil.WriteFile(filename, buf, 0644); err != nil {
-		utils.Log.Println("Error in ioutil.WriteFile ", err, " for item.Url ", item.Url, " with filename ", filename, " and size of ", len(buf))
+	if err := os.WriteFile(filename, buf, 0644); err != nil {
+		utils.Log.Println("Error in os.WriteFile ", err, " for item.Url ", item.Url, " with filename ", filename, " and size of ", len(buf))
 		return
 	}
 

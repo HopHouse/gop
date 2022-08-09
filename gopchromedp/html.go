@@ -3,7 +3,7 @@ package gopchromedp
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -108,8 +108,8 @@ func GetHTMLCode(item *Item, url string, directory string, proxy string, cookie 
 	}
 	filename := filepath.Join(directory, GetHTMLFileName(url))
 
-	if err := ioutil.WriteFile(filename, []byte(outerHTML), 0644); err != nil {
-		utils.Log.Println("Error in ioutil.WriteFile ", err, " for url ", url, " with filename ", filename, " and size of ", len(outerHTML))
+	if err := os.WriteFile(filename, []byte(outerHTML), 0644); err != nil {
+		utils.Log.Println("Error in os.WriteFile ", err, " for url ", url, " with filename ", filename, " and size of ", len(outerHTML))
 		return
 	}
 

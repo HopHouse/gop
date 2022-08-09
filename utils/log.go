@@ -2,7 +2,7 @@ package utils
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"time"
@@ -39,7 +39,7 @@ func NewLoggerStdout() {
 }
 
 func NewLoggerNull() {
-	Log = log.New(ioutil.Discard, "", log.Lmsgprefix)
+	Log = log.New(io.Discard, "", log.Lmsgprefix)
 }
 
 func NewLoggerStdoutDateTimeFile() {

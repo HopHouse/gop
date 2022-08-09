@@ -55,3 +55,4 @@ Gopkg.lock
 20*-Go*/*
 gop
 gop.exe
+.vscode/

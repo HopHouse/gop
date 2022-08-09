@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -245,10 +245,10 @@ func PrintGUIResponse(r http.Response) {
 	// Read the content
 	var bodyBytes []byte
 	if r.Request.Body != nil {
-		bodyBytes, _ = ioutil.ReadAll(r.Request.Body)
+		bodyBytes, _ = io.ReadAll(r.Request.Body)
 	}
 	// Restore the io.ReadCloser to its original state
-	r.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes)) // Use the content
+	r.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)) // Use the content
 
 	body := string(bodyBytes)
 

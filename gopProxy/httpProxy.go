@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -71,7 +71,7 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	PrintGUIResponse(*res)
 	intercept()
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		utils.Log.Println(err)
 		return

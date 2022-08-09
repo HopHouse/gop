@@ -31,6 +31,9 @@ import (
 
 var (
 	webRequestFilenameOption string
+	webRequestUrlOption      string
+	webOnlyStatusCodeOption  []int
+	webValidResourcesOption  []string
 )
 
 // headerTamperingCmd represents the active command
@@ -112,9 +115,36 @@ var sourceIPTamperingCmd = &cobra.Command{
 	},
 }
 
+// Nginx off-by-slash fail tamper represents the active command
+var NginxOffySlashCmd = &cobra.Command{
+	Use:   "nginxOffBySlash",
+	Short: "Tamper the URL/request in order to discover an Nginx off-by-slash vulnerability.",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		rootCmd.PersistentPreRun(cmd, args)
+
+		if webRequestUrlOption != "" && webRequestFilenameOption != "" {
+			fmt.Print("Could not use an URL and a request file at the same time.\n")
+			utils.Log.Fatal("Could not use an URL and a request file at the same time.\n")
+		}
+
+		if burpOption {
+			gopwebtampering.Options.Proxy = "http://127.0.0.1:8080"
+		} else {
+			gopwebtampering.Options.Proxy = proxyOption
+		}
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		err := gopwebtampering.NginxOffBySlash(webRequestFilenameOption, webRequestUrlOption, webValidResourcesOption, webOnlyStatusCodeOption)
+		if err != nil {
+			utils.Log.Fatalln(err)
+		}
+	},
+}
+
 func init() {
 	headerTamperingCmd.PersistentFlags().StringVarP(&webRequestFilenameOption, "request", "r", "", "File where the request to tamper is.")
 	headerTamperingCmd.MarkPersistentFlagRequired("request")
+
 	headerTamperingCmd.PersistentFlags().StringVarP(&proxyOption, "proxy", "p", "", "Use the specified proxy.")
 	headerTamperingCmd.PersistentFlags().BoolVarP(&burpOption, "burp", "", false, "Set burp as proxy with default configuration.")
 
@@ -122,4 +152,31 @@ func init() {
 	headerTamperingCmd.AddCommand(hostHeaderTamperingCmd)
 	headerTamperingCmd.AddCommand(referrerHeaderTamperingCmd)
 	headerTamperingCmd.AddCommand(sourceIPTamperingCmd)
+
+	nginxOffBySlashValidResourcesDefaultValues := []string{
+		"etc/passwd",
+		"var/log/nginx/access.log",
+		"var/log/lastlog",
+		"log/nginx/access.log",
+		"log/lastlog",
+		".git/HEAD",
+		".env",
+		".htaccess",
+		"robots.txt",
+		"nginx.conf",
+		"README.md",
+		"index.html",
+		"html/index.html",
+		"public/index.html",
+		"settings.php",
+		"config/settings.php",
+		"config/index.php",
+	}
+
+	NginxOffySlashCmd.PersistentFlags().StringVarP(&webRequestFilenameOption, "request", "r", "", "File where the request to tamper is.")
+	NginxOffySlashCmd.PersistentFlags().StringVarP(&webRequestUrlOption, "url", "u", "", "URL where resource needs to be tamperd.")
+	NginxOffySlashCmd.PersistentFlags().StringVarP(&proxyOption, "proxy", "p", "", "Use the specified http proxy (ex: http://127.0.0.1:8080).")
+	NginxOffySlashCmd.PersistentFlags().BoolVarP(&burpOption, "burp", "", false, "Set burp as proxy with default configuration (http://127.0.0.1:8080).")
+	NginxOffySlashCmd.PersistentFlags().StringSliceVarP(&webValidResourcesOption, "path", "", nginxOffBySlashValidResourcesDefaultValues, "Valid resources to request in the form : 'static/app.js'. By default a pre-compiled list was created")
+	NginxOffySlashCmd.PersistentFlags().IntSliceVarP(&webOnlyStatusCodeOption, "show", "", []int{}, "Only show the specified status codes.")
 }
