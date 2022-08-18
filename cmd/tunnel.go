@@ -40,7 +40,7 @@ var tunnelCmd = &cobra.Command{
 	Short: ".",
 	Long:  ".",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		utils.NewLoggerStdout()
+		utils.NewLoggerStdoutDateTimeFile()
 	},
 }
 
@@ -65,7 +65,7 @@ var tunnelClientCmd = &cobra.Command{
 func init() {
 	tunnelCmd.AddCommand(tunnelServerCmd)
 	tunnelCmd.AddCommand(tunnelClientCmd)
-	tunnelCmd.PersistentFlags().StringVarP(&tunnelModeOption, "mode", "m", "", "Choose which mode use : send, listen, or socks5.")
+	tunnelCmd.PersistentFlags().StringVarP(&tunnelModeOption, "mode", "m", "", "Choose which mode use : send, receive, or socks5.")
 	tunnelCmd.PersistentFlags().StringVarP(&typeOption, "type", "t", "plain", "Choose which type of tunnel used : plain, tls.")
 	tunnelCmd.PersistentFlags().StringVar(&tunnelOption, "tunnel", "127.0.0.1:6666", "Address used to establish a tunnel. If server mode is used, it will be the address used for the tunnel. If client mode is used, it is the address where the tunnel will be set up.")
 	tunnelCmd.PersistentFlags().StringVarP(&socketOption, "socket", "s", "127.0.0.1:4444", "Address where the traffic will be either send or the address from where traffic is listened.")

@@ -318,8 +318,6 @@ func RunClient(tunnelAddress string, socketAddress string, tunnelType string, mo
 			utils.Log.Println(goRoutineUUID.String(), "Establish connexion with", socketAddress)
 
 			go func(connSocket net.Conn) {
-				done := make(chan bool)
-
 				// Contact the tunnel
 				currentTunnel := tunnel.Clone()
 				err := currentTunnel.Dial()
@@ -327,6 +325,8 @@ func RunClient(tunnelAddress string, socketAddress string, tunnelType string, mo
 					utils.Log.Fatalln(err)
 					return
 				}
+
+				done := make(chan bool)
 
 				defer func() {
 					utils.Log.Println(goRoutineUUID.String(), "Close the connection in ", currentTunnel.RemoteAddr())
@@ -345,7 +345,9 @@ func RunClient(tunnelAddress string, socketAddress string, tunnelType string, mo
 					done <- true
 				}(currentTunnel, connSocket)
 
-				func() {
+				<-done
+
+				defer func() {
 					utils.Log.Println(goRoutineUUID.String(), "Close the connection in ", connSocket.RemoteAddr())
 					connSocket.Close()
 				}()
