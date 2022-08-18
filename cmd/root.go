@@ -98,5 +98,6 @@ func init() {
 	rootCmd.AddCommand(crawlerCmd)
 	rootCmd.AddCommand(screenshotCmd)
 	rootCmd.AddCommand(staticCrawlerCmd)
+	rootCmd.AddCommand(stationCmd)
 	rootCmd.AddCommand(visitCmd)
 }
