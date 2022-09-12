@@ -56,8 +56,10 @@ func RunServerCmd(host string, port string) {
 			if err != nil {
 				log.Println(err)
 			}
+
 			agentUuid := uuid.New()
 			agentDate := time.Now()
+
 			agentList[agentUuid] = &agentStruct{
 				name:      "Undefined",
 				address:   agentConn.RemoteAddr().String(),
@@ -146,8 +148,7 @@ func RunServerCmd(host string, port string) {
 			case "help":
 				displayHelp()
 			case "list":
-				fmt.Print("\nAgent list\n")
-				w := tabwriter.NewWriter(os.Stdout, 16, 2, 2, ' ', 0)
+				w := tabwriter.NewWriter(os.Stdout, 36, 2, 2, ' ', 0)
 				fmt.Fprint(w, "UUID\tName\tAddress\tStart date\n")
 				for _, agent := range agentList {
 					fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", agent.Uuid.String(),
@@ -270,7 +271,7 @@ func runShell(currentAgent *agentStruct) {
 			displayHelp()
 			continue
 		case "exit":
-			fmt.Println("[?] If you want to exit, please use !exit and close the connection.")
+			fmt.Println("[?] If you want to exit, please use !back and close the connection with the stop command.")
 			continue
 		case "!back":
 			return
@@ -279,7 +280,7 @@ func runShell(currentAgent *agentStruct) {
 				continue
 			}
 
-			_, err := io.WriteString(currentAgent.conn, command)
+			_, err := io.WriteString(currentAgent.conn, command+"\n")
 			if err != nil {
 				fmt.Println(err)
 				return
