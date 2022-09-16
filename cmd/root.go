@@ -87,6 +87,7 @@ func init() {
 	rootCmd.AddCommand(generateCmd)
 	rootCmd.AddCommand(hostCmd)
 	rootCmd.AddCommand(ircCmd)
+	rootCmd.AddCommand(killSwitchCmd)
 	rootCmd.AddCommand(proxyCmd)
 	rootCmd.AddCommand(scanCmd)
 	rootCmd.AddCommand(scheduleCmd)
