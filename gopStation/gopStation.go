@@ -2,6 +2,11 @@ package gopStation
 
 import (
 	"bufio"
+	"bytes"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"log"
@@ -15,6 +20,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	gopproxy "github.com/hophouse/gop/gopProxy"
+	"github.com/hophouse/gop/utils"
 )
 
 type agentStruct struct {
@@ -23,6 +30,7 @@ type agentStruct struct {
 	startTime time.Time
 	Uuid      uuid.UUID
 	conn      net.Conn
+	kind      string
 	commands  []commandStruct
 }
 
@@ -31,17 +39,8 @@ type commandStruct struct {
 	output string
 }
 
-func RunServerCmd(host string, port string) {
+func RunServerCmd(tcpAddress string, sslAddress string) {
 	agentList := map[uuid.UUID]*agentStruct{}
-
-	address := fmt.Sprintf("%s:%s", host, port)
-	fmt.Println("[+] Binding to ", address)
-
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		log.Fatal("[!] Unable to bind the address")
-	}
-	defer listener.Close()
 
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -50,27 +49,106 @@ func RunServerCmd(host string, port string) {
 		<-c
 	}()
 
-	go func(listener net.Listener) {
-		for {
-			agentConn, err := listener.Accept()
-			if err != nil {
-				log.Println(err)
-			}
+	/*
+	 * TCP
+	 */
+	if tcpAddress != "" {
+		fmt.Println("[+] Binding TCP listener to ", tcpAddress)
 
-			agentUuid := uuid.New()
-			agentDate := time.Now()
-
-			agentList[agentUuid] = &agentStruct{
-				name:      "Undefined",
-				address:   agentConn.RemoteAddr().String(),
-				startTime: agentDate,
-				Uuid:      agentUuid,
-				conn:      agentConn,
-			}
-			fmt.Printf("\n[+] Accepting connection from %s with UUID %s\n", agentConn.RemoteAddr().String(), agentUuid.String())
+		listenerTcp, err := net.Listen("tcp", tcpAddress)
+		if err != nil {
+			log.Fatal("[!] Unable to bind the address")
 		}
-	}(listener)
+		defer listenerTcp.Close()
 
+		go func(listener net.Listener) {
+			for {
+				agentConn, err := listener.Accept()
+				if err != nil {
+					log.Println(err)
+				}
+
+				agentUuid := uuid.New()
+				agentDate := time.Now()
+
+				agentList[agentUuid] = &agentStruct{
+					name:      "Undefined",
+					address:   agentConn.RemoteAddr().String(),
+					startTime: agentDate,
+					Uuid:      agentUuid,
+					conn:      agentConn,
+					kind:      "TCP",
+				}
+				fmt.Printf("\n[+] Accepting TCP connection from %s with UUID %s\n", agentConn.RemoteAddr().String(), agentUuid.String())
+			}
+		}(listenerTcp)
+	}
+
+	/*
+	 * SSL
+	 */
+	if sslAddress != "" {
+		fmt.Println("[+] Binding SSL listener to ", sslAddress)
+
+		serverCert, serverKey := gopproxy.GenerateCA()
+
+		caBytes, err := x509.CreateCertificate(rand.Reader, serverCert, serverCert, serverKey.Public(), serverKey)
+		if err != nil {
+			fmt.Println(err)
+			utils.Log.Fatal(err)
+		}
+
+		serverCertPEM := new(bytes.Buffer)
+		pem.Encode(serverCertPEM, &pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: caBytes,
+		})
+
+		serverPrivKeyPEM := new(bytes.Buffer)
+		pem.Encode(serverPrivKeyPEM, &pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: x509.MarshalPKCS1PrivateKey(serverKey),
+		})
+
+		cer, err := tls.X509KeyPair(serverCertPEM.Bytes(), serverPrivKeyPEM.Bytes())
+		if err != nil {
+			log.Fatal(err)
+		}
+		config := &tls.Config{Certificates: []tls.Certificate{cer}}
+
+		// Listen for incoming connections.
+		listenerSsl, err := tls.Listen("tcp", sslAddress, config)
+		if err != nil {
+			log.Fatal("[!] Unable to bind the SSL address")
+		}
+		defer listenerSsl.Close()
+
+		go func(listener net.Listener) {
+			for {
+				agentConn, err := listener.Accept()
+				if err != nil {
+					log.Println(err)
+				}
+
+				agentUuid := uuid.New()
+				agentDate := time.Now()
+
+				agentList[agentUuid] = &agentStruct{
+					name:      "Undefined",
+					address:   agentConn.RemoteAddr().String(),
+					startTime: agentDate,
+					Uuid:      agentUuid,
+					conn:      agentConn,
+					kind:      "SSL",
+				}
+				fmt.Printf("\n[+] Accepting SSL connection from %s with UUID %s\n", agentConn.RemoteAddr().String(), agentUuid.String())
+			}
+		}(listenerSsl)
+	}
+
+	/*
+	 * Agent handling
+	 */
 	var currentAgent *agentStruct = nil
 
 	reader := bufio.NewReader(os.Stdin)
@@ -116,6 +194,7 @@ func RunServerCmd(host string, port string) {
 				fmt.Fprintf(w, "Name :\t%s\n", currentAgent.name)
 				fmt.Fprintf(w, "Address :\t%s\n", currentAgent.address)
 				fmt.Fprintf(w, "Date :\t%s\n", currentAgent.startTime.Format("2006-01-02 03:04:05"))
+				fmt.Fprintf(w, "Kind :\t%s\n", currentAgent.kind)
 				w.Flush()
 				continue
 			case "history":
@@ -149,10 +228,10 @@ func RunServerCmd(host string, port string) {
 				displayHelp()
 			case "list":
 				w := tabwriter.NewWriter(os.Stdout, 36, 2, 2, ' ', 0)
-				fmt.Fprint(w, "UUID\tName\tAddress\tStart date\n")
+				fmt.Fprint(w, "UUID\tName\tKind\tAddress\tStart date\n")
 				for _, agent := range agentList {
-					fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", agent.Uuid.String(),
-						agent.name, agent.address,
+					fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", agent.Uuid.String(),
+						agent.name, agent.kind, agent.address,
 						agent.startTime.Format("2006-01-02 03:04:05"))
 				}
 				w.Flush()

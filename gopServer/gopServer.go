@@ -1,7 +1,13 @@
 package gopserver
 
 import (
+	"bytes"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -11,15 +17,74 @@ import (
 	"github.com/gorilla/mux"
 	basicAuth "github.com/hophouse/gop/auth/basic"
 	ntlmAuth "github.com/hophouse/gop/auth/ntlm"
+	gopproxy "github.com/hophouse/gop/gopProxy"
 	"github.com/hophouse/gop/utils"
 	"github.com/urfave/negroni"
 )
 
-func RunServerHTTPCmd(host string, port string, directory string, auth string, realm string) {
+func RunServerHTTPCmd(host string, port string, directory string, auth string, realm string) error {
 	begin := time.Now()
+
+	server, err := GetServerCmd(host, port, directory, auth, realm)
+	if err != nil {
+		return err
+	}
+	utils.Log.Fatal(server.ListenAndServe())
+
+	end := time.Now()
+	fmt.Printf("\n -  Execution time: %s\n", end.Sub(begin))
+
+	return nil
+}
+
+func RunServerHTTPSCmd(host string, port string, directory string, auth string, realm string) error {
+	begin := time.Now()
+
+	server, err := GetServerCmd(host, port, directory, auth, realm)
+	if err != nil {
+		return nil
+	}
+	serverCert, serverKey := gopproxy.GenerateCA()
+
+	caBytes, err := x509.CreateCertificate(rand.Reader, serverCert, serverCert, serverKey.Public(), serverKey)
+	if err != nil {
+		fmt.Println(err)
+		utils.Log.Fatal(err)
+	}
+
+	serverCertPEM := new(bytes.Buffer)
+	pem.Encode(serverCertPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: caBytes,
+	})
+
+	serverPrivKeyPEM := new(bytes.Buffer)
+	pem.Encode(serverPrivKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(serverKey),
+	})
+
+	cer, err := tls.X509KeyPair(serverCertPEM.Bytes(), serverPrivKeyPEM.Bytes())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	server.TLSConfig = &tls.Config{
+		Certificates:       []tls.Certificate{cer},
+		InsecureSkipVerify: true,
+	}
+	utils.Log.Fatal(server.ListenAndServeTLS("", ""))
+
+	end := time.Now()
+	fmt.Printf("\n -  Execution time: %s\n", end.Sub(begin))
+
+	return nil
+}
+
+func GetServerCmd(host string, port string, directory string, auth string, realm string) (http.Server, error) {
 	path, err := os.Getwd()
 	if err != nil {
-		utils.Log.Println(err)
+		return http.Server{}, err
 	}
 
 	if !strings.HasPrefix(directory, "/") && !strings.HasPrefix(directory, "C:\\") {
@@ -51,8 +116,11 @@ func RunServerHTTPCmd(host string, port string, directory string, auth string, r
 	}
 
 	n.UseHandler(r)
-	utils.Log.Fatal(http.ListenAndServe(addr, n))
 
-	end := time.Now()
-	fmt.Printf("\n -  Execution time: %s\n", end.Sub(begin))
+	server := http.Server{
+		Addr:    addr,
+		Handler: n,
+	}
+
+	return server, nil
 }

@@ -27,7 +27,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var ()
+var (
+	tcpOption string
+	sslOption string
+)
 
 // screenCmd represents the screen command
 var stationCmd = &cobra.Command{
@@ -39,11 +42,11 @@ var stationCmd = &cobra.Command{
 		utils.NewLoggerNull()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gopStation.RunServerCmd(hostOption, portOption)
+		gopStation.RunServerCmd(tcpOption, sslOption)
 	},
 }
 
 func init() {
-	stationCmd.PersistentFlags().StringVarP(&hostOption, "Host", "H", "127.0.0.1", "Define the proxy host.")
-	stationCmd.PersistentFlags().StringVarP(&portOption, "Port", "P", "8000", "Define the proxy port.")
+	stationCmd.PersistentFlags().StringVarP(&tcpOption, "tcp", "t", "127.0.0.1:8080", "Define the tcp listening address.")
+	stationCmd.PersistentFlags().StringVarP(&sslOption, "ssl", "s", "127.0.0.1:8443", "Define the ssl listening address.")
 }

@@ -68,6 +68,14 @@ var serverHTTPCmd = &cobra.Command{
 	},
 }
 
+var serverHTTPSCmd = &cobra.Command{
+	Use:   "https",
+	Short: "Serve a specific directory through an HTTPS server.",
+	Run: func(cmd *cobra.Command, args []string) {
+		gopserver.RunServerHTTPSCmd(hostOption, portOption, directoryServeOption, authOption, realmOption)
+	},
+}
+
 var serverReverseHTTPProxyHTTPCmd = &cobra.Command{
 	Use:   "reverse-http-proxy",
 	Short: "Act as an HTTP reverse proxy that will redirect the user to the specified destination. A prefix can be specified.",
@@ -94,6 +102,7 @@ var serverGoPhishProxyHTTPCmd = &cobra.Command{
 
 func init() {
 	serverCmd.AddCommand(serverHTTPCmd)
+	serverCmd.AddCommand(serverHTTPSCmd)
 	serverCmd.AddCommand(serverReverseHTTPProxyHTTPCmd)
 	serverCmd.AddCommand(serverReverseHTTPSProxyHTTPCmd)
 	serverCmd.AddCommand(serverGoPhishProxyHTTPCmd)
@@ -105,6 +114,10 @@ func init() {
 	serverHTTPCmd.PersistentFlags().StringVarP(&directoryServeOption, "directory", "d", ".", "Directory to serve.")
 	serverHTTPCmd.PersistentFlags().StringVarP(&authOption, "auth", "a", "", "Add an authentication option to the server. Could be either \"Basic\" or \"NTLM\".")
 	serverHTTPCmd.PersistentFlags().StringVarP(&realmOption, "realm", "", "", "Realm used for the \"Basic\" authentication.")
+
+	serverHTTPSCmd.PersistentFlags().StringVarP(&directoryServeOption, "directory", "d", ".", "Directory to serve.")
+	serverHTTPSCmd.PersistentFlags().StringVarP(&authOption, "auth", "a", "", "Add an authentication option to the server. Could be either \"Basic\" or \"NTLM\".")
+	serverHTTPSCmd.PersistentFlags().StringVarP(&realmOption, "realm", "", "", "Realm used for the \"Basic\" authentication.")
 
 	serverReverseHTTPProxyHTTPCmd.PersistentFlags().StringVarP(&dstUrlOption, "destination", "d", "http://127.0.0.1:80", "Destination where traffic will be redirected.")
 	serverReverseHTTPProxyHTTPCmd.MarkPersistentFlagRequired("destination")
