@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 )
 
 var (
@@ -115,12 +115,12 @@ func RunPasswordGen(wordlist []string, delimiters []string, minYear int, maxYear
 
 	if stdinOption {
 		for _, word := range generatedWordlist {
-			fmt.Println(word)
+			logger.Println(word)
 		}
 	} else {
 		f, err := os.OpenFile(outFile, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			utils.Log.Fatal("Error opening file to write generated password.")
+			logger.Fatal("Error opening file to write generated password.")
 		}
 		defer f.Close()
 

@@ -1,8 +1,8 @@
 package gopproxy
 
 import (
-	"fmt"
 	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/jroimartin/gocui"
 )
 
@@ -12,12 +12,12 @@ var (
 
 func layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
-	horizontalSep := int(maxX/2)-20
-	horizontalSepHalf := int(horizontalSep/2)
+	horizontalSep := int(maxX/2) - 20
+	horizontalSepHalf := int(horizontalSep / 2)
 
 	if v, err := g.SetView("host", 0, 0, horizontalSepHalf-1, 2); err != nil {
 		if err != gocui.ErrUnknownView {
-			utils.Log.Println(err)
+			logger.Println(err)
 			return err
 		}
 		v.Title = "Host"
@@ -26,7 +26,7 @@ func layout(g *gocui.Gui) error {
 
 	if v, err := g.SetView("url", horizontalSepHalf+1, 0, horizontalSep-1, 2); err != nil {
 		if err != gocui.ErrUnknownView {
-			utils.Log.Println(err)
+			logger.Println(err)
 			return err
 		}
 		v.Title = "URL"
@@ -35,7 +35,7 @@ func layout(g *gocui.Gui) error {
 
 	if v, err := g.SetView("request", 0, 3, horizontalSep-1, maxY-4); err != nil {
 		if err != gocui.ErrUnknownView {
-			utils.Log.Println(err)
+			logger.Println(err)
 			return err
 		}
 		v.Title = "Request"
@@ -44,7 +44,7 @@ func layout(g *gocui.Gui) error {
 
 	if v, err := g.SetView("response-header", horizontalSep+1, 0, maxX-1, maxY/2); err != nil {
 		if err != gocui.ErrUnknownView {
-			utils.Log.Println(err)
+			logger.Println(err)
 			return err
 		}
 		v.Title = "Response Header"
@@ -53,7 +53,7 @@ func layout(g *gocui.Gui) error {
 
 	if v, err := g.SetView("response-body", horizontalSep+1, maxY/2+1, maxX-1, maxY-4); err != nil {
 		if err != gocui.ErrUnknownView {
-			utils.Log.Println(err)
+			logger.Println(err)
 			return err
 		}
 		v.Title = "Response Body"
@@ -63,7 +63,7 @@ func layout(g *gocui.Gui) error {
 
 	if v, err := g.SetView("mode", 0, maxY-3, 18, maxY-1); err != nil {
 		if err != gocui.ErrUnknownView {
-			utils.Log.Println(err)
+			logger.Println(err)
 			return err
 		}
 		v.Title = "Mode"
@@ -73,11 +73,11 @@ func layout(g *gocui.Gui) error {
 
 	if v, err := g.SetView("cmd", 19, maxY-3, maxX-1, maxY-1); err != nil {
 		if err != gocui.ErrUnknownView {
-			utils.Log.Println(err)
+			logger.Println(err)
 			return err
 		}
 		v.Title = "Commands"
-		fmt.Fprintf(v, " Ctrl+n: Next view | Ctrl+i: Toggle interception | Ctrl+Space: Forward | Ctrl+c: Exit")
+		logger.Fprintf(v, " Ctrl+n: Next view | Ctrl+i: Toggle interception | Ctrl+Space: Forward | Ctrl+c: Exit")
 		//v.Autoscroll = true
 		v.Wrap = true
 	}
@@ -89,7 +89,7 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-//func RunGUI(server *http.Server) error {
+// func RunGUI(server *http.Server) error {
 func RunGUI() error {
 	var err error
 	G, err = gocui.NewGui(gocui.OutputNormal)
@@ -104,17 +104,17 @@ func RunGUI() error {
 
 	// Quit
 	if err := G.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
-		utils.Log.Println(err)
+		logger.Println(err)
 		//server.Close()
 		return err
 	}
 
 	if err := initKeybindings(G); err != nil {
-		utils.Log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	if err := G.MainLoop(); err != nil && err != gocui.ErrQuit {
-		utils.Log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	return nil
@@ -132,7 +132,7 @@ func ClearAllGUIViews() {
 	for _, view := range views {
 		v, err := G.View(view)
 		if err != nil {
-			utils.Log.Println(err)
+			logger.Println(err)
 			break
 		}
 		v.Clear()
@@ -142,7 +142,7 @@ func ClearAllGUIViews() {
 func ClearGUIView(g *gocui.Gui, view string) *gocui.View {
 	v, err := g.View(view)
 	if err != nil {
-		utils.Log.Println(err)
+		logger.Println(err)
 		return nil
 	}
 	v.Clear()
@@ -162,7 +162,7 @@ func initKeybindings(g *gocui.Gui) error {
 func initKeybindingsGeneral(g *gocui.Gui) error {
 	// Click on a view
 	if err := g.SetKeybinding("", gocui.MouseLeft, gocui.ModNone, selectViewOnClick); err != nil {
-		utils.Log.Println(err)
+		logger.Println(err)
 		return err
 	}
 
@@ -186,13 +186,13 @@ func initKeybindingsGeneral(g *gocui.Gui) error {
 
 	// Change view
 	if err := g.SetKeybinding("", gocui.KeyCtrlN, gocui.ModNone, selectNextView); err != nil {
-		utils.Log.Println(err)
+		logger.Println(err)
 		return err
 	}
 
 	// Toggle intercept mode
 	if err := g.SetKeybinding("", gocui.KeyCtrlI, gocui.ModNone, toggleInterceptorMode); err != nil {
-		utils.Log.Println(err)
+		logger.Println(err)
 		return err
 	}
 
@@ -209,7 +209,7 @@ func initKeybindingsGeneral(g *gocui.Gui) error {
 
 	// Autoscroll
 	if err := g.SetKeybinding("response-body", 'a', gocui.ModNone, autoscroll); err != nil {
-		utils.Log.Println(err)
+		logger.Println(err)
 		return err
 	}
 
@@ -222,7 +222,7 @@ func autoscroll(g *gocui.Gui, v *gocui.View) error {
 }
 
 func scrollView(v *gocui.View, dy int) error {
-	utils.Log.Println("Scroll view")
+	logger.Println("Scroll view")
 	if v != nil {
 		v.Autoscroll = false
 		ox, oy := v.Origin()
@@ -234,7 +234,7 @@ func scrollView(v *gocui.View, dy int) error {
 }
 
 func selectViewOnClick(g *gocui.Gui, v *gocui.View) error {
-	utils.Log.Println("Select View on click")
+	logger.Println("Select View on click")
 	if v != nil {
 		if _, err := g.SetCurrentView(v.Name()); err != nil {
 			return err
@@ -245,7 +245,7 @@ func selectViewOnClick(g *gocui.Gui, v *gocui.View) error {
 }
 
 func selectNextView(g *gocui.Gui, v *gocui.View) error {
-	utils.Log.Println("Select Next View")
+	logger.Println("Select Next View")
 
 	// remove url view from selection
 	views := []string{
@@ -257,7 +257,7 @@ func selectNextView(g *gocui.Gui, v *gocui.View) error {
 	// If no view is selected
 	if g.CurrentView() == nil {
 		if _, err := g.SetCurrentView(views[0]); err != nil {
-			utils.Log.Println(err)
+			logger.Println(err)
 			return err
 		}
 		return nil
@@ -275,14 +275,14 @@ func selectNextView(g *gocui.Gui, v *gocui.View) error {
 
 	// Set cursor to new view
 	if _, err := g.SetCurrentView(views[newPosition]); err != nil {
-		utils.Log.Println(err)
+		logger.Println(err)
 		return err
 	}
 	return nil
 }
 
 func toggleInterceptorMode(g *gocui.Gui, v *gocui.View) error {
-	utils.Log.Printf("Toggle Interceptor mode from %v to %v", InterceptMode, !InterceptMode)
+	logger.Printf("Toggle Interceptor mode from %v to %v", InterceptMode, !InterceptMode)
 	InterceptMode = !InterceptMode
 	var message string = ""
 
@@ -291,7 +291,7 @@ func toggleInterceptorMode(g *gocui.Gui, v *gocui.View) error {
 	}
 
 	v = ClearGUIView(g, "mode")
-	fmt.Fprintf(v, "%s", message)
+	logger.Fprintf(v, "%s", message)
 
 	return nil
 }

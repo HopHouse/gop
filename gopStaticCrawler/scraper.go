@@ -2,6 +2,7 @@ package gopstaticcrawler
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/hophouse/gop/gopchromedp"
 	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 
 	"github.com/gocolly/colly"
 )
@@ -47,7 +49,7 @@ func InitCrawler() *colly.Collector {
 	if *GoCrawlerOptions.ProxyPtr != "" {
 		url, err := url.Parse(*GoCrawlerOptions.ProxyPtr)
 		if err != nil {
-			utils.Log.Fatalf("Error with proxy: %s", err)
+			logger.Fatalf("Error with proxy: %s", err)
 		}
 		c.SetProxy(url.String())
 		c.SetProxyFunc(http.ProxyURL(url))
@@ -81,14 +83,14 @@ func VisiteURL(visited *[]string, c *colly.Collector, Url string) {
 	s := strings.Split(cleanedUrl, "/")
 	length := len(s)
 	if len(s) > 3 && len(unique(s)) < (length-2) {
-		utils.Log.Println("[-] This page might be a redirection ", Url, ", so we do not visite it.")
+		fmt.Fprintln(logger.Writer(), "[-] This page might be a redirection ", Url, ", so we do not visite it.")
 		return
 	}
 
 	// Check if the page will logout and potentialy remove the token passed in parameter
 	if *GoCrawlerOptions.CookiePtr != "" {
 		if strings.Contains(Url, "logout") || strings.Contains(Url, "deconnexion") {
-			utils.Log.Printf("[-] This URL %s might contains a logout URL that may invalidate the session cookie. It will not be proceeded.", Url)
+			logger.Printf("[-] This URL %s might contains a logout URL that may invalidate the session cookie. It will not be proceeded.", Url)
 			return
 		}
 
@@ -113,7 +115,7 @@ func unique(stringSlice []string) []string {
 
 func defineCallBacks(c *colly.Collector) {
 	c.OnRequest(func(r *colly.Request) {
-		utils.Log.Printf("[+] Sending request to %s\n", r.URL)
+		fmt.Fprintf(logger.Writer(), "[+] Sending request to %s\n", r.URL)
 		utils.CrawlerBar.AddAndIncrementTotal(1)
 		if *GoCrawlerOptions.CookiePtr != "" {
 			r.Headers.Set("cookie", *GoCrawlerOptions.CookiePtr)
@@ -121,7 +123,7 @@ func defineCallBacks(c *colly.Collector) {
 	})
 
 	c.OnResponse(func(r *colly.Response) {
-		utils.Log.Printf("[/] Response from %s: %d\n", r.Request.URL, r.StatusCode)
+		fmt.Fprintf(logger.Writer(), "[/] Response from %s: %d\n", r.Request.URL, r.StatusCode)
 
 		// Take a screenshot if the option was set
 		if *GoCrawlerOptions.ScreenshotPtr == true {
@@ -145,7 +147,7 @@ func defineCallBacks(c *colly.Collector) {
 		url := e.Request.URL
 
 		if strings.HasPrefix(link, "#") || strings.HasPrefix(link, "?") || link == "/" || strings.HasPrefix(link, "javascript:") || strings.HasPrefix(link, "mailto:") || link == "" {
-			utils.Log.Printf("[-] Not using this link %s from %s\n", link, url)
+			fmt.Fprintf(logger.Writer(), "[-] Not using this link %s from %s\n", link, url)
 			return
 		}
 
@@ -169,12 +171,12 @@ func defineCallBacks(c *colly.Collector) {
 
 	// Set error handler
 	c.OnError(func(r *colly.Response, err error) {
-		utils.Log.Println("Request URL:", r.Request.URL, "failed with response:", r.StatusCode, "\nError:", err)
+		logger.Println("Request URL:", r.Request.URL, "failed with response:", r.StatusCode, "\nError:", err)
 		defer utils.CrawlerBar.Done()
 	})
 
 	c.OnScraped(func(r *colly.Response) {
-		utils.Log.Printf("[+] Finished sending ressources to %s\n", r.Request.URL)
+		fmt.Fprintf(logger.Writer(), "[+] Finished sending ressources to %s\n", r.Request.URL)
 		defer utils.CrawlerBar.Done()
 	})
 }
@@ -185,7 +187,7 @@ func TreatScriptSrc(e *colly.HTMLElement) {
 	url := e.Request.URL
 
 	if strings.HasPrefix(item, "javascript:void") {
-		utils.Log.Printf("[-] Not using this script %s from %s\n", item, url)
+		fmt.Fprintf(logger.Writer(), "[-] Not using this script %s from %s\n", item, url)
 		return
 	}
 
@@ -212,14 +214,13 @@ func getAbsoluteURL(item *string, original_item string, url *url.URL) {
 		} else {
 			*item = domain + *item
 		}
-		utils.Log.Printf("[*] Modified item for URL for %s. Transformed from %s to %s\n", url, original_item, *item)
+		fmt.Fprintf(logger.Writer(), "[*] Modified item for URL for %s. Transformed from %s to %s\n", url, original_item, *item)
 	}
 
 	if strings.HasPrefix(url.String(), " ") {
 		*item = (*item)[1:]
-		utils.Log.Printf("[*] Modified %s. Removed space from %s on %s\n", *item, original_item, url)
+		fmt.Fprintf(logger.Writer(), "[*] Modified %s. Removed space from %s on %s\n", *item, original_item, url)
 	}
-
 }
 
 // Treat url, classify what the ressource is and add to the internal or

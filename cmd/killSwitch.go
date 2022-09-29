@@ -27,7 +27,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -39,25 +39,25 @@ var (
 var killSwitchCmd = &cobra.Command{
 	Use: "kill-switch",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		utils.NewLoggerStdout()
+		logger.NewLoggerStdout()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		resp, err := http.Get(UrlOption)
 		if err != nil {
-			utils.Log.Println(err)
+			logger.Println(err)
 			return
 		}
 
 		if resp.StatusCode != 200 {
 			if err != nil {
-				utils.Log.Println(err)
+				logger.Println(err)
 				return
 			}
 		}
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			utils.Log.Println(err)
+			logger.Println(err)
 			return
 		}
 		defer resp.Body.Close()
@@ -67,7 +67,7 @@ var killSwitchCmd = &cobra.Command{
 			cmd := exec.Command(command[0], command[1:]...)
 			err := cmd.Run()
 			if err != nil {
-				utils.Log.Println(err)
+				logger.Println(err)
 				return
 			}
 		}

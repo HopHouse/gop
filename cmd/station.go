@@ -23,7 +23,6 @@ package cmd
 
 import (
 	"github.com/hophouse/gop/gopStation"
-	"github.com/hophouse/gop/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -37,10 +36,6 @@ var stationCmd = &cobra.Command{
 	Use:     "station",
 	Short:   "Use it as a station to manage and retrieve simple reverse shell in plain TCP.",
 	Version: "0.1",
-	PreRun: func(cmd *cobra.Command, args []string) {
-		rootCmd.PersistentPreRun(cmd, args)
-		utils.NewLoggerNull()
-	},
 	Run: func(cmd *cobra.Command, args []string) {
 		gopStation.RunServerCmd(tcpOption, sslOption)
 	},

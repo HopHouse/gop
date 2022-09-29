@@ -11,7 +11,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 )
 
 type hostStruct struct {
@@ -42,7 +42,7 @@ func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsStr
 	// Parse ports
 	ports := unique(parsePortsOption(portsString))
 	if len(ports) < 1 {
-		utils.Log.Println("No valid port found. Exiting.")
+		logger.Println("No valid port found. Exiting.")
 	}
 
 	// Run workers
@@ -72,8 +72,7 @@ func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsStr
 		if !strings.Contains(scanner.Text(), "/") {
 			ipAddr := net.ParseIP(scanner.Text())
 			if ipAddr == nil {
-				utils.Log.Printf("[!] Input %s is not a valid IP address.\n", scanner.Text())
-				fmt.Printf("[!] Input %s is not a valid IP address.\n", scanner.Text())
+				logger.Printf("[!] Input %s is not a valid IP address.\n", scanner.Text())
 				break
 			}
 			hosts[ipAddr.String()] = hostStruct{
@@ -81,12 +80,11 @@ func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsStr
 				services:        []serviceStruct{},
 				hasOpenServices: false,
 			}
-			utils.Log.Printf("[+] Adding IP address to queue : %s\n", scanner.Text())
+			logger.Printf("[+] Adding IP address to queue : %s\n", scanner.Text())
 		} else {
 			ipAddrs, err := ipsFromCIDR(scanner.Text())
 			if err != nil {
-				utils.Log.Printf("[!] Input %s is not a valid IP address range.\n", scanner.Text())
-				fmt.Printf("[!] Input %s is not a valid IP address range.\n", scanner.Text())
+				logger.Printf("[!] Input %s is not a valid IP address range.\n", scanner.Text())
 				break
 			}
 
@@ -96,7 +94,7 @@ func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsStr
 					services:        []serviceStruct{},
 					hasOpenServices: false,
 				}
-				utils.Log.Printf("[+] Adding IP address to queue : %s\n", ipAddr)
+				logger.Printf("[+] Adding IP address to queue : %s\n", ipAddr)
 			}
 		}
 	}
@@ -129,7 +127,7 @@ func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsStr
 	default:
 		printResults(hosts, onlyOpen)
 	}
-	utils.Log.Println("[+] Scan is terminated")
+	logger.Println("[+] Scan is terminated")
 }
 
 func printResults(hosts map[string]hostStruct, onlyOpen bool) {
@@ -138,14 +136,14 @@ func printResults(hosts map[string]hostStruct, onlyOpen bool) {
 			continue
 		}
 
-		fmt.Printf("\n[+] %s :\n", ip)
+		logger.Printf("\n[+] %s :\n", ip)
 		w := tabwriter.NewWriter(os.Stdout, 4, 1, 4, ' ', 0)
 		for _, service := range item.services {
 			if strings.Compare(service.status, "Open") == 0 {
-				fmt.Fprintf(w, "\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
+				logger.Fprintf(w, "\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
 			} else {
 				if onlyOpen == false {
-					fmt.Fprintf(w, "\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
+					logger.Fprintf(w, "\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
 				}
 			}
 		}
@@ -161,10 +159,10 @@ func printGreppableResults(hosts map[string]hostStruct, onlyOpen bool) {
 
 		for _, service := range item.services {
 			if strings.Compare(service.status, "Open") == 0 {
-				fmt.Printf("%s,%s,%s,%s\n", ip, service.protocol, service.portString, service.status)
+				logger.Printf("%s,%s,%s,%s\n", ip, service.protocol, service.portString, service.status)
 			} else {
 				if onlyOpen == false {
-					fmt.Printf("%s,%s,%s,%s\n", ip, service.protocol, service.portString, service.status)
+					logger.Printf("%s,%s,%s,%s\n", ip, service.protocol, service.portString, service.status)
 				}
 			}
 		}
@@ -178,7 +176,7 @@ func printShortResults(hosts map[string]hostStruct, onlyOpen bool) {
 		}
 		for _, service := range item.services {
 			if strings.Compare(service.status, "Open") == 0 {
-				fmt.Printf("%s:%s\n", ip, service.portString)
+				logger.Printf("%s:%s\n", ip, service.portString)
 			}
 		}
 	}

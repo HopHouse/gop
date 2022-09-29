@@ -2,7 +2,8 @@ package ntlm
 
 import (
 	"encoding/binary"
-	"fmt"
+
+	"github.com/hophouse/gop/utils/logger"
 )
 
 type SecurityBuffer struct {
@@ -55,7 +56,7 @@ func (sbuf SecurityBuffer) ToBytes() []byte {
 }
 
 func (sbuf *SecurityBuffer) PrintSecurityBuffer() {
-	fmt.Printf("\tBuffer length                : %x\n", sbuf.BufferLength)
-	fmt.Printf("\tBuffer Allocated length      : %x\n", sbuf.BufferAllocatedLength)
-	fmt.Printf("\tOffset                       : %x\n", sbuf.StartOffset)
+	logger.Printf("\tBuffer length                : %x\n", sbuf.BufferLength)
+	logger.Printf("\tBuffer Allocated length      : %x\n", sbuf.BufferAllocatedLength)
+	logger.Printf("\tOffset                       : %x\n", sbuf.StartOffset)
 }

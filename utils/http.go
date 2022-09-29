@@ -3,11 +3,12 @@ package utils
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/hophouse/gop/utils/logger"
 )
 
 func ReadRequestFromFile(filename string) (*http.Request, error) {
@@ -15,15 +16,15 @@ func ReadRequestFromFile(filename string) (*http.Request, error) {
 
 	f, err := os.Open(filename)
 	if err != nil {
-		Log.Println(err)
-		fmt.Println(err)
+		logger.Println(err)
+		logger.Println(err)
 		return nil, err
 	}
 
 	requestByte, err := io.ReadAll(f)
 	if err != nil {
-		Log.Println(err)
-		fmt.Println(err)
+		logger.Println(err)
+		logger.Println(err)
 		return nil, err
 	}
 	reader := bufio.NewReader(bytes.NewReader(requestByte))
@@ -36,13 +37,13 @@ func ReadRequestFromFile(filename string) (*http.Request, error) {
 
 			httpRequestPtr, err = http.ReadRequest(requestReader)
 			if err != nil {
-				Log.Println(err)
-				fmt.Println(err)
+				logger.Println(err)
+				logger.Println(err)
 				return nil, err
 			}
 		} else {
-			Log.Println(err)
-			fmt.Println(err)
+			logger.Println(err)
+			logger.Println(err)
 			return nil, err
 		}
 	}

@@ -1,11 +1,12 @@
 package gopscanfile
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/hophouse/gop/utils/logger"
 )
 
 var (
@@ -29,7 +30,7 @@ func RunSearchCmd(patternList []string, pathList []string, locationBlackList []s
 	for _, expr := range patternList {
 		regExp, err := regexp.Compile(expr)
 		if err != nil {
-			fmt.Printf("[X] Error with expression : %s\n", expr)
+			logger.Printf("[X] Error with expression : %s\n", expr)
 			break
 		}
 		regList = append(regList, regExp)
@@ -41,8 +42,8 @@ func RunSearchCmd(patternList []string, pathList []string, locationBlackList []s
 			for path := range inputChan {
 				err := filepath.Walk(path, findInPath)
 				if err != nil {
-					fmt.Printf("Error during walk in location : %s\n", path)
-					fmt.Println(err)
+					logger.Printf("Error during walk in location : %s\n", path)
+					logger.Println(err)
 				}
 			}
 			workerChan <- true
@@ -102,16 +103,16 @@ func findInPath(path string, info os.FileInfo, err error) error {
 		res := re.MatchString(info.Name())
 		if res {
 			if info.IsDir() && *onlyFilesPtr == false {
-				fmt.Printf("[+] [D] %s\n", path)
+				logger.Printf("[+] [D] %s\n", path)
 			} else {
-				fmt.Printf("[+] [F] %s\n", path)
+				logger.Printf("[+] [F] %s\n", path)
 			}
-			fmt.Printf("     |_ Name : %s\n", info.Name())
-			fmt.Printf("     |_ Size : %d\n", info.Size())
-			fmt.Printf("     |_ Last modified : %s\n", info.ModTime())
-			fmt.Printf("     |_ Permissions : %s\n", info.Mode())
-			fmt.Printf("     |_ Matched Pattern : %s\n", re.String())
-			fmt.Printf("\n")
+			logger.Printf("     |_ Name : %s\n", info.Name())
+			logger.Printf("     |_ Size : %d\n", info.Size())
+			logger.Printf("     |_ Last modified : %s\n", info.ModTime())
+			logger.Printf("     |_ Permissions : %s\n", info.Mode())
+			logger.Printf("     |_ Matched Pattern : %s\n", re.String())
+			logger.Printf("\n")
 		}
 	}
 

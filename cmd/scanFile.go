@@ -23,7 +23,7 @@ package cmd
 
 import (
 	gopsearch "github.com/hophouse/gop/gopScanFile"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +42,7 @@ var scanFileCmd = &cobra.Command{
 	Short: "Search for files on disk that matches a specific patterne. Regex or partial filename can be passed to the script.",
 	Long:  "Search for files on disk that matches a specific patterne. Regex or partial filename can be passed to the script.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		utils.NewLoggerStdout()
+		logger.NewLoggerStdout()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		gopsearch.RunSearchCmd(patternListOption, locationListOption, locationBlackListOption, extensionWhiteListOption, extensionBlackListOption, onlyFilesOption, concurrencyOption)

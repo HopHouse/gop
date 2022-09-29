@@ -11,14 +11,14 @@ import (
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 )
 
 // TakeScreenShot Take screenshot of the pages.
 func GetHTMLCode(item *Item, url string, directory string, proxy string, cookie string, timeout int) {
 	// take screenshot for all urls
 	if strings.HasSuffix(url, ".pdf") {
-		utils.Log.Println("[+] Do not take a the HTML content of the PDF ", url)
+		logger.Println("[+] Do not take a the HTML content of the PDF ", url)
 		return
 	}
 
@@ -56,7 +56,7 @@ func GetHTMLCode(item *Item, url string, directory string, proxy string, cookie 
 				cookieName = strings.Split(cookie, "=")[0]
 				cookieValue = strings.Split(cookie, "=")[1]
 				domain := strings.Split(url, "/")[2]
-				// fmt.Printf("Cookie info %s %s %s\n", cookieName, cookieValue, domain)
+				// logger.Printf("Cookie info %s %s %s\n", cookieName, cookieValue, domain)
 
 				err := network.SetCookie(cookieName, cookieValue).
 					WithExpires(&expr).
@@ -72,30 +72,30 @@ func GetHTMLCode(item *Item, url string, directory string, proxy string, cookie 
 		chromedp.Navigate(url),
 	)
 	if err != nil {
-		utils.Log.Println("[+] Error visiting the url : ", url, " - ", err)
+		logger.Println("[+] Error visiting the url : ", url, " - ", err)
 		return
 	}
 
 	// buffer
 	var outerHTML string
 
-	utils.Log.Println("[+] Taking a the HTML content of ", url)
+	logger.Println("[+] Taking a the HTML content of ", url)
 
 	// capture entire browser viewport, returning png with quality=90
 	if err := chromedp.Run(tcontext, takeHTML(url, &outerHTML)); err != nil {
 		if strings.HasPrefix(err.Error(), "context deadline exceeded") {
-			utils.Log.Printf("[!] Timeout error for URL %s - %s\n", url, err)
+			logger.Printf("[!] Timeout error for URL %s - %s\n", url, err)
 		} else {
-			utils.Log.Println("[!] Error in chromedp. Run for URL ", url, " : ", err)
+			logger.Println("[!] Error in chromedp. Run for URL ", url, " : ", err)
 		}
-		utils.Log.Println("[-] Retry on :", url)
+		logger.Println("[-] Retry on :", url)
 
 		// Retry
 		if err := chromedp.Run(tcontext, takeHTML(url, &outerHTML)); err != nil {
 			if strings.HasPrefix(err.Error(), "context deadline exceeded") {
-				utils.Log.Printf("[!] 2nd time, timeout error for URL %s - %s\n", url, err)
+				logger.Printf("[!] 2nd time, timeout error for URL %s - %s\n", url, err)
 			} else {
-				utils.Log.Println("[!] 2nd time, error in chromedp.Run for URL ", url, " : ", err)
+				logger.Println("[!] 2nd time, error in chromedp.Run for URL ", url, " : ", err)
 			}
 		}
 		return
@@ -103,17 +103,17 @@ func GetHTMLCode(item *Item, url string, directory string, proxy string, cookie 
 
 	// Check if the screenshot was taken
 	if len(outerHTML) == 0 {
-		utils.Log.Println("[!] Error, HTML content not taken for ", url, " because it had a size of 0 bytes")
+		logger.Println("[!] Error, HTML content not taken for ", url, " because it had a size of 0 bytes")
 		return
 	}
 	filename := filepath.Join(directory, GetHTMLFileName(url))
 
 	if err := os.WriteFile(filename, []byte(outerHTML), 0644); err != nil {
-		utils.Log.Println("Error in os.WriteFile ", err, " for url ", url, " with filename ", filename, " and size of ", len(outerHTML))
+		logger.Println("Error in os.WriteFile ", err, " for url ", url, " with filename ", filename, " and size of ", len(outerHTML))
 		return
 	}
 
-	utils.Log.Println("[+] Took the HTML content of ", url, " - ", filename, " with a size of ", len(outerHTML))
+	logger.Println("[+] Took the HTML content of ", url, " - ", filename, " with a size of ", len(outerHTML))
 }
 
 func takeHTML(urlstr string, html *string) chromedp.Tasks {

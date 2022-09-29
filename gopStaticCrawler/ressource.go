@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/gookit/color"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 )
 
 type Ressource struct {
@@ -25,7 +25,7 @@ func CreateRessource(urlReference string, script string, kind string) (isInterna
 
 	scriptUrl, err := url.Parse(script)
 	if err != nil {
-		utils.Log.Println(err)
+		logger.Println(err)
 	}
 
 	// Define if it is secure
@@ -38,7 +38,7 @@ func CreateRessource(urlReference string, script string, kind string) (isInterna
 	// Define if its an internal or external script
 	urlReferenceUrl, err := url.Parse(urlReference)
 	if err != nil {
-		utils.Log.Println(err)
+		logger.Println(err)
 	}
 
 	if scriptUrl.Host == urlReferenceUrl.Host || scriptUrl.Host == "" {
@@ -64,7 +64,7 @@ func (ressource Ressource) equal(newRessource Ressource) bool {
 func AddRessourceIfDoNotExists(ressources *[]Ressource, ressource Ressource) bool {
 	for _, item := range *ressources {
 		if added := item.equal(ressource); added == true {
-			//utils.Log.Println("[-] Ressource already present ", ressource.Url)
+			//logger.Println("[-] Ressource already present ", ressource.Url)
 			return false
 		}
 	}
@@ -97,7 +97,7 @@ func ressourceListString(ressources []Ressource) []string {
 func PrintRessourceList(ressources_string []Ressource) {
 	tmp := ressourceListString(ressources_string)
 	for _, s := range tmp {
-		color.Println("  - ", s)
+		logger.Println("  - ", s)
 	}
 }
 
@@ -131,14 +131,14 @@ func WriteRessourceListReport(ressources_string []Ressource) {
 	tmp := ressourceListStringReport(ressources_string)
 	f, errorFile := os.OpenFile("external_ressources.tex", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if errorFile != nil {
-		utils.Log.Fatalf("error opening file: %v", errorFile)
+		logger.Fatalf("error opening file: %v", errorFile)
 	}
 	defer f.Close()
 
 	for _, s := range tmp {
 		_, error := f.WriteString(s)
 		if error != nil {
-			color.Println(error)
+			logger.Println(error)
 		}
 	}
 	f.Sync()

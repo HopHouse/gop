@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/hophouse/gop/notification"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 	"github.com/vbauerster/mpb/v7"
 	"github.com/vbauerster/mpb/v7/decor"
@@ -44,7 +44,7 @@ var pomodoroCmd = &cobra.Command{
 	Use:  "pomodoro",
 	Long: "Resolve hostname to get the IP address.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		utils.NewLoggerStdout()
+		logger.NewLoggerStdout()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		for {

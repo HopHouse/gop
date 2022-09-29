@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 )
 
 type NotifierStruct struct {
@@ -38,7 +38,7 @@ func NotifyAndWait(notification string) {
 		cmd := exec.Command("C:\\Windows\\System32\\msg.exe", Notifier.User, "/W", notification)
 		err := cmd.Start()
 		if err != nil {
-			utils.Log.Println(err)
+			logger.Println(err)
 		}
 		cmd.Wait()
 	}
@@ -48,7 +48,7 @@ func Notify(notification string) {
 	if Notifier.OperatingSystem == "windows" {
 		err := exec.Command("C:\\Windows\\System32\\msg.exe", Notifier.User, notification).Start()
 		if err != nil {
-			utils.Log.Println(err)
+			logger.Println(err)
 		}
 	}
 }

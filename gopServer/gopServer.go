@@ -18,7 +18,7 @@ import (
 	basicAuth "github.com/hophouse/gop/auth/basic"
 	ntlmAuth "github.com/hophouse/gop/auth/ntlm"
 	gopproxy "github.com/hophouse/gop/gopProxy"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/urfave/negroni"
 )
 
@@ -29,10 +29,10 @@ func RunServerHTTPCmd(host string, port string, directory string, auth string, r
 	if err != nil {
 		return err
 	}
-	utils.Log.Fatal(server.ListenAndServe())
+	logger.Fatal(server.ListenAndServe())
 
 	end := time.Now()
-	fmt.Printf("\n -  Execution time: %s\n", end.Sub(begin))
+	logger.Printf("\n -  Execution time: %s\n", end.Sub(begin))
 
 	return nil
 }
@@ -48,8 +48,7 @@ func RunServerHTTPSCmd(host string, port string, directory string, auth string, 
 
 	caBytes, err := x509.CreateCertificate(rand.Reader, serverCert, serverCert, serverKey.Public(), serverKey)
 	if err != nil {
-		fmt.Println(err)
-		utils.Log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	serverCertPEM := new(bytes.Buffer)
@@ -73,10 +72,10 @@ func RunServerHTTPSCmd(host string, port string, directory string, auth string, 
 		Certificates:       []tls.Certificate{cer},
 		InsecureSkipVerify: true,
 	}
-	utils.Log.Fatal(server.ListenAndServeTLS("", ""))
+	logger.Fatal(server.ListenAndServeTLS("", ""))
 
 	end := time.Now()
-	fmt.Printf("\n -  Execution time: %s\n", end.Sub(begin))
+	logger.Printf("\n -  Execution time: %s\n", end.Sub(begin))
 
 	return nil
 }
@@ -92,7 +91,7 @@ func GetServerCmd(host string, port string, directory string, auth string, realm
 	}
 
 	addr := fmt.Sprintf("%s:%s", host, port)
-	fmt.Printf("[+] Serve file to: http://%s for %s\n", addr, directory)
+	logger.Printf("[+] Serve file to: http://%s for %s\n", addr, directory)
 
 	// Router
 	r := mux.NewRouter()
@@ -105,12 +104,12 @@ func GetServerCmd(host string, port string, directory string, auth string, realm
 	// Apply an auth system if requested
 	switch strings.ToLower(auth) {
 	case "basic":
-		fmt.Printf("[+] Add HTTP Basic auth header\n")
+		logger.Printf("[+] Add HTTP Basic auth header\n")
 		n.Use(&basicAuth.BasicAuthMiddleware{
 			Realm: realm,
 		})
 	case "ntlm":
-		fmt.Printf("[+] Add HTTP NTLM auth header\n")
+		logger.Printf("[+] Add HTTP NTLM auth header\n")
 		ntlmAuth.NtlmCapturedAuth = make(map[string]bool)
 		n.Use(&ntlmAuth.NTLMAuthMiddleware{})
 	}

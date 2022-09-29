@@ -1,8 +1,10 @@
 package utils
 
+import "github.com/hophouse/gop/utils/logger"
+
 func CheckError(err error) bool {
 	if err != nil {
-		Log.Println(err)
+		logger.Println(err)
 		return true
 	}
 	return false
@@ -10,7 +12,7 @@ func CheckError(err error) bool {
 
 func CheckErrorExit(err error) bool {
 	if err != nil {
-		Log.Fatal(err)
+		logger.Fatal(err)
 		return true
 	}
 	return false

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gobuffalo/packr/v2"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 )
 
 // GetScreenshotHTML Create the HTML page that references all the taken screenshots.
@@ -16,7 +16,7 @@ func ExportHTMLPage() string {
 
 	htmlCode, err := box.FindString("base.html")
 	if err != nil {
-		utils.Log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	return htmlCode
@@ -36,7 +36,7 @@ func ExportLoadedResources(items []Item) string {
 func ExportItemsToJSON(items []Item) string {
 	b, err := json.Marshal(items)
 	if err != nil {
-		utils.Log.Println("Error :", err)
+		logger.Println("Error :", err)
 	}
 	return string(b)
 }

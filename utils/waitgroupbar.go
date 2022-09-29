@@ -47,8 +47,10 @@ func (groupBar *WaitGroupBar) AddBar(name string, main bool) (newBar Bar) {
 			decor.OnComplete(decor.Name("] [Running]"), "] [Finished]"),
 		),
 	)
+
 	newBar.waitGroup = &groupBar.waitGroup
 	groupBar.bars = append(groupBar.bars, &newBar)
+
 	return newBar
 }
 

@@ -11,6 +11,7 @@ import (
 	"net/http/httputil"
 
 	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 )
 
 type Proxy struct {
@@ -24,13 +25,13 @@ func RunHTTPProxyCmd(options *Options) {
 
 	_, err = net.ResolveTCPAddr("tcp4", addr)
 	if err != nil {
-		utils.Log.Fatal(err)
+		logger.Fatal(err)
 		return
 	}
 
 	certManager, err := InitCertManager(options.caFileOption, options.caPrivKeyFileOption)
 	if err != nil {
-		utils.Log.Fatal(err)
+		logger.Fatal(err)
 		return
 	}
 
@@ -48,7 +49,7 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.Method == "CONNECT" {
 		err := p.handleHTTPSMethod(w, req)
 		if err != nil {
-			utils.Log.Println(err)
+			logger.Println(err)
 			return
 		}
 
@@ -73,7 +74,7 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		utils.Log.Println(err)
+		logger.Println(err)
 		return
 	}
 	res.Body.Close()
@@ -94,7 +95,7 @@ func (p Proxy) handleHTTPSMethod(w http.ResponseWriter, req *http.Request) error
 	}
 	defer clientConn.Close()
 
-	utils.Log.Printf("CONNECT from %s to %s \n", clientConn.LocalAddr(), clientConn.RemoteAddr())
+	logger.Printf("CONNECT from %s to %s \n", clientConn.LocalAddr(), clientConn.RemoteAddr())
 	w.Write([]byte("HTTP/1.1 200 OK\r\nProxy-agent: GoPentest/1.0\r\n\r\n"))
 
 	// Hijack the connection

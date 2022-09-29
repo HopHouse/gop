@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 )
 
 type BasicAuthMiddleware struct {
@@ -25,8 +26,7 @@ func (n BasicAuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, n
 	}
 
 	if username, password, ok := r.BasicAuth(); ok == true {
-		fmt.Printf("[AUTH-BASIC] [%s] [%s] [%s]\n", utils.GetSourceIP(r), username, password)
-		utils.Log.Printf("[AUTH-BASIC] [%s] [%s] [%s]\n", utils.GetSourceIP(r), username, password)
+		logger.Printf("[AUTH-BASIC] [%s] [%s] [%s]\n", utils.GetSourceIP(r), username, password)
 	}
 
 	next(w, r)

@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/gookit/color"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 )
 
 var (
@@ -38,36 +38,32 @@ func NewOptions(url *string, logFileOption *os.File, report *bool, recursive *bo
 func PrintOptions(options *Options) {
 	// Custom log file option
 	if options.LogFile != nil {
-		utils.Log.Println("Using the following log file : ", options.LogFile.Name())
-		color.Printf("[+] Using the following log file : %s\n", options.LogFile.Name())
+		logger.Printf(color.Sprintf("[+] Using the following log file : %s\n", options.LogFile.Name()))
 	}
 
 	// Proxy option
 	if *options.ProxyPtr != "" {
-		utils.Log.Println("Using the following proxy URL", *options.ProxyPtr)
-		color.Printf("[+] Using the following proxy URL %s\n", *options.ProxyPtr)
+		logger.Printf(color.Sprintf("[+] Using the following proxy URL %s\n", *options.ProxyPtr))
 	}
 
 	// Cookie option
 	if *options.CookiePtr != "" {
-		utils.Log.Println("Using the following custom cookie ", *options.CookiePtr)
-		color.Printf("[+] Using the following custom cookie %s\n", *options.CookiePtr)
+		logger.Printf(color.Sprintf("[+] Using the following custom cookie %s\n", *options.CookiePtr))
 	}
 
 	// Report option
 	if *options.ReportPtr == true {
-		utils.Log.Println("Report option set")
-		color.Println("[+] Report option set")
+		logger.Println("Report option set")
+		logger.Println("[+] Report option set")
 	}
 
 	// Screenshot option
 	if *options.ScreenshotPtr != false {
-		utils.Log.Println("Using the screenshot option")
+		logger.Println("Using the screenshot option")
 	}
 
 	// Delay option
 	if *options.DelayPtr != 0 {
-		utils.Log.Printf("Delay option between requests sets to: %d\n", *options.DelayPtr)
-		color.Printf("[+] Delay option between requests sets to: %d\n", *options.DelayPtr)
+		logger.Printf(color.Sprintf("[+] Delay option between requests sets to: %d\n", *options.DelayPtr))
 	}
 }

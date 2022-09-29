@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/jroimartin/gocui"
 )
 
@@ -31,7 +32,7 @@ func RunNetProxyCmd(options *Options) {
 
 	certManager, err := InitCertManager(options.caFileOption, options.caPrivKeyFileOption)
 	if err != nil {
-		utils.Log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	l, err := net.Listen("tcp4", addr)
@@ -43,7 +44,7 @@ func RunNetProxyCmd(options *Options) {
 			conn, err := l.Accept()
 			if err != nil {
 				// handle error
-				utils.Log.Println(err)
+				logger.Println(err)
 				break
 			}
 			handleConnection(conn, &certManager)
@@ -58,7 +59,7 @@ func handleConnection(conn net.Conn, certManager *CertManager) {
 	//ClearAllGUIViews()
 
 	// Copy request
-	utils.Log.Printf("Receive conenction from %s to %s\n", conn.RemoteAddr(), conn.LocalAddr())
+	logger.Printf("Receive conenction from %s to %s\n", conn.RemoteAddr(), conn.LocalAddr())
 	reader := bufio.NewReader(conn)
 
 	req, err := http.ReadRequest(reader)
@@ -93,7 +94,7 @@ func handleConnection(conn net.Conn, certManager *CertManager) {
 
 		cer, err := certManager.CreateCertificate(req.URL.Hostname())
 		if err != nil {
-			utils.Log.Println(err)
+			logger.Println(err)
 			return
 		}
 
@@ -202,19 +203,19 @@ func doHTTPRequest(r *http.Request) *http.Response {
 }
 
 func PrintRequest(v *gocui.View, r *http.Request) {
-	fmt.Fprintf(v, "%s %s %s\n", r.Method, r.URL, r.Proto)
-	fmt.Fprintf(v, "Host: %s\n", r.Host)
+	logger.Fprintf(v, "%s %s %s\n", r.Method, r.URL, r.Proto)
+	logger.Fprintf(v, "Host: %s\n", r.Host)
 	for headerName, headerValueSlice := range r.Header {
 		for _, headerValue := range headerValueSlice {
-			fmt.Fprintf(v, "%s: %s\n", headerName, headerValue)
+			logger.Fprintf(v, "%s: %s\n", headerName, headerValue)
 		}
 	}
 }
 
 func PrintResponse(v *gocui.View, r http.Response) {
-	fmt.Fprintf(v, "%s\n", r.Status)
+	logger.Fprintf(v, "%s\n", r.Status)
 	for headerName, headerValueSlice := range r.Header {
-		fmt.Fprintf(v, "%s: %s\n", headerName, headerValueSlice[0])
+		logger.Fprintf(v, "%s: %s\n", headerName, headerValueSlice[0])
 	}
 }
 
@@ -225,10 +226,10 @@ func PrintGUIRequest(r *http.Request) {
 
 	G.Update(func(g *gocui.Gui) error {
 		v := ClearGUIView(g, "host")
-		fmt.Fprintf(v, "%s", r.Host)
+		logger.Fprintf(v, "%s", r.Host)
 
 		v = ClearGUIView(g, "url")
-		fmt.Fprintf(v, "%s %s %s", r.URL.Scheme, r.URL.User, r.URL.Host)
+		logger.Fprintf(v, "%s %s %s", r.URL.Scheme, r.URL.User, r.URL.Host)
 
 		v = ClearGUIView(g, "request")
 		PrintRequest(v, r)
@@ -257,7 +258,7 @@ func PrintGUIResponse(r http.Response) {
 		PrintResponse(v, r)
 
 		v = ClearGUIView(g, "response-body")
-		fmt.Fprintf(v, "%s", body)
+		logger.Fprintf(v, "%s", body)
 		return nil
 	})
 }

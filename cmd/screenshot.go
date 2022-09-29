@@ -22,11 +22,11 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
 	gopscreen "github.com/hophouse/gop/gopScreen"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -42,8 +42,6 @@ var screenshotCmd = &cobra.Command{
 	Long:    "Take screenshots of the supplied URLs. The program will take the stdin if no input file is passed as argument.",
 	Version: "0.2",
 	PreRun: func(cmd *cobra.Command, args []string) {
-		rootCmd.PersistentPreRun(cmd, args)
-
 		var err error
 
 		// Parse options
@@ -51,13 +49,13 @@ var screenshotCmd = &cobra.Command{
 
 		stat, err := reader.Stat()
 		if err != nil {
-			fmt.Println("Error found in stdin:", err)
+			logger.Println("Error found in stdin:", err)
 			os.Exit(2)
 		}
 
 		if inputFileOption != "" {
 			if (stat.Mode() & os.ModeNamedPipe) != 0 {
-				fmt.Println("[!] Cannot use stdin and input-file at the same time.")
+				logger.Println("[!] Cannot use stdin and input-file at the same time.")
 				os.Exit(2)
 			}
 
@@ -68,7 +66,7 @@ var screenshotCmd = &cobra.Command{
 		} else {
 			// Chech if there is something in stdin
 			if (stat.Mode() & os.ModeNamedPipe) == 0 {
-				fmt.Println("[!] You should pass something to stdin or use the input-file option.")
+				logger.Println("[!] You should pass something to stdin or use the input-file option.")
 				os.Exit(1)
 			}
 		}

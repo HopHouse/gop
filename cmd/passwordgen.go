@@ -23,7 +23,7 @@ package cmd
 
 import (
 	"github.com/hophouse/gop/gopPasswordGen"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +40,7 @@ var passwordGenCmd = &cobra.Command{
 	Use:   "password",
 	Short: "Generate password based on a given list of words.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		utils.NewLoggerStdout()
+		logger.NewLoggerStdout()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		wordlist := baseWordlistOption

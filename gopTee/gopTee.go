@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/hophouse/gop/utils/logger"
 )
 
 func RunTeeCmd(outputFile string, cmdOption string) error {
@@ -26,14 +28,14 @@ func RunTeeCmd(outputFile string, cmdOption string) error {
 	file.WriteString(cmdString)
 
 	cmdStringSlicePipe := strings.Split(cmdOption, "|")
-	fmt.Println(cmdStringSlicePipe)
+	logger.Println(cmdStringSlicePipe)
 
 	stack := make([]*exec.Cmd, 0)
 
 	for i, input := range cmdStringSlicePipe {
 		var cmd *exec.Cmd
 
-		fmt.Printf("i: %d - %s\n", i, input)
+		logger.Printf("i: %d - %s\n", i, input)
 		cmdStringSlice := strings.Split(strings.TrimSpace(input), " ")
 
 		if len(cmdStringSlice) <= 1 {
@@ -59,10 +61,10 @@ func ExecPipeCommands(stack ...*exec.Cmd) error {
 
 	var out bytes.Buffer
 
-	fmt.Printf("Len stack : %d\n", len(stack))
+	logger.Printf("Len stack : %d\n", len(stack))
 	for i := 0; i < len(stack)-1; i++ {
 		inPipe, outPipe := io.Pipe()
-		fmt.Printf("Pipe %d :\n\t%#v\n\t%#v\n", i, &inPipe, &outPipe)
+		logger.Printf("Pipe %d :\n\t%#v\n\t%#v\n", i, &inPipe, &outPipe)
 
 		pipeSlice[i] = outPipe
 		stack[i+1].Stdin = inPipe
@@ -71,29 +73,29 @@ func ExecPipeCommands(stack ...*exec.Cmd) error {
 	}
 	stack[len(stack)-1].Stdout = &out
 
-	fmt.Println("[+] Start the Exec Stack")
+	logger.Println("[+] Start the Exec Stack")
 
 	err := ExecStackCmd(stack, pipeSlice)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("[+] Final output:\n%s\n", out.String())
+	logger.Printf("[+] Final output:\n%s\n", out.String())
 
 	return nil
 }
 
 func ExecStackCmd(stack []*exec.Cmd, pipeSlice []*io.PipeWriter) error {
-	fmt.Printf("Len stack : %d\n", len(stack))
+	logger.Printf("Len stack : %d\n", len(stack))
 	for i := (len(stack) - 1); i >= 0; i-- {
-		fmt.Printf("Starting Stack %d\n", i)
+		logger.Printf("Starting Stack %d\n", i)
 		stack[i].Start()
 	}
 
 	pipeSlice[0].Close()
 	stack[1].Start()
 	stack[1].Wait()
-	fmt.Println(stack[1].Output())
+	logger.Println(stack[1].Output())
 
 	/*
 		if i == (len(cmdStringSlicePipe) - 1) {
@@ -106,7 +108,7 @@ func ExecStackCmd(stack []*exec.Cmd, pipeSlice []*io.PipeWriter) error {
 			file.Write(output)
 			file.WriteString("\n")
 
-			fmt.Println(string(output))
+			logger.Println(string(output))
 		} else {
 			stdout, err := cmd.StdoutPipe()
 			if err != nil {

@@ -22,11 +22,11 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path"
 
 	gopscannetwork "github.com/hophouse/gop/gopScanNetwork"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -43,8 +43,6 @@ var scanNetworkCmd = &cobra.Command{
 	Short: "Port scan the network. Only valid IP address must be passed as input.",
 	Long:  "Port scan the network. Only valid IP address must be passed as input.",
 	PreRun: func(cmd *cobra.Command, args []string) {
-		rootCmd.PersistentPreRun(cmd, args)
-
 		var err error
 
 		// Parse options
@@ -52,13 +50,13 @@ var scanNetworkCmd = &cobra.Command{
 
 		stat, err := reader.Stat()
 		if err != nil {
-			fmt.Println("Error found in stdin:", err)
+			logger.Println("Error found in stdin:", err)
 			os.Exit(2)
 		}
 
 		if inputFileOption != "" {
 			if (stat.Mode() & os.ModeNamedPipe) != 0 {
-				fmt.Println("[!] Cannot use stdin and input-file at the same time.")
+				logger.Println("[!] Cannot use stdin and input-file at the same time.")
 				os.Exit(2)
 			}
 			reader, err = os.Open(path.Join("..", inputFileOption))
@@ -68,7 +66,7 @@ var scanNetworkCmd = &cobra.Command{
 		} else {
 			// Chech if there is something in stdin
 			if (stat.Mode() & os.ModeNamedPipe) == 0 {
-				fmt.Println("[!] You should pass something to stdin or use the input-file option.")
+				logger.Println("[!] You should pass something to stdin or use the input-file option.")
 				os.Exit(1)
 			}
 		}

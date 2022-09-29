@@ -2,6 +2,7 @@ package gopdynamiccrawler
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"strings"
 	"sync"
@@ -11,6 +12,7 @@ import (
 	gopstaticcrawler "github.com/hophouse/gop/gopStaticCrawler"
 	"github.com/hophouse/gop/gopchromedp"
 	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -49,7 +51,7 @@ func workerVisit() {
 	if *GoCrawlerOptions.ProxyPtr != "" {
 		proxyUrl, err := url.Parse(*GoCrawlerOptions.ProxyPtr)
 		if err != nil {
-			utils.Log.Fatalf("Error with proxy: %s", err)
+			logger.Fatalf("Error with proxy: %s", err)
 		}
 		proxyAllocatorOption := chromedp.ProxyServer(proxyUrl.String())
 		options = append(options, proxyAllocatorOption)
@@ -76,7 +78,7 @@ func workerVisit() {
 
 		err := chromedp.Run(nctx, visitUrlTask(urlItem, &html)...)
 		if err != nil {
-			utils.Log.Printf("[-] Error with chrome context for url %s", urlItem)
+			logger.Printf("[-] Error with chrome context for url %s\n", urlItem)
 
 			// If an error was already spotted for this URL
 			alreadyPresent := false
@@ -88,7 +90,7 @@ func workerVisit() {
 			}
 
 			if alreadyPresent {
-				utils.Log.Printf("[-] Error with chrome context for url %s for the second time. Giving up with this URL.", urlItem)
+				logger.Printf("[-] Error with chrome context for url %s for the second time. Giving up with this URL.\n", urlItem)
 				utils.CrawlerBar.Done()
 				continue
 			}
@@ -106,7 +108,7 @@ func workerVisit() {
 			URLVisited.RUnlock()
 
 			if alreadyTreated {
-				utils.Log.Printf("[-] Error with chrome context for url %s. URL already treated by an other goroutine.", urlItem)
+				logger.Printf("[-] Error with chrome context for url %s. URL already treated by an other goroutine.\n", urlItem)
 				utils.CrawlerBar.Done()
 				continue
 			}
@@ -128,7 +130,7 @@ func workerVisit() {
 		htmlReader := strings.NewReader(html)
 		doc, err := goquery.NewDocumentFromReader(htmlReader)
 		if err != nil {
-			utils.Log.Printf("[!] Error parsing goquery document for url %s", urlItem)
+			logger.Printf("[!] Error parsing goquery document for url %s", urlItem)
 			utils.CrawlerBar.Done()
 			continue
 		}
@@ -215,7 +217,7 @@ func TreatA(doc *goquery.Document) []string {
 			URLVisited.RLock()
 			for _, item := range URLVisited.slice {
 				if item == link {
-					//utils.Log.Printf("[*] Url %s already present", link)
+					//logger.Printf("[*] Url %s already present", link)
 					URLVisited.RUnlock()
 					return
 				}
@@ -225,7 +227,7 @@ func TreatA(doc *goquery.Document) []string {
 			// Check if the domain is the good one
 			linkUrl, _ := url.Parse(link)
 			if doc.Url.Host != linkUrl.Host {
-				//utils.Log.Printf("[*] Url %s is not the same domain", linkUrl.Host)
+				//logger.Printf("[*] Url %s is not the same domain", linkUrl.Host)
 				return
 			}
 
@@ -255,7 +257,7 @@ func TreatScriptSrc(doc *goquery.Document) []string {
 		}
 
 		if strings.HasPrefix(original_item, "javascript:void") {
-			//utils.Log.Printf("[-] Not using this script %s from %s\n", original_item, url)
+			//logger.Printf("[-] Not using this script %s from %s\n", original_item, url)
 			return
 		}
 
@@ -298,26 +300,26 @@ func getAbsoluteURL(original_item string, urlItem string) string {
 
 	if strings.HasPrefix(item, "../") {
 		item = domain + "/" + item
-		utils.Log.Printf("[*] Transformed from %s to %s\n", original_item, item)
+		fmt.Fprintf(logger.Writer(), "[*] Transformed from %s to %s\n", original_item, item)
 	}
 
 	if strings.HasPrefix(item, "/") {
 		if strings.HasPrefix(item, "//") {
 			item = "https:" + item
-			utils.Log.Printf("[*] Transformed from %s to %s\n", original_item, item)
+			fmt.Fprintf(logger.Writer(), "[*] Transformed from %s to %s\n", original_item, item)
 		} else {
 			if strings.HasSuffix(urlItem, "/") {
 				item = domain + (item)[1:]
 			} else {
 				item = domain + item
 			}
-			utils.Log.Printf("[*] Transformed from %s to %s\n", original_item, item)
+			fmt.Fprintf(logger.Writer(), "[*] Transformed from %s to %s\n", original_item, item)
 		}
 	}
 
 	if strings.HasPrefix(urlItem, " ") {
 		item = (item)[1:]
-		utils.Log.Printf("[*] Transformed from %s to %s\n", original_item, item)
+		fmt.Fprintf(logger.Writer(), "[*] Transformed from %s to %s\n", original_item, item)
 	}
 
 	return item
@@ -355,7 +357,7 @@ func treatRessource(item string, url *url.URL) string {
 		URLVisited.RLock()
 		for _, i := range URLVisited.slice {
 			if i == item {
-				//utils.Log.Printf("Url %s already present", item)
+				//logger.Printf("Url %s already present", item)
 				URLVisited.RUnlock()
 				return ""
 			}
@@ -365,7 +367,7 @@ func treatRessource(item string, url *url.URL) string {
 		// Check if the domain is the good one
 		itemUrl, _ := url.Parse(item)
 		if url.Host == itemUrl.Host {
-			//utils.Log.Printf("Url %s is not the same domain", item)
+			//logger.Printf("Url %s is not the same domain", item)
 			return ""
 		}
 

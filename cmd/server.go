@@ -2,10 +2,8 @@ package cmd
 
 import (
 	"net"
-	"os"
 
 	gopserver "github.com/hophouse/gop/gopServer"
-	"github.com/hophouse/gop/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -24,19 +22,7 @@ var (
 var serverCmd = &cobra.Command{
 	Use: "server",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		utils.NewLoggerStdoutDateTimeFile()
-
-		// If an output directory is specified, check if it exists and then move to it
-		if directoryNameOption != "" {
-			if _, err := os.Stat(directoryNameOption); os.IsNotExist(err) {
-				utils.Log.Fatal("Specified directory by the option '-d' or '--directory', do not exists on the system.")
-			}
-			os.Chdir(directoryNameOption)
-		} else {
-			utils.CreateOutputDir(directoryNameOption, cmd.Name())
-		}
-
-		utils.Log.SetFlags(0)
+		rootCmd.PersistentPreRun(cmd, args)
 
 		if interfaceOption != "" {
 			ief, err := net.InterfaceByName(interfaceOption)

@@ -34,12 +34,6 @@ var crawlerCmd = &cobra.Command{
 	Short: "Crawler command to crawl recursively or not a domain or a website.",
 	Long:  "Crawler command to crawl recursively or not a domain or a website.",
 	PreRun: func(cmd *cobra.Command, args []string) {
-		// root := cmd
-		// for ; root.HasParent(); root = root.Parent() {
-		// }
-		// root.PersistentPreRunE(cmd, args)
-		rootCmd.PersistentPreRun(cmd, args)
-
 		gopdynamiccrawler.NewOptions(&UrlOption, LogFile, &reportOption, &recursiveOption, &screenshotOption, &cookieOption, &proxyOption, &delayOption, &concurrencyOption)
 
 		// Screenshots directory and HTML page

@@ -23,7 +23,7 @@ package cmd
 
 import (
 	"github.com/hophouse/gop/gopOsintUsernameGen"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +37,7 @@ var osintUsernameGenCmd = &cobra.Command{
 	Use:   "username",
 	Short: "Generate username based on input data. It will create all the possible variations based on the allowed delimiters.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		utils.NewLoggerStdout()
+		logger.NewLoggerStdout()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		gopOsintUsernameGen.RunUsernameGen(firstNameOption, surnameOption, delimitersOption)

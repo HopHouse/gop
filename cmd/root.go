@@ -22,10 +22,9 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -37,6 +36,7 @@ var (
 	proxyOption         string
 	directoryNameOption string
 	logFileNameOption   string
+	noLogOption         bool
 	inputFileOption     string
 	stdinOption         bool
 	reader              *os.File
@@ -57,17 +57,22 @@ var rootCmd = &cobra.Command{
 	Short: "GOP provides a toolbox to do pentest tasks.",
 	Long:  "GOP provides a toolbox to do pentest tasks.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if noLogOption {
+			logger.NewLoggerNull()
+			return
+		}
+
 		// If an output directory is specified, check if it exists and then move to it
 		if directoryNameOption != "" {
 			if _, err := os.Stat(directoryNameOption); os.IsNotExist(err) {
-				utils.Log.Fatal("Specified directory by the option '-d' or '--directory', do not exists on the system.")
+				logger.Fatal("Specified directory by the option '-d' or '--directory', do not exists on the system.")
 			}
 			os.Chdir(directoryNameOption)
 		} else {
-			utils.CreateOutputDir(directoryNameOption, cmd.Use)
+			logger.CreateOutputDir(directoryNameOption, cmd.Use)
 		}
 
-		utils.NewLogger("logs.txt")
+		logger.NewLoggerDateTime("logs.txt")
 	},
 }
 
@@ -75,13 +80,14 @@ var rootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		logger.Println(err)
 		os.Exit(1)
 	}
 }
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&logFileNameOption, "logfile", "", "logs.txt", "Set a custom log file.")
+	rootCmd.PersistentFlags().BoolVarP(&noLogOption, "no-log", "", false, "Do not create a log file.")
 	rootCmd.PersistentFlags().StringVarP(&directoryNameOption, "output-directory", "", "", "Use the following directory to output results.")
 
 	rootCmd.AddCommand(generateCmd)

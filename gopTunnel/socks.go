@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+
+	"github.com/hophouse/gop/utils/logger"
 )
 
 // Taken from the RFC 1928
@@ -94,8 +96,8 @@ type requestStruct struct {
 }
 
 func (request requestStruct) print(starter string) error {
-	fmt.Println(starter, "Request :")
-	fmt.Println(starter, "Version                 :", request.ver)
+	logger.Println(starter, "Request :")
+	logger.Println(starter, "Version                 :", request.ver)
 	cmdString := "Unknown"
 	switch request.cmd {
 	case 0x01:
@@ -105,9 +107,9 @@ func (request requestStruct) print(starter string) error {
 	case 0x03:
 		cmdString = "UDP ASSOCIATE"
 	}
-	fmt.Printf("%s Command                 : %b (%s)\n", starter, request.cmd, cmdString)
+	logger.Printf("%s Command                 : %b (%s)\n", starter, request.cmd, cmdString)
 
-	fmt.Println(starter, "Reserved                :", request.rsv)
+	logger.Println(starter, "Reserved                :", request.rsv)
 	atypString := "Unknown"
 	switch request.atyp {
 	case 0x01:
@@ -117,19 +119,19 @@ func (request requestStruct) print(starter string) error {
 	case 0x04:
 		atypString = "IPv6"
 	}
-	fmt.Printf("%s Atyp                    : %v (%s)\n", starter, request.atyp, atypString)
+	logger.Printf("%s Atyp                    : %v (%s)\n", starter, request.atyp, atypString)
 
 	switch request.atyp {
 	case 0x01:
-		fmt.Println(starter, "Destination address     :", request.dst_addr)
+		logger.Println(starter, "Destination address     :", request.dst_addr)
 	case 0x03:
-		fmt.Println(starter, "Destination address     :", string(request.dst_addr))
+		logger.Println(starter, "Destination address     :", string(request.dst_addr))
 	case 0x04:
-		fmt.Println(starter, "Destination address     :", request.dst_addr)
+		logger.Println(starter, "Destination address     :", request.dst_addr)
 	}
 
 	dst_port := binary.BigEndian.Uint16(request.dst_port)
-	fmt.Printf("%s Destination port        : %v (%d)\n", starter, request.dst_port, dst_port)
+	logger.Printf("%s Destination port        : %v (%d)\n", starter, request.dst_port, dst_port)
 
 	return nil
 }
@@ -185,7 +187,7 @@ func (request requestStruct) testConnexion() byte {
 		return 0x09
 	}
 
-	fmt.Printf("\t[+] Trying connection to %s %s\n", network, address)
+	logger.Printf("\t[+] Trying connection to %s %s\n", network, address)
 	_, err = net.Dial(network, address)
 	if err != nil {
 		return 0x04
@@ -291,7 +293,7 @@ func (response *responseStruct) toBytes() ([]byte, error) {
 }
 
 func handleSocksServerNegociation(tunnel tunnelInterface) (string, string, error) {
-	fmt.Println("[+] Running socks proxy negociation phase.")
+	logger.Println("[+] Running socks proxy negociation phase.")
 	versionMethodMessage := versionMethodMessageStruct{}
 	methodSelectionMessage := methodSelectionMessageStruct{}
 	request := requestStruct{}
@@ -302,7 +304,7 @@ func handleSocksServerNegociation(tunnel tunnelInterface) (string, string, error
 	if err != nil {
 		return "", "", err
 	}
-	fmt.Println("\t[+] Received version method with", n, "bytes.")
+	logger.Println("\t[+] Received version method with", n, "bytes.")
 
 	err = versionMethodMessage.read(buf[:n])
 	if err != nil {
@@ -314,7 +316,7 @@ func handleSocksServerNegociation(tunnel tunnelInterface) (string, string, error
 	if err != nil {
 		return "", "", err
 	}
-	fmt.Println("\t[+] Sending method selection")
+	logger.Println("\t[+] Sending method selection")
 	tunnel.Write(methodSelectionMessageBuff)
 
 	// Receive first request
@@ -323,8 +325,8 @@ func handleSocksServerNegociation(tunnel tunnelInterface) (string, string, error
 	if err != nil {
 		return "", "", err
 	}
-	fmt.Println("\t[+] Received request with", n, "bytes.")
-	fmt.Println("[=]", buf[:n])
+	logger.Println("\t[+] Received request with", n, "bytes.")
+	logger.Println("[=]", buf[:n])
 
 	err = request.read(buf[:n])
 	if err != nil {
@@ -332,19 +334,19 @@ func handleSocksServerNegociation(tunnel tunnelInterface) (string, string, error
 	}
 	request.print("\t\t[+]")
 
-	fmt.Println("\t[+] Test request connexion.")
+	logger.Println("\t[+] Test request connexion.")
 	returnCode := request.testConnexion()
-	fmt.Printf("\t\t[+] Connexion return code : %x\n", returnCode)
+	logger.Printf("\t\t[+] Connexion return code : %x\n", returnCode)
 
-	fmt.Println("\t[+] Make response.")
+	logger.Println("\t[+] Make response.")
 	response.make(request, returnCode)
 
-	fmt.Println("\t[+] Transform response to bytes.")
+	logger.Println("\t[+] Transform response to bytes.")
 	responseBuff, err := response.toBytes()
 	if err != nil {
 		return "", "", err
 	}
-	fmt.Println("\t[+] Send response with size :", len(responseBuff))
+	logger.Println("\t[+] Send response with size :", len(responseBuff))
 	tunnel.Write(responseBuff)
 
 	network, _ := request.getNetwork()
@@ -353,7 +355,7 @@ func handleSocksServerNegociation(tunnel tunnelInterface) (string, string, error
 }
 
 func handleSocksClientNegociation(connTunnel net.Conn, connSocks net.Conn) error {
-	fmt.Println("[+] Running socks proxy negociation phase.")
+	logger.Println("[+] Running socks proxy negociation phase.")
 
 	// Receive Version Identifier from porxy client
 	buf := make([]byte, 4096)

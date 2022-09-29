@@ -23,7 +23,7 @@ package cmd
 
 import (
 	gopirc "github.com/hophouse/gop/gopIrc"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -39,8 +39,7 @@ var ircCmd = &cobra.Command{
 	Short: "IRC module to chat.",
 	Long:  "IRC module to chat.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		utils.NewLoggerStdout()
-
+		logger.NewLoggerStdout()
 	},
 }
 

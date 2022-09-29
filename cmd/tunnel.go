@@ -23,7 +23,6 @@ package cmd
 
 import (
 	goptunnel "github.com/hophouse/gop/gopTunnel"
-	"github.com/hophouse/gop/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +39,7 @@ var tunnelCmd = &cobra.Command{
 	Short: ".",
 	Long:  ".",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		utils.NewLoggerStdoutDateTimeFile()
+		cmd.PersistentPreRun(cmd, args)
 	},
 }
 

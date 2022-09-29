@@ -1,26 +1,25 @@
 package gopserver
 
 import (
-	"fmt"
 	"net/http"
+	"net/http/httputil"
 	"strings"
 	"time"
 
 	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 )
 
 type logMiddleware struct{}
 
 func (l logMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	fmt.Printf("[%s] [%s] %s %s\n", time.Now().Format("2006.01.02 15:04:05"), utils.GetSourceIP(r), r.Method, r.URL.String())
-	utils.Log.Printf("[%s] [%s] %s %s\n", time.Now().Format("2006.01.02 15:04:05"), utils.GetSourceIP(r), r.Method, r.URL.String())
-
-	utils.Log.Printf("%s %s %s", r.Method, r.URL, r.Proto)
-	for k, v := range r.Header {
-		for _, vv := range v {
-			utils.Log.Printf("%s: %s ", k, vv)
-		}
+	reqDump, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		logger.Fatal(err)
 	}
+
+	logger.Printf("[%s] [%s] %s %s\n%s\n", time.Now().Format("2006.01.02 15:04:05"), utils.GetSourceIP(r), r.Method, r.URL.String(), string(reqDump))
+
 	next(w, r)
 }
 

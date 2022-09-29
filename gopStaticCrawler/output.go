@@ -1,11 +1,12 @@
 package gopstaticcrawler
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/gookit/color"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 )
 
 var (
@@ -35,19 +36,19 @@ func PrintBanner() {
 	bannerGoSplited := strings.Split(bannerGo, "\n")
 	bannerCrawlerSplited := strings.Split(bannerCrawler, "\n")
 
-	color.Printf("\n")
+	logger.Printf(color.Sprintf("\n"))
 	for i := 0; i < len(bannerCrawlerSplited); i++ {
-		color.Printf("%s%s\n", Yellow(bannerGoSplited[i]), Cyan(bannerCrawlerSplited[i]))
+		logger.Printf(color.Sprintf("%s%s\n", Yellow(bannerGoSplited[i]), Cyan(bannerCrawlerSplited[i])))
 	}
-	color.Printf("\n")
+	logger.Printf(color.Sprintf("\n"))
 }
 
 func PrintNewRessourceFound(isInternal, ressourceType, link string) {
-	utils.Log.Printf("[+] [%s] [%s] %s\n", isInternal, ressourceType, link)
+	fmt.Fprintf(logger.Writer(), "[+] [%s] [%s] %s\n", isInternal, ressourceType, link)
 }
 
 func PrintRessourcesResume(ressourceType string, url string, ressources *[]Ressource) {
-	color.Printf("\n %s ressources for %s\n", ressourceType, Yellow(url))
+	logger.Printf(color.Sprintf("\n %s ressources for %s\n", ressourceType, Yellow(url)))
 	PrintRessourceList(*ressources)
 }
 
@@ -55,8 +56,8 @@ func PrintStatistics(duration time.Duration, internal_ressources *[]Ressource, e
 	var counterStyle, counterScript, counterLink, counterImage, counterUnknown int
 
 	counterStyle, counterScript, counterLink, counterImage, counterUnknown = 0, 0, 0, 0, 0
-	color.Printf("\n[+] Statistics\n")
-	color.Printf(" -  Number of internal resources: %s\n", Cyan(len(*internal_ressources)))
+	logger.Printf(color.Sprintf("\n[+] Statistics\n"))
+	logger.Printf(color.Sprintf(" -  Number of internal resources: %s\n", Cyan(len(*internal_ressources))))
 	for _, item := range *internal_ressources {
 		switch item.Type {
 		case "link":
@@ -71,14 +72,14 @@ func PrintStatistics(duration time.Duration, internal_ressources *[]Ressource, e
 			counterUnknown += 1
 		}
 	}
-	color.Printf("    - Number of links:    %s\n", Cyan(counterLink))
-	color.Printf("    - Number of scripts:  %s\n", Cyan(counterScript))
-	color.Printf("    - Number of styles:   %s\n", Cyan(counterStyle))
-	color.Printf("    - Number of images:   %s\n", Cyan(counterImage))
-	color.Printf("    - Number of unknowns: %s\n", Cyan(counterUnknown))
+	logger.Printf(color.Sprintf("    - Number of links:    %s\n", Cyan(counterLink)))
+	logger.Printf(color.Sprintf("    - Number of scripts:  %s\n", Cyan(counterScript)))
+	logger.Printf(color.Sprintf("    - Number of styles:   %s\n", Cyan(counterStyle)))
+	logger.Printf(color.Sprintf("    - Number of images:   %s\n", Cyan(counterImage)))
+	logger.Printf(color.Sprintf("    - Number of unknowns: %s\n", Cyan(counterUnknown)))
 
 	counterStyle, counterScript, counterLink, counterImage, counterUnknown = 0, 0, 0, 0, 0
-	color.Printf("\n -  Number of external resources: %s\n", Cyan(len(*external_ressources)))
+	logger.Printf(color.Sprintf("\n -  Number of external resources: %s\n", Cyan(len(*external_ressources))))
 	for _, item := range *external_ressources {
 		switch item.Type {
 		case "link":
@@ -93,11 +94,11 @@ func PrintStatistics(duration time.Duration, internal_ressources *[]Ressource, e
 			counterUnknown += 1
 		}
 	}
-	color.Printf("    - Number of links:    %s\n", Cyan(counterLink))
-	color.Printf("    - Number of scripts:  %s\n", Cyan(counterScript))
-	color.Printf("    - Number of styles:   %s\n", Cyan(counterStyle))
-	color.Printf("    - Number of images:   %s\n", Cyan(counterImage))
-	color.Printf("    - Number of unknowns: %s\n", Cyan(counterUnknown))
+	logger.Printf(color.Sprintf("    - Number of links:    %s\n", Cyan(counterLink)))
+	logger.Printf(color.Sprintf("    - Number of scripts:  %s\n", Cyan(counterScript)))
+	logger.Printf(color.Sprintf("    - Number of styles:   %s\n", Cyan(counterStyle)))
+	logger.Printf(color.Sprintf("    - Number of images:   %s\n", Cyan(counterImage)))
+	logger.Printf(color.Sprintf("    - Number of unknowns: %s\n", Cyan(counterUnknown)))
 
-	color.Printf("\n -  Execution time: %s\n", Cyan(duration))
+	logger.Printf(color.Sprintf("\n -  Execution time: %s\n", Cyan(duration)))
 }

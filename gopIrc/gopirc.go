@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	gopproxy "github.com/hophouse/gop/gopProxy"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/jroimartin/gocui"
 )
 
@@ -74,14 +74,13 @@ func RunClientIRC(host string, port string, username string) {
 
 func launchServer(options optionsStruct) net.Conn {
 	address := fmt.Sprintf("%s:%s", options.host, options.port)
-	fmt.Println("[+] Launching server on ", address)
+	logger.Println("[+] Launching server on ", address)
 
 	serverCert, serverKey := gopproxy.GenerateCA()
 
 	caBytes, err := x509.CreateCertificate(rand.Reader, serverCert, serverCert, serverKey.Public(), serverKey)
 	if err != nil {
-		fmt.Println(err)
-		utils.Log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	serverCertPEM := new(bytes.Buffer)
@@ -105,13 +104,13 @@ func launchServer(options optionsStruct) net.Conn {
 	// Listen for incoming connections.
 	l, err := tls.Listen("tcp", address, config)
 	if err != nil {
-		utils.Log.Panicln("Error listening:", err.Error())
+		logger.Panicln("Error listening:", err.Error())
 	}
 	defer l.Close()
 
 	conn, err := l.Accept()
 	if err != nil {
-		utils.Log.Panicln("Error accepting client:", err.Error())
+		logger.Panicln("Error accepting client:", err.Error())
 	}
 
 	return conn
@@ -119,7 +118,7 @@ func launchServer(options optionsStruct) net.Conn {
 
 func connectToServer(options optionsStruct) net.Conn {
 	address := fmt.Sprintf("%s:%s", options.host, options.port)
-	fmt.Println("[+] Connecting to ", address)
+	logger.Println("[+] Connecting to ", address)
 
 	config := &tls.Config{
 		InsecureSkipVerify: true,
@@ -127,7 +126,7 @@ func connectToServer(options optionsStruct) net.Conn {
 
 	conn, err := tls.Dial("tcp", address, config)
 	if err != nil {
-		utils.Log.Panicln(err)
+		logger.Panicln(err)
 	}
 
 	return conn
@@ -184,7 +183,7 @@ func executeCommand(command string) {
 		Options.username = newUsername
 		view, _ := G.View("username")
 		view.Clear()
-		fmt.Fprint(view, Options.username+" > ")
+		logger.Fprint(view, Options.username+" > ")
 		G.Update(func(g *gocui.Gui) error { return nil })
 
 		return
@@ -234,8 +233,8 @@ func layout(g *gocui.Gui) error {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
-		fmt.Fprint(v, Options.username)
-		fmt.Fprint(v, " > ")
+		logger.Fprint(v, Options.username)
+		logger.Fprint(v, " > ")
 	}
 
 	if v, err := g.SetView("input", len(Options.username)+5, maxY-2, maxX, maxY); err != nil {
@@ -277,7 +276,7 @@ func GuiSendMessage(g *gocui.Gui, v *gocui.View) error {
 func mainGUI() {
 	g, err := gocui.NewGui(gocui.OutputNormal)
 	if err != nil {
-		utils.Log.Panicln(err)
+		logger.Panicln(err)
 	}
 	defer g.Close()
 
@@ -286,17 +285,17 @@ func mainGUI() {
 	g.Cursor = false
 
 	if err := g.SetKeybinding("", gocui.KeyEnter, gocui.ModNone, GuiSendMessage); err != nil {
-		utils.Log.Panicln(err)
+		logger.Panicln(err)
 	}
 
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
-		utils.Log.Panicln(err)
+		logger.Panicln(err)
 	}
 
 	// Make object global
 	G = g
 
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
-		utils.Log.Panicln(err)
+		logger.Panicln(err)
 	}
 }

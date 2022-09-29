@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	gopproxy "github.com/hophouse/gop/gopProxy"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 )
 
 type tunnelInterface interface {
@@ -72,7 +72,7 @@ func (t *PlainTextTunnel) Read(b []byte) (n int, err error) {
 	/*
 		n, err = t.Conn.Read(b)
 		if n > 0 {
-			fmt.Println("[+] Read", b[:n])
+			logger.Println("[+] Read", b[:n])
 		}
 		return n, err
 	*/
@@ -80,7 +80,7 @@ func (t *PlainTextTunnel) Read(b []byte) (n int, err error) {
 }
 
 func (t *PlainTextTunnel) Write(b []byte) (n int, err error) {
-	//fmt.Println("[+] Write", b)
+	//logger.Println("[+] Write", b)
 	return t.Conn.Write(b)
 }
 
@@ -224,7 +224,7 @@ func (t *HTTPPlainTextTunnel) Read(b []byte) (n int, err error) {
 
 			content, err = base64.StdEncoding.DecodeString(payload[1])
 			if err != nil {
-				utils.Log.Println(err)
+				logger.Println(err)
 				return 0, err
 			}
 
@@ -248,8 +248,8 @@ func (t *HTTPPlainTextTunnel) Read(b []byte) (n int, err error) {
 			}
 
 			if len(content) > 0 {
-				fmt.Println(n)
-				fmt.Printf("received %x\n", b[:int(n)])
+				logger.Println(n)
+				logger.Printf("received %x\n", b[:int(n)])
 
 				if strings.HasPrefix(string(content), prefix) {
 					payload := strings.SplitAfter(string(content), prefix)
@@ -259,7 +259,7 @@ func (t *HTTPPlainTextTunnel) Read(b []byte) (n int, err error) {
 
 					contentb64, err := base64.StdEncoding.DecodeString(payload[1])
 					if err != nil {
-						utils.Log.Println(err)
+						logger.Println(err)
 						return 0, err
 					}
 
@@ -277,13 +277,13 @@ func (t *HTTPPlainTextTunnel) Read(b []byte) (n int, err error) {
 }
 
 func (t *HTTPPlainTextTunnel) Write(b []byte) (n int, err error) {
-	fmt.Println("[+] Write function")
+	logger.Println("[+] Write function")
 	contenBeginString := "GET / HTTP/1.1\r\nHost: 1.1.1.1\r\nUser-Agent: "
 	contentBegin := []byte(contenBeginString)
 	contentEnd := []byte("\r\n\r\n")
 
 	contentb64 := base64.StdEncoding.EncodeToString(b)
-	fmt.Println("[+] b64 string : ", contentb64)
+	logger.Println("[+] b64 string : ", contentb64)
 
 	written := append(contentBegin, []byte(contentb64)...)
 	written = append(written, contentEnd...)
@@ -353,7 +353,7 @@ func (t *UDPPlainTextTunnel) Read(b []byte) (n int, err error) {
 	/*
 		n, err = t.Conn.Read(b)
 		if n > 0 {
-			fmt.Println("[+] Read", b[:n])
+			logger.Println("[+] Read", b[:n])
 		}
 		return n, err
 	*/
@@ -361,7 +361,7 @@ func (t *UDPPlainTextTunnel) Read(b []byte) (n int, err error) {
 }
 
 func (t *UDPPlainTextTunnel) Write(b []byte) (n int, err error) {
-	//fmt.Println("[+] Write", b)
+	//logger.Println("[+] Write", b)
 	return t.Conn.Write(b)
 }
 

@@ -22,10 +22,8 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
 	gopwebtampering "github.com/hophouse/gop/gopWebTampering"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -56,26 +54,26 @@ var allTamperingCmd = &cobra.Command{
 	Use:   "all",
 	Short: "Run all the tampering subcommands.",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Print("[+] Host header tampering\n")
+		logger.Print("[+] Host header tampering\n")
 		err := gopwebtampering.TamperHostHeader(webRequestFilenameOption)
 		if err != nil {
-			utils.Log.Fatalln(err)
+			logger.Fatalln(err)
 		}
-		fmt.Print("\n")
+		logger.Print("\n")
 
-		fmt.Print("[+] Referer header tampering\n")
+		logger.Print("[+] Referer header tampering\n")
 		err = gopwebtampering.TamperReferrerHeader(webRequestFilenameOption)
 		if err != nil {
-			utils.Log.Fatalln(err)
+			logger.Fatalln(err)
 		}
-		fmt.Print("\n")
+		logger.Print("\n")
 
-		fmt.Print("[+] IP source tampering\n")
+		logger.Print("[+] IP source tampering\n")
 		err = gopwebtampering.TamperIPSource(webRequestFilenameOption)
 		if err != nil {
-			utils.Log.Fatalln(err)
+			logger.Fatalln(err)
 		}
-		fmt.Print("\n")
+		logger.Print("\n")
 	},
 }
 
@@ -86,7 +84,7 @@ var hostHeaderTamperingCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := gopwebtampering.TamperHostHeader(webRequestFilenameOption)
 		if err != nil {
-			utils.Log.Fatalln(err)
+			logger.Fatalln(err)
 		}
 	},
 }
@@ -98,7 +96,7 @@ var referrerHeaderTamperingCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := gopwebtampering.TamperReferrerHeader(webRequestFilenameOption)
 		if err != nil {
-			utils.Log.Fatalln(err)
+			logger.Fatalln(err)
 		}
 	},
 }
@@ -110,7 +108,7 @@ var sourceIPTamperingCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := gopwebtampering.TamperIPSource(webRequestFilenameOption)
 		if err != nil {
-			utils.Log.Fatalln(err)
+			logger.Fatalln(err)
 		}
 	},
 }
@@ -123,8 +121,7 @@ var NginxOffySlashCmd = &cobra.Command{
 		rootCmd.PersistentPreRun(cmd, args)
 
 		if webRequestUrlOption != "" && webRequestFilenameOption != "" {
-			fmt.Print("Could not use an URL and a request file at the same time.\n")
-			utils.Log.Fatal("Could not use an URL and a request file at the same time.\n")
+			logger.Fatal("Could not use an URL and a request file at the same time.\n")
 		}
 
 		if burpOption {
@@ -136,7 +133,7 @@ var NginxOffySlashCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := gopwebtampering.NginxOffBySlash(webRequestFilenameOption, webRequestUrlOption, webValidResourcesOption, webOnlyStatusCodeOption)
 		if err != nil {
-			utils.Log.Fatalln(err)
+			logger.Fatalln(err)
 		}
 	},
 }

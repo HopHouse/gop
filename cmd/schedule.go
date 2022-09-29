@@ -28,7 +28,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -53,7 +53,7 @@ var scheduleCmd = &cobra.Command{
 	Short: "Schedule a command to be executed at a precise time. If an option is not defined, the value of the current date will be taken.",
 	Long:  "Schedule a command to be executed at a precise time. If an option is not defined, the value of the current date will be taken.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		utils.NewLoggerStdout()
+		logger.NewLoggerStdout()
 	},
 	PreRun: func(cmd *cobra.Command, args []string) {
 		// Get time
@@ -91,12 +91,12 @@ var scheduleCmd = &cobra.Command{
 		executionTime = executionTime.Add(time.Hour * 24 * time.Duration(plusDayOption))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("[+] Secheduled execution time : %s\n", executionTime.String())
+		logger.Printf("[+] Secheduled execution time : %s\n", executionTime.String())
 		if cmdOption == "" {
 			erroMsg := "No command passed as parameter. Please give a command as argument.\n"
 			log.Fatal(erroMsg)
 		}
-		fmt.Printf("[+] Scheduled command : %s\n", cmdOption)
+		logger.Printf("[+] Scheduled command : %s\n", cmdOption)
 
 		// Time is already passed, then execute the command.
 		if executionTime.Before(time.Now()) {
@@ -104,9 +104,9 @@ var scheduleCmd = &cobra.Command{
 		} else {
 			// Time is in the future, then sleep until time is reached and execute the command
 			waitDuration := time.Until(executionTime)
-			fmt.Printf("[+] Command will be executed in %s.\n", waitDuration)
+			logger.Printf("[+] Command will be executed in %s.\n", waitDuration)
 
-			fmt.Printf("\n")
+			logger.Printf("\n")
 			time.Sleep(waitDuration)
 
 			executeCommand(cmdOption)
@@ -118,7 +118,7 @@ func executeCommand(command string) {
 	var cmd *exec.Cmd
 	args := strings.Fields(command)
 
-	fmt.Printf("$> %s\n", command)
+	logger.Printf("$> %s\n", command)
 	if len(args) == 1 {
 		cmd = exec.Command(args[0])
 	} else {
@@ -132,7 +132,7 @@ func executeCommand(command string) {
 	}
 
 	// Display the output
-	fmt.Printf("%s\n", stdoutStderr)
+	logger.Printf("%s\n", stdoutStderr)
 }
 
 func init() {

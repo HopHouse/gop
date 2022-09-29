@@ -15,7 +15,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 )
 
 type CertManager struct {
@@ -80,7 +80,7 @@ func (certManager CertManager) CreateCertificate(host string) (tls.Certificate, 
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		utils.Log.Fatalf("Failed to generate serial number: %v", err)
+		logger.Fatalf("Failed to generate serial number: %v", err)
 		return tls.Certificate{}, err
 	}
 
@@ -182,8 +182,7 @@ func InitCertManager(caFile string, caPrivKeyFile string) (CertManager, error) {
 
 		caBytes, err := x509.CreateCertificate(rand.Reader, certManager.CaCRT, certManager.CaCRT, certManager.CaPrivKey.Public(), certManager.CaPrivKey)
 		if err != nil {
-			fmt.Println(err)
-			utils.Log.Fatal(err)
+			logger.Fatal(err)
 		}
 
 		certManager.CaCertPEM = new(bytes.Buffer)

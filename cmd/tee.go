@@ -25,7 +25,7 @@ import (
 	"log"
 
 	goptee "github.com/hophouse/gop/gopTee"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +34,7 @@ var teeCmd = &cobra.Command{
 	Use:   "[WIP]tee",
 	Short: "Act as the unix tee command but also display the executed command.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		utils.NewLoggerStdout()
+		logger.NewLoggerStdout()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		err := goptee.RunTeeCmd(outFileOption, cmdOption)

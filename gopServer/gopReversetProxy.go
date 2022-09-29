@@ -13,7 +13,7 @@ import (
 	basicAuth "github.com/hophouse/gop/auth/basic"
 	ntlmAuth "github.com/hophouse/gop/auth/ntlm"
 	gopproxy "github.com/hophouse/gop/gopProxy"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/urfave/negroni"
 )
 
@@ -44,12 +44,12 @@ func genRedirectProxy(dstUrl string, auth string, realm string, redirectPrefix s
 	// Apply an auth system if requested
 	switch strings.ToLower(auth) {
 	case "basic":
-		fmt.Printf("[+] Add HTTP Basic auth header\n")
+		logger.Printf("[+] Add HTTP Basic auth header\n")
 		n.Use(&basicAuth.BasicAuthMiddleware{
 			Realm: realm,
 		})
 	case "ntlm":
-		fmt.Printf("[+] Add HTTP NTLM auth header\n")
+		logger.Printf("[+] Add HTTP NTLM auth header\n")
 		ntlmAuth.NtlmCapturedAuth = make(map[string]bool)
 		n.Use(&ntlmAuth.NTLMAuthMiddleware{})
 	}
@@ -64,14 +64,14 @@ func RunRedirectProxyHTTPCmd(host string, port string, dstUrl string, auth strin
 	begin := time.Now()
 
 	addr := fmt.Sprintf("%s:%s", host, port)
-	fmt.Printf("[+] Starting reverse proxy listening to : http://%s and redirect to %s\n", addr, dstUrl)
+	logger.Printf("[+] Starting reverse proxy listening to : http://%s and redirect to %s\n", addr, dstUrl)
 
 	n := genRedirectProxy(dstUrl, auth, realm, redirectPrefix)
 
-	utils.Log.Fatal(http.ListenAndServe(addr, n))
+	logger.Fatal(http.ListenAndServe(addr, n))
 
 	end := time.Now()
-	fmt.Printf("\n -  Execution time: %s\n", end.Sub(begin))
+	logger.Printf("\n -  Execution time: %s\n", end.Sub(begin))
 }
 
 func RunRedirectProxyHTTPSCmd(host string, port string, dstUrl string, auth string, realm string, redirectPrefix string) {
@@ -83,12 +83,12 @@ func RunRedirectProxyHTTPSCmd(host string, port string, dstUrl string, auth stri
 
 	caManager, err := gopproxy.InitCertManager("", "")
 	if err != nil {
-		utils.Log.Fatalf(err.Error())
+		logger.Fatalf(err.Error())
 	}
 
 	cert, err := caManager.CreateCertificate(host)
 	if err != nil {
-		utils.Log.Fatalf(err.Error())
+		logger.Fatalf(err.Error())
 	}
 
 	server := &http.Server{Addr: addr, Handler: n}
@@ -96,12 +96,12 @@ func RunRedirectProxyHTTPSCmd(host string, port string, dstUrl string, auth stri
 		Certificates: []tls.Certificate{cert},
 	}
 
-	fmt.Printf("[+] Starting reverse proxy listening to : https://%s and redirect to %s\n", addr, dstUrl)
+	logger.Printf("[+] Starting reverse proxy listening to : https://%s and redirect to %s\n", addr, dstUrl)
 
-	utils.Log.Fatal(server.ListenAndServeTLS("", ""))
+	logger.Fatal(server.ListenAndServeTLS("", ""))
 
 	end := time.Now()
-	fmt.Printf("\n -  Execution time: %s\n", end.Sub(begin))
+	logger.Printf("\n -  Execution time: %s\n", end.Sub(begin))
 }
 
 type RedirectProxy struct {
@@ -110,17 +110,17 @@ type RedirectProxy struct {
 }
 
 func (rp *RedirectProxy) HandleFunc(w http.ResponseWriter, r *http.Request) {
-	// fmt.Println("# %#v\n", r)
+	// logger.Println("# %#v\n", r)
 
 	// vars := mux.Vars(r)
 	// value := vars["URL"]
 
-	// fmt.Println("# %#v\n", vars)
+	// logger.Println("# %#v\n", vars)
 
 	// if value != "" {
 	// 	redirectUrl, err := url.Parse(value)
 	// 	if err != nil {
-	// 		utils.Log.Println("Could not parse URL to", vars["URL"])
+	// 		logger.Println("Could not parse URL to", vars["URL"])
 	// 		return
 	// 	}
 

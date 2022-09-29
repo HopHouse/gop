@@ -23,7 +23,7 @@ package cmd
 
 import (
 	"github.com/hophouse/gop/gopOsintEmailGen"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -36,7 +36,7 @@ var osintEmailGenCmd = &cobra.Command{
 	Use:   "email",
 	Short: "Generate email based on input data. It will create all the possible variations based on the allowed delimiters.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		utils.NewLoggerStdout()
+		logger.NewLoggerStdout()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		gopOsintEmailGen.RunEmailGen(firstNameOption, surnameOption, emailGenDomainOption, delimitersOption)

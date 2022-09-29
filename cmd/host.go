@@ -22,11 +22,10 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	gophost "github.com/hophouse/gop/gopHost"
-	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -37,9 +36,6 @@ var hostCmd = &cobra.Command{
 	Use:   "host",
 	Short: "Resolve hostname to get the IP address.",
 	Long:  "Resolve hostname to get the IP address.",
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		utils.NewLoggerStdout()
-	},
 	PreRun: func(cmd *cobra.Command, args []string) {
 		var err error
 
@@ -48,14 +44,14 @@ var hostCmd = &cobra.Command{
 
 		stat, err := reader.Stat()
 		if err != nil {
-			fmt.Println("Error found in stdin:", err)
+			logger.Println("Error found in stdin:", err)
 			os.Exit(2)
 
 		}
 
 		if inputFileOption != "" {
 			if (stat.Mode() & os.ModeNamedPipe) != 0 {
-				fmt.Println("[!] Cannot use stdin and input-file at the same time.")
+				logger.Println("[!] Cannot use stdin and input-file at the same time.")
 				os.Exit(2)
 			}
 			reader, err = os.Open(inputFileOption)
@@ -65,7 +61,7 @@ var hostCmd = &cobra.Command{
 		} else {
 			// Chech if there is something in stdin
 			if (stat.Mode() & os.ModeNamedPipe) == 0 {
-				fmt.Println("[!] You should pass something to stdin or use the input-file option.")
+				logger.Println("[!] You should pass something to stdin or use the input-file option.")
 				os.Exit(1)
 			}
 		}

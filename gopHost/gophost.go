@@ -11,6 +11,7 @@ import (
 	"time"
 
 	whois "github.com/hophouse/golang-whois"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/miekg/dns"
 )
 
@@ -76,13 +77,13 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool) {
 			// format domain with availability data
 			available, err := checkAvailability(domain)
 			if err != nil {
-				fmt.Printf("Error trying to whois the domaine. %s\n", err)
+				logger.Printf("Error trying to whois the domaine. %s\n", err)
 			}
 			if available == true {
 				domain = fmt.Sprintf("[FREE] %s", domain)
 			}
 
-			fmt.Fprintf(w, "%s\t%s\n", domain, ipList)
+			logger.Fprintf(w, "%s\t%s\n", domain, ipList)
 		}
 		w.Flush()
 	} else {
@@ -94,7 +95,7 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool) {
 			// format domain with availability data
 			available, err := checkAvailability(domain)
 			if err != nil {
-				fmt.Printf("Error trying to whois the domaine. %s\n", err)
+				logger.Printf("Error trying to whois the domaine. %s\n", err)
 			}
 			if available == true {
 				domain = fmt.Sprintf("[FREE] %s", domain)
@@ -105,7 +106,7 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool) {
 				for _, domain := range elem.middleInformation {
 					available, err := checkAvailability(domain)
 					if err != nil {
-						fmt.Printf("Error trying to whois the domaine. %s\n", err)
+						logger.Printf("Error trying to whois the domaine. %s\n", err)
 					}
 					if available == true {
 						domain = fmt.Sprintf("[FREE] %s", domain)
@@ -121,7 +122,7 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool) {
 
 			results := strings.Join(resultsSlice, " > ")
 
-			fmt.Printf("%s\n", results)
+			logger.Printf("%s\n", results)
 		}
 	}
 

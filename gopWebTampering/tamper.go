@@ -15,13 +15,14 @@ import (
 	"unicode/utf8"
 
 	"github.com/hophouse/gop/utils"
+	"github.com/hophouse/gop/utils/logger"
 	"golang.org/x/exp/slices"
 )
 
 func TamperHostHeader(webRequestFilename string) error {
 	originalRequest, err := utils.ReadRequestFromFile(webRequestFilename)
 	if err != nil {
-		utils.Log.Println(err)
+		logger.Println(err)
 		return err
 	}
 	defer originalRequest.Body.Close()
@@ -29,7 +30,7 @@ func TamperHostHeader(webRequestFilename string) error {
 	originalBody, err := io.ReadAll(originalRequest.Body)
 	if err != nil {
 		// Fatal because if reference value failed, then it is not possible to compare others correctly
-		utils.Log.Println(err)
+		logger.Println(err)
 		return err
 	}
 	originalRequest.Body = io.NopCloser(bytes.NewReader(originalBody))
@@ -42,23 +43,23 @@ func TamperHostHeader(webRequestFilename string) error {
 	refHTTPProto, refHTTPStatusCode, refHTTPContentLength, _, err := sendRequest(originalRequest)
 	if err != nil {
 		// Fatal because if reference value failed, then it is not possible to compare others correctly
-		utils.Log.Println(err)
+		logger.Println(err)
 		return err
 	}
 
-	fmt.Fprint(w, resultHeaderToString(maxLenHeader, maxLenLocalhostAddresses))
-	utils.Log.Print("[+] Ref:\n")
-	utils.Log.Printf("- Protocol: %s \n", refHTTPProto)
-	utils.Log.Printf("- Status code: %d \n", refHTTPStatusCode)
-	utils.Log.Printf("- Content length: %d \n", refHTTPContentLength)
+	logger.Fprint(w, resultHeaderToString(maxLenHeader, maxLenLocalhostAddresses))
+	logger.Print("[+] Ref:\n")
+	logger.Printf("- Protocol: %s \n", refHTTPProto)
+	logger.Printf("- Status code: %d \n", refHTTPStatusCode)
+	logger.Printf("- Content length: %d \n", refHTTPContentLength)
 
-	fmt.Fprint(w, resultToString(maxLenHeader, maxLenLocalhostAddresses, "Reference", "", refHTTPStatusCode, refHTTPContentLength, ""))
-	utils.Log.Print("[+] Ref:\n")
-	fmt.Fprint(w, "\n")
+	logger.Fprint(w, resultToString(maxLenHeader, maxLenLocalhostAddresses, "Reference", "", refHTTPStatusCode, refHTTPContentLength, ""))
+	logger.Print("[+] Ref:\n")
+	logger.Fprint(w, "\n")
 	w.Flush()
 
 	// Modify the Host header value
-	utils.Log.Print("\n[+] Host header modification\n")
+	logger.Print("\n[+] Host header modification\n")
 	for _, destination := range LocalhostAddresses {
 		customRequest := originalRequest.Clone(originalRequest.Context())
 		customRequest.URL, _ = url.Parse(originalRequest.URL.String())
@@ -68,14 +69,14 @@ func TamperHostHeader(webRequestFilename string) error {
 
 		proto, statusCode, contentLength, body, err := sendRequest(customRequest)
 		if err != nil {
-			fmt.Printf("[%s: %s] ERROR\n", "Host", destination)
+			logger.Printf("[%s: %s] ERROR\n", "Host", destination)
 			continue
 		}
 		message := analyseDifferences(refHTTPProto, refHTTPStatusCode, refHTTPContentLength, proto, statusCode, contentLength)
-		utils.Log.Printf("[%s: %s] %s %d %d %s\n", "Host", destination, proto, statusCode, contentLength, message)
+		logger.Printf("[%s: %s] %s %d %d %s\n", "Host", destination, proto, statusCode, contentLength, message)
 		if message != "" {
-			fmt.Fprint(w, resultToString(maxLenHeader, maxLenLocalhostAddresses, "Host", destination, statusCode, contentLength, message))
-			utils.Log.Println(body)
+			logger.Fprint(w, resultToString(maxLenHeader, maxLenLocalhostAddresses, "Host", destination, statusCode, contentLength, message))
+			logger.Println(body)
 			w.Flush()
 		}
 	}
@@ -90,7 +91,7 @@ func TamperReferrerHeader(webRequestFilename string) error {
 
 	originalRequest, err := utils.ReadRequestFromFile(webRequestFilename)
 	if err != nil {
-		utils.Log.Println(err)
+		logger.Println(err)
 		return err
 	}
 	defer originalRequest.Body.Close()
@@ -98,7 +99,7 @@ func TamperReferrerHeader(webRequestFilename string) error {
 	originalBody, err := io.ReadAll(originalRequest.Body)
 	if err != nil {
 		// Fatal because if reference value failed, then it is not possible to compare others correctly
-		utils.Log.Println(err)
+		logger.Println(err)
 		return err
 	}
 	originalRequest.Body = io.NopCloser(bytes.NewReader(originalBody))
@@ -108,7 +109,7 @@ func TamperReferrerHeader(webRequestFilename string) error {
 	})
 
 	if err != nil {
-		utils.Log.Println(err)
+		logger.Println(err)
 		return err
 	}
 
@@ -120,14 +121,14 @@ type transformation func(*http.Request, string)
 func doRequestAndAnalysisTamperReferrerHeader(title string, originalRequest *http.Request, originalBody []byte, transformationFunc transformation) error {
 	// originalRequest, err := utils.ReadRequestFromFile(webRequestFilename)
 	// if err != nil {
-	// 	utils.Log.Fatalln(err)
+	// 	logger.Fatalln(err)
 	// }
 	// defer originalRequest.Body.Close()
 
 	// originalBody, err := io.ReadAll(originalRequest.Body)
 	// if err != nil {
 	// 	// Fatal because if reference value failed, then it is not possible to compare others correctly
-	// 	utils.Log.Fatalln(err)
+	// 	logger.Fatalln(err)
 	// }
 	// originalRequest.Body = io.NopCloser(bytes.NewReader(originalBody))
 
@@ -139,22 +140,22 @@ func doRequestAndAnalysisTamperReferrerHeader(title string, originalRequest *htt
 	refHTTPProto, refHTTPStatusCode, refHTTPContentLength, _, err := sendRequest(originalRequest)
 	if err != nil {
 		// Fatal because if reference value failed, then it is not possible to compare others correctly
-		utils.Log.Println(err)
+		logger.Println(err)
 		return err
 	}
 
-	fmt.Fprint(w, resultHeaderToString(maxLenHeader, maxLenLocalhostAddresses))
-	utils.Log.Print("[+] Ref:\n")
-	utils.Log.Printf("- Protocol: %s \n", refHTTPProto)
-	utils.Log.Printf("- Status code: %d \n", refHTTPStatusCode)
-	utils.Log.Printf("- Content length: %d \n", refHTTPContentLength)
+	logger.Fprint(w, resultHeaderToString(maxLenHeader, maxLenLocalhostAddresses))
+	logger.Print("[+] Ref:\n")
+	logger.Printf("- Protocol: %s \n", refHTTPProto)
+	logger.Printf("- Status code: %d \n", refHTTPStatusCode)
+	logger.Printf("- Content length: %d \n", refHTTPContentLength)
 
-	fmt.Fprint(w, resultToString(maxLenHeader, maxLenLocalhostAddresses, "Reference", "", refHTTPStatusCode, refHTTPContentLength, ""))
-	utils.Log.Print("[+] Ref:\n")
-	fmt.Fprint(w, "\n")
+	logger.Fprint(w, resultToString(maxLenHeader, maxLenLocalhostAddresses, "Reference", "", refHTTPStatusCode, refHTTPContentLength, ""))
+	logger.Print("[+] Ref:\n")
+	logger.Fprint(w, "\n")
 	w.Flush()
 
-	utils.Log.Printf("\n[+] %s\n", title)
+	logger.Printf("\n[+] %s\n", title)
 	for _, destination := range LocalhostAddresses {
 		customRequest := originalRequest.Clone(originalRequest.Context())
 		customRequest.Body = io.NopCloser(bytes.NewReader(originalBody))
@@ -163,7 +164,7 @@ func doRequestAndAnalysisTamperReferrerHeader(title string, originalRequest *htt
 		if customRequest.Referer() != "" {
 			refererUrl, err := url.Parse(customRequest.Referer())
 			if err != nil {
-				fmt.Printf("[%s: %s] ERROR\n", "Referer", destination)
+				logger.Printf("[%s: %s] ERROR\n", "Referer", destination)
 				continue
 			}
 			refererUrl.Host = destination
@@ -181,15 +182,15 @@ func doRequestAndAnalysisTamperReferrerHeader(title string, originalRequest *htt
 
 		proto, statusCode, contentLength, body, err := sendRequest(customRequest)
 		if err != nil {
-			fmt.Printf("[%s: %s] ERROR\n", "Referer", destination)
+			logger.Printf("[%s: %s] ERROR\n", "Referer", destination)
 			continue
 		}
 		message := analyseDifferences(refHTTPProto, refHTTPStatusCode, refHTTPContentLength, proto, statusCode, contentLength)
-		utils.Log.Printf("[%s: %s] %s %d %d %s\n", "Referer", destination, proto, statusCode, contentLength, message)
+		logger.Printf("[%s: %s] %s %d %d %s\n", "Referer", destination, proto, statusCode, contentLength, message)
 
 		if message != "" {
-			fmt.Fprint(w, resultToString(maxLenHeader, maxLenLocalhostAddresses, "Referer", destination, statusCode, contentLength, message))
-			utils.Log.Println(body)
+			logger.Fprint(w, resultToString(maxLenHeader, maxLenLocalhostAddresses, "Referer", destination, statusCode, contentLength, message))
+			logger.Println(body)
 			w.Flush()
 		}
 	}
@@ -202,7 +203,7 @@ func doRequestAndAnalysisTamperReferrerHeader(title string, originalRequest *htt
 func TamperIPSource(webRequestFilename string) error {
 	originalRequest, err := utils.ReadRequestFromFile(webRequestFilename)
 	if err != nil {
-		utils.Log.Println(err)
+		logger.Println(err)
 		return err
 	}
 	defer originalRequest.Body.Close()
@@ -210,7 +211,7 @@ func TamperIPSource(webRequestFilename string) error {
 	originalBody, err := io.ReadAll(originalRequest.Body)
 	if err != nil {
 		// Fatal because if reference value failed, then it is not possible to compare others correctly
-		utils.Log.Println(err)
+		logger.Println(err)
 		return err
 	}
 	originalRequest.Body = io.NopCloser(bytes.NewReader(originalBody))
@@ -223,23 +224,23 @@ func TamperIPSource(webRequestFilename string) error {
 	refHTTPProto, refHTTPStatusCode, refHTTPContentLength, _, err := sendRequest(originalRequest)
 	if err != nil {
 		// Fatal because if reference value failed, then it is not possible to compare others correctly
-		utils.Log.Println(err)
+		logger.Println(err)
 		return err
 	}
 
-	fmt.Fprint(w, resultHeaderToString(maxLenHeader, maxLenLocalhostAddresses))
-	utils.Log.Print("[+] Ref:\n")
-	utils.Log.Printf("- Protocol: %s \n", refHTTPProto)
-	utils.Log.Printf("- Status code: %d \n", refHTTPStatusCode)
-	utils.Log.Printf("- Content length: %d \n", refHTTPContentLength)
+	logger.Fprint(w, resultHeaderToString(maxLenHeader, maxLenLocalhostAddresses))
+	logger.Print("[+] Ref:\n")
+	logger.Printf("- Protocol: %s \n", refHTTPProto)
+	logger.Printf("- Status code: %d \n", refHTTPStatusCode)
+	logger.Printf("- Content length: %d \n", refHTTPContentLength)
 
-	fmt.Fprint(w, resultToString(maxLenHeader, maxLenLocalhostAddresses, "Reference", "", refHTTPStatusCode, refHTTPContentLength, ""))
-	utils.Log.Print("[+] Ref:\n")
-	fmt.Fprint(w, "\n")
+	logger.Fprint(w, resultToString(maxLenHeader, maxLenLocalhostAddresses, "Reference", "", refHTTPStatusCode, refHTTPContentLength, ""))
+	logger.Print("[+] Ref:\n")
+	logger.Fprint(w, "\n")
 	w.Flush()
 
 	// Add headers
-	utils.Log.Print("\n[+] Adding headers\n")
+	logger.Print("\n[+] Adding headers\n")
 	for _, header := range HeadersIP {
 		for _, destination := range LocalhostAddresses {
 			customRequest := originalRequest.Clone(originalRequest.Context())
@@ -250,15 +251,15 @@ func TamperIPSource(webRequestFilename string) error {
 
 			proto, statusCode, contentLength, body, err := sendRequest(customRequest)
 			if err != nil {
-				fmt.Printf("[%s: %s] ERROR\n", header, destination)
+				logger.Printf("[%s: %s] ERROR\n", header, destination)
 				continue
 			}
 			message := analyseDifferences(refHTTPProto, refHTTPStatusCode, refHTTPContentLength, proto, statusCode, contentLength)
-			utils.Log.Printf("[%s: %s] %s %d %d %s\n", header, destination, proto, statusCode, contentLength, message)
+			logger.Printf("[%s: %s] %s %d %d %s\n", header, destination, proto, statusCode, contentLength, message)
 
 			if message != "" {
-				fmt.Fprint(w, resultToString(maxLenHeader, maxLenLocalhostAddresses, header, destination, statusCode, contentLength, message))
-				utils.Log.Println(body)
+				logger.Fprint(w, resultToString(maxLenHeader, maxLenLocalhostAddresses, header, destination, statusCode, contentLength, message))
+				logger.Println(body)
 				w.Flush()
 
 			}
@@ -289,7 +290,7 @@ func NginxOffBySlash(webRequestFilename string, urlOption string, validResources
 	if webRequestFilename != "" {
 		originalRequest, err = utils.ReadRequestFromFile(webRequestFilename)
 		if err != nil {
-			utils.Log.Println(err)
+			logger.Println(err)
 			return err
 		}
 		defer originalRequest.Body.Close()
@@ -297,7 +298,7 @@ func NginxOffBySlash(webRequestFilename string, urlOption string, validResources
 		originalBody, err = io.ReadAll(originalRequest.Body)
 		if err != nil {
 			// Fatal because if reference value failed, then it is not possible to compare others correctly
-			utils.Log.Println(err)
+			logger.Println(err)
 			return err
 		}
 		originalRequest.Body = io.NopCloser(bytes.NewReader(originalBody))
@@ -307,7 +308,7 @@ func NginxOffBySlash(webRequestFilename string, urlOption string, validResources
 		requestUrl, err := url.Parse(urlOption)
 		if err != nil {
 			// Fatal because if reference value failed, then it is not possible to compare others correctly
-			utils.Log.Println(err)
+			logger.Println(err)
 			return err
 		}
 		originalRequest = &http.Request{
@@ -321,23 +322,23 @@ func NginxOffBySlash(webRequestFilename string, urlOption string, validResources
 	refHTTPProto, refHTTPStatusCode, refHTTPContentLength, _, err := sendRequest(originalRequest)
 	if err != nil {
 		// Fatal because if reference value failed, then it is not possible to compare others correctly
-		utils.Log.Println(err)
+		logger.Println(err)
 		return err
 	}
 
-	fmt.Fprint(w, "Status Code\tContent Length\tURL\tComment\n")
-	utils.Log.Print("[+] Ref:\n")
-	utils.Log.Printf("- Protocol: %s \n", refHTTPProto)
-	utils.Log.Printf("- Status code: %d \n", refHTTPStatusCode)
-	utils.Log.Printf("- Content length: %d \n", refHTTPContentLength)
+	logger.Fprint(w, "Status Code\tContent Length\tURL\tComment\n")
+	logger.Print("[+] Ref:\n")
+	logger.Printf("- Protocol: %s \n", refHTTPProto)
+	logger.Printf("- Status code: %d \n", refHTTPStatusCode)
+	logger.Printf("- Content length: %d \n", refHTTPContentLength)
 
-	fmt.Fprintf(w, "%d\t%d\t%s\t%s\n", refHTTPStatusCode, refHTTPContentLength, originalRequest.URL.String(), "")
-	utils.Log.Print("[+] Ref:\n")
-	fmt.Fprint(w, "\n")
+	logger.Fprintf(w, "%d\t%d\t%s\t%s\n", refHTTPStatusCode, refHTTPContentLength, originalRequest.URL.String(), "")
+	logger.Print("[+] Ref:\n")
+	logger.Fprint(w, "\n")
 	w.Flush()
 
 	// Add headers
-	utils.Log.Print("\n[+] Nginx off-by-slash\n")
+	logger.Print("\n[+] Nginx off-by-slash\n")
 
 	// Retrieve URL
 	originalUrl := originalRequest.URL
@@ -367,12 +368,12 @@ func NginxOffBySlash(webRequestFilename string, urlOption string, validResources
 
 	proto, statusCode, contentLength, _, err = sendRequest(customRequest)
 	if err != nil {
-		fmt.Printf("[URL: %s] ERROR\n", newUrl.String())
+		logger.Printf("[URL: %s] ERROR\n", newUrl.String())
 	} else {
 		message := analyseDifferences(refHTTPProto, refHTTPStatusCode, refHTTPContentLength, proto, statusCode, contentLength)
-		utils.Log.Printf("[URL: %s] %s %d %d %s\n", newUrl.String(), proto, statusCode, contentLength, message)
+		logger.Printf("[URL: %s] %s %d %d %s\n", newUrl.String(), proto, statusCode, contentLength, message)
 
-		fmt.Fprintf(w, "%d\t%d\t%s\t%s\n", statusCode, contentLength, customRequest.URL.String(), message)
+		logger.Fprintf(w, "%d\t%d\t%s\t%s\n", statusCode, contentLength, customRequest.URL.String(), message)
 	}
 
 	w.Flush()
@@ -391,12 +392,12 @@ func NginxOffBySlash(webRequestFilename string, urlOption string, validResources
 
 	proto, statusCode, contentLength, _, err = sendRequest(customRequest)
 	if err != nil {
-		fmt.Printf("[URL: %s] ERROR\n", newUrl.String())
+		logger.Printf("[URL: %s] ERROR\n", newUrl.String())
 	} else {
 		message := analyseDifferences(refHTTPProto, refHTTPStatusCode, refHTTPContentLength, proto, statusCode, contentLength)
-		utils.Log.Printf("[URL: %s] %s %d %d %s\n", newUrl.String(), proto, statusCode, contentLength, message)
+		logger.Printf("[URL: %s] %s %d %d %s\n", newUrl.String(), proto, statusCode, contentLength, message)
 
-		fmt.Fprintf(w, "%d\t%d\t%s\t%s\n", statusCode, contentLength, customRequest.URL.String(), message)
+		logger.Fprintf(w, "%d\t%d\t%s\t%s\n", statusCode, contentLength, customRequest.URL.String(), message)
 	}
 
 	w.Flush()
@@ -415,12 +416,12 @@ func NginxOffBySlash(webRequestFilename string, urlOption string, validResources
 
 	// proto, statusCode, contentLength, body, err = sendRequest(customRequest)
 	// if err != nil {
-	// 	fmt.Printf("[URL: %s] ERROR\n", newUrl.String())
+	// 	logger.Printf("[URL: %s] ERROR\n", newUrl.String())
 	// } else {
 	// 	message := analyseDifferences(refHTTPProto, refHTTPStatusCode, refHTTPContentLength, proto, statusCode, contentLength)
-	// 	utils.Log.Printf("[URL: %s] %s %d %d %s\n", newUrl.String(), proto, statusCode, contentLength, message)
+	// 	logger.Printf("[URL: %s] %s %d %d %s\n", newUrl.String(), proto, statusCode, contentLength, message)
 
-	// 	fmt.Fprintf(w, "%d\t%d\t%s\t%s\n", statusCode, contentLength, customRequest.URL.String(), message)
+	// 	logger.Fprintf(w, "%d\t%d\t%s\t%s\n", statusCode, contentLength, customRequest.URL.String(), message)
 	// }
 
 	// w.Flush()
@@ -439,12 +440,12 @@ func NginxOffBySlash(webRequestFilename string, urlOption string, validResources
 
 	proto, statusCode, contentLength, _, err = sendRequest(customRequest)
 	if err != nil {
-		fmt.Printf("[URL: %s] ERROR\n", newUrl.String())
+		logger.Printf("[URL: %s] ERROR\n", newUrl.String())
 	} else {
 		message := analyseDifferences(refHTTPProto, refHTTPStatusCode, refHTTPContentLength, proto, statusCode, contentLength)
-		utils.Log.Printf("[URL: %s] %s %d %d %s\n", newUrl.String(), proto, statusCode, contentLength, message)
+		logger.Printf("[URL: %s] %s %d %d %s\n", newUrl.String(), proto, statusCode, contentLength, message)
 
-		fmt.Fprintf(w, "%d\t%d\t%s\t%s\n", statusCode, contentLength, customRequest.URL.String(), message)
+		logger.Fprintf(w, "%d\t%d\t%s\t%s\n", statusCode, contentLength, customRequest.URL.String(), message)
 	}
 
 	w.Flush()
@@ -464,7 +465,7 @@ func NginxOffBySlash(webRequestFilename string, urlOption string, validResources
 
 		proto, statusCode, contentLength, _, err = sendRequest(customRequest)
 		if err != nil {
-			fmt.Printf("[URL: %s] ERROR\n", newUrl.String())
+			logger.Printf("[URL: %s] ERROR\n", newUrl.String())
 		} else {
 			if len(shownStatusCode) <= 0 || slices.Contains(shownStatusCode, statusCode) {
 				message := ""
@@ -473,9 +474,9 @@ func NginxOffBySlash(webRequestFilename string, urlOption string, validResources
 				} else {
 					message = analyseDifferences(refHTTPProto, refHTTPStatusCode, refHTTPContentLength, proto, statusCode, contentLength)
 				}
-				utils.Log.Printf("[URL: %s] %s %d %d %s\n", newUrl.String(), proto, statusCode, contentLength, message)
+				logger.Printf("[URL: %s] %s %d %d %s\n", newUrl.String(), proto, statusCode, contentLength, message)
 
-				fmt.Fprintf(w, "%d\t%d\t%s\t%s\n", statusCode, contentLength, customRequest.URL.String(), message)
+				logger.Fprintf(w, "%d\t%d\t%s\t%s\n", statusCode, contentLength, customRequest.URL.String(), message)
 			}
 		}
 
@@ -492,7 +493,7 @@ func sendRequest(request *http.Request) (proto string, statusCode int, contentLe
 		proxyUrlPtr, err = url.Parse(Options.Proxy)
 		if err != nil {
 			// Fatal because if reference value failed, then it is not possible to compare others correctly
-			utils.Log.Println(err)
+			logger.Println(err)
 			return "", 0, 0, "", err
 		}
 	}
@@ -511,7 +512,7 @@ func sendRequest(request *http.Request) (proto string, statusCode int, contentLe
 	httpResponse, err := client.Do(request)
 	if err != nil {
 		// Fatal because if reference value failed, then it is not possible to compare others correctly
-		utils.Log.Println(err)
+		logger.Println(err)
 		return "", 0, 0, "", err
 	}
 	defer httpResponse.Body.Close()
