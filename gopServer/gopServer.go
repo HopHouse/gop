@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	basicAuth "github.com/hophouse/gop/auth/basic"
-	ntlmAuth "github.com/hophouse/gop/auth/ntlm"
+	basicAuth "github.com/hophouse/gop/authentication/basic"
+	ntlmAuth "github.com/hophouse/gop/authentication/ntlm"
 	gopproxy "github.com/hophouse/gop/gopProxy"
 	"github.com/hophouse/gop/utils/logger"
 	"github.com/urfave/negroni"

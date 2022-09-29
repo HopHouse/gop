@@ -3,7 +3,10 @@ package cmd
 import (
 	"net"
 
+	"github.com/hophouse/gop/authentication/ntlm"
+	"github.com/hophouse/gop/gopRelay"
 	gopserver "github.com/hophouse/gop/gopServer"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 

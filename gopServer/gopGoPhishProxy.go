@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	basicAuth "github.com/hophouse/gop/auth/basic"
-	"github.com/hophouse/gop/auth/ntlm"
-	ntlmAuth "github.com/hophouse/gop/auth/ntlm"
+	basicAuth "github.com/hophouse/gop/authentication/basic"
+	"github.com/hophouse/gop/authentication/ntlm"
+	ntlmAuth "github.com/hophouse/gop/authentication/ntlm"
 	"github.com/hophouse/gop/utils"
 	"github.com/hophouse/gop/utils/logger"
 	"github.com/urfave/negroni"
