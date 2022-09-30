@@ -3,10 +3,8 @@ package cmd
 import (
 	"net"
 
-	"github.com/hophouse/gop/authentication/ntlm"
 	"github.com/hophouse/gop/gopRelay"
 	gopserver "github.com/hophouse/gop/gopServer"
-	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -89,12 +87,41 @@ var serverGoPhishProxyHTTPCmd = &cobra.Command{
 	},
 }
 
+var serverRelayCmd = &cobra.Command{
+	Use: "relay",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if interfaceOption != "" {
+			ief, err := net.InterfaceByName(interfaceOption)
+			if err != nil { // get interface
+				return
+			}
+			addrs, err := ief.Addrs()
+			if err != nil { // get addresses
+				return
+			}
+			for _, addr := range addrs { // get ipv4 address
+				ipv4Addr := addr.(*net.IPNet).IP.To4()
+				if ipv4Addr != nil {
+					break
+				}
+				if ipv4Addr != nil {
+					hostOption = ipv4Addr.String()
+				}
+			}
+		}
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		gopRelay.Run()
+	},
+}
+
 func init() {
 	serverCmd.AddCommand(serverHTTPCmd)
 	serverCmd.AddCommand(serverHTTPSCmd)
 	serverCmd.AddCommand(serverReverseHTTPProxyHTTPCmd)
 	serverCmd.AddCommand(serverReverseHTTPSProxyHTTPCmd)
 	serverCmd.AddCommand(serverGoPhishProxyHTTPCmd)
+	serverCmd.AddCommand(serverRelayCmd)
 
 	serverCmd.PersistentFlags().StringVarP(&interfaceOption, "interface", "i", "", "Interface to take IP adress.")
 	serverCmd.PersistentFlags().StringVarP(&hostOption, "Host", "H", "0.0.0.0", "Define the proxy host.")

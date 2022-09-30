@@ -1,21 +1,83 @@
 package ntlm
 
 import (
-	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"net/http"
-	"strings"
 
-	"github.com/hophouse/gop/utils"
 	"github.com/hophouse/gop/utils/logger"
 )
 
-type NTLMAuthMiddleware struct{}
-
+var DefaultNTLMAuthMiddleWare NTLMAuthMiddleware
 var NtlmCapturedAuth map[string]bool
 
-func (n NTLMAuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+func init() {
+	DefaultNTLMAuthMiddleWare = NewNTLMAuthMiddleWare()
+	NtlmCapturedAuth = make(map[string]bool)
+}
+
+type NTLMAuth interface {
+	PreliminaryCheck(http.ResponseWriter, *http.Request) ([]byte, error)
+	Dispatch(uint32, http.ResponseWriter, *http.Request) (*NTLMSSP_AUTH, *NTLMv2Response, error)
+	ServerNegociate(http.ResponseWriter, *http.Request) error
+	ServerChallenge(http.ResponseWriter, *http.Request, string, string) error
+	ServerAuthenticate(http.ResponseWriter, *http.Request) (NTLMSSP_AUTH, NTLMv2Response, error)
+	ServeHTTP(http.ResponseWriter, *http.Request)
+}
+
+type NTLMAuthMiddleware struct {
+	DomainName             string
+	Challenge              string
+	ServerName             string
+	DnsDomainName          string
+	DnsServerName          string
+	PreliminaryChecksFunc  func(http.ResponseWriter, *http.Request) ([]byte, error)
+	DispatchFunc           func(NTLMAuthMiddleware, uint32, http.ResponseWriter, *http.Request) (*NTLMSSP_AUTH, *NTLMv2Response, error)
+	ServerNegociateFunc    func(http.ResponseWriter, *http.Request) error
+	ServerChallengeFunc    func(http.ResponseWriter, *http.Request, string, string) error
+	ServerAuthenticateFunc func(http.ResponseWriter, *http.Request) (NTLMSSP_AUTH, NTLMv2Response, error)
+}
+
+func (n NTLMAuthMiddleware) PreliminaryCheck(w http.ResponseWriter, r *http.Request) ([]byte, error) {
+	return n.PreliminaryChecksFunc(w, r)
+}
+
+func (n NTLMAuthMiddleware) Dispatch(msgType uint32, w http.ResponseWriter, r *http.Request) (*NTLMSSP_AUTH, *NTLMv2Response, error) {
+	return n.DispatchFunc(n, msgType, w, r)
+}
+
+func (n NTLMAuthMiddleware) ServerNegociate(w http.ResponseWriter, r *http.Request) error {
+	return n.ServerNegociateFunc(w, r)
+}
+
+func (n NTLMAuthMiddleware) ServerChallenge(w http.ResponseWriter, r *http.Request, challenge string, domainName string) error {
+	return n.ServerChallengeFunc(w, r, challenge, domainName)
+}
+
+func (n NTLMAuthMiddleware) ServerAuthenticate(w http.ResponseWriter, r *http.Request) (NTLMSSP_AUTH, NTLMv2Response, error) {
+	return n.ServerAuthenticateFunc(w, r)
+}
+
+type NTLMAuthMiddlewareMux struct {
+	NTLMHandler NTLMAuth
+}
+
+func NewNTLMAuthMiddleWare() NTLMAuthMiddleware {
+	return NTLMAuthMiddleware{
+		Challenge:              "00000000",
+		DomainName:             "smbdomain",
+		ServerName:             "DC",
+		DnsDomainName:          "smbdomain.local",
+		DnsServerName:          "dc.smbdomain.local",
+		PreliminaryChecksFunc:  NTLMPreliminaryChecks,
+		DispatchFunc:           NTLMDispatch,
+		ServerNegociateFunc:    ServerNegociate,
+		ServerChallengeFunc:    ServerChallege,
+		ServerAuthenticateFunc: ServerAuthenticate,
+	}
+}
+
+func (n NTLMAuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Get the response header.
 	authorization := r.Header.Get("Authorization")
 
@@ -25,75 +87,34 @@ func (n NTLMAuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, ne
 		return
 	}
 
-	// Sometimes even if NTLM auth is required, the server is sending and other header
-	if !strings.HasPrefix(authorization, "NTLM") {
-		logger.Printf("[NON NTLM HEADER CAPTURED] [%s]: %s\n", utils.GetSourceIP(r), authorization)
-		next(w, r)
-	}
-
-	// Remove the "NTLM " string at the beginning
-	authorization_bytes, err := base64.StdEncoding.DecodeString(authorization[5:])
+	authorization_bytes, err := n.PreliminaryChecksFunc(w, r)
 	if err != nil {
-		logger.Printf("Decode error authorization header : %s\n", authorization)
+		logger.Print(err)
 		return
 	}
 
-	if len(authorization_bytes) < 40 {
-		logger.Printf("Decoded authorization header is less than 40 bytes. Header was : %s\n", authorization)
-		return
-	}
-
-	if len(authorization_bytes) < 12 {
-		logger.Printf("Decoded authorization header is less than 12 bytes. Header was : %s\n", authorization)
-		return
-	}
 	msgType := binary.LittleEndian.Uint32(authorization_bytes[8:12])
 
-	// Received a type 1 and respond with type 2
-	if msgType == uint32(1) {
-		msg1 := NTLMSSP_NEGOTIATE{}
-		msg1.Read(authorization_bytes)
-		logger.Printf("[NTLM message type 1] %s\n", msg1.ToString())
-
-		msg2 := NewNTLMSSP_CHALLENGEShort()
-		msg2b64 := base64.RawStdEncoding.EncodeToString(msg2.ToBytes())
-
-		header := fmt.Sprintf("NTLM %s", msg2b64)
-
-		w.Header().Set("WWW-Authenticate", header)
-		w.WriteHeader(401)
-
+	msg3, ntlmv2Response, err := n.DispatchFunc(n, msgType, w, r)
+	if err != nil {
+		logger.Print(err)
 		return
 	}
 
-	// Type 3
-	if msgType == uint32(3) {
-		// Remove the "NTLM "
-		_, err := base64.StdEncoding.DecodeString(authorization[5:])
-		if err != nil {
-			logger.Println("decode error:", err)
-			return
-		}
-
-		msg3 := NTLMSSP_AUTH{}
-		msg3.Read(authorization_bytes)
-		logger.Printf("[NTLM-AUTH] [%s] [%s] [%s] ", msg3.TargetName.RawData, msg3.Username.RawData, msg3.Workstation.RawData)
-		logger.Printf("[NTLM message type 3]\n%s", msg3.ToString())
-
-		ntlmv2Response := NTLMv2Response{}
-		ntlmv2Response.Read(msg3.NTLMv2Response.RawData)
-		logger.Printf("%s", ntlmv2Response.ToString())
-
-		ntlmv2_pwdump := fmt.Sprintf("%s::%s:%x:%x:%x\n", string(msg3.Username.RawData), string(msg3.TargetName.RawData), []byte(Challenge), ntlmv2Response.NTProofStr, msg3.NTLMv2Response.RawData[len(ntlmv2Response.NTProofStr):])
+	if msg3 != nil && ntlmv2Response != nil {
+		ntlmv2_pwdump := fmt.Sprintf("%s::%s:%x:%x:%x\n", string(msg3.Username.RawData), string(msg3.TargetName.RawData), []byte(DefaultChallenge), ntlmv2Response.NTProofStr, msg3.NTLMv2Response.RawData[len(ntlmv2Response.NTProofStr):])
 
 		authInformations := fmt.Sprintf("%s:%s", string(msg3.TargetName.RawData), string(msg3.Username.RawData))
 		if _, found := NtlmCapturedAuth[authInformations]; !found {
 			NtlmCapturedAuth[authInformations] = true
-			logger.Printf("[PWDUMP] %s", ntlmv2_pwdump)
+			logger.Printf("\n[+] PWDUMP:\n%s\n", ntlmv2_pwdump)
 		} else {
-			logger.Printf("[+] User %s NTLMv2 challenge was already captured.\n", authInformations)
+			logger.Printf("\n[+] User %s NTLMv2 challenge was already captured.\n", authInformations)
 		}
 	}
+}
 
+func (n NTLMAuthMiddlewareMux) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	n.NTLMHandler.ServeHTTP(w, r)
 	next(w, r)
 }

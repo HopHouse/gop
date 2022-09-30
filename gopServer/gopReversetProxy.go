@@ -51,7 +51,10 @@ func genRedirectProxy(dstUrl string, auth string, realm string, redirectPrefix s
 	case "ntlm":
 		logger.Printf("[+] Add HTTP NTLM auth header\n")
 		ntlmAuth.NtlmCapturedAuth = make(map[string]bool)
-		n.Use(&ntlmAuth.NTLMAuthMiddleware{})
+		n.Use(&ntlmAuth.NTLMAuthMiddlewareMux{
+
+			NTLMHandler: ntlmAuth.DefaultNTLMAuthMiddleWare,
+		})
 	}
 
 	n.Use(XRealIPMiddleware{})

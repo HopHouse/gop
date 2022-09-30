@@ -51,7 +51,7 @@ func (resp *NTLMv2Response) ToString() string {
 	str.WriteString(fmt.Sprintf("NTProofStr      	: %x\n", resp.NTProofStr))
 	str.WriteString(fmt.Sprintf("ResponseVersion  	: %d\n", resp.ResponseVersion))
 	str.WriteString(fmt.Sprintf("HiResponseVersion	: %d\n", resp.HiResponseVersion))
-	str.WriteString(fmt.Sprintf("Timestamp     		: %t\n", resp.Timestamp))
+	str.WriteString(fmt.Sprintf("Timestamp     		: %b\n", resp.Timestamp))
 	str.WriteString(fmt.Sprintf("Challenge     		: %x\n", resp.Challenge))
 	str.WriteString(fmt.Sprintf("Restrictions   		: %x\n", resp.Restrictions.Data))
 	str.WriteString(fmt.Sprintf("ChannelBindings 	: %x\n", resp.ChannelBindings.Data))

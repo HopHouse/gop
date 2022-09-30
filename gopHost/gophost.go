@@ -248,8 +248,8 @@ func checkAvailability(domain string) (bool, error) {
 	// take the domain
 	topDomain := strings.Split(domain, ".")
 	if len(topDomain) < 1 {
-		errorString := fmt.Sprintf("Top domain are not accepted : %v ", domain)
-		return false, errors.New(errorString)
+		errorString := fmt.Errorf("Top domain are not accepted : %v ", domain)
+		return false, errorString
 	}
 	tldDomain := strings.Join(topDomain[len(topDomain)-2:], ".")
 
@@ -260,8 +260,8 @@ func checkAvailability(domain string) (bool, error) {
 	for {
 		result, err = whois.GetWhoisTimeout(tldDomain, time.Second*5)
 		if err != nil {
-			errorString := fmt.Sprintf("Error in whois lookup : %v ", err)
-			return false, errors.New(errorString)
+			errorString := fmt.Errorf("Error in whois lookup : %v ", err)
+			return false, errorString
 		}
 
 		if strings.Contains(result, "Too many requests...") {

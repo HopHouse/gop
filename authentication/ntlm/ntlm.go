@@ -4,10 +4,12 @@ import (
 	"encoding/binary"
 	"fmt"
 	"strings"
+
+	"github.com/hophouse/gop/utils/logger"
 )
 
-const Challenge string = "HopHouse"
-const domainName string = "smbdomain"
+const DefaultChallenge string = "HopHouse"
+const DefaultDomainName string = "smbdomain"
 const serverName string = "DC"
 const dnsDomainName string = "smbdomain.local"
 const dnsServerName string = "dc.smbdomain.local"
@@ -99,18 +101,20 @@ func (msg *NTLMSSP_CHALLENGE) SetSecurityBuffer(sbuf *SecurityBuffer, rawData []
 }
 
 // OSVersionStructure is optional and not added into it
-func NewNTLMSSP_CHALLENGEShort() NTLMSSP_CHALLENGE {
+func NewNTLMSSP_CHALLENGEShort(challenge string, domainName string) NTLMSSP_CHALLENGE {
 	msg := NTLMSSP_CHALLENGE{
 		SSPSignature:      append([]byte("NTLMSSP"), 0x00),
 		MessageType:       uint32(0x2),
 		TargetName:        NewSecurityBuffer(),
 		Flags:             (Flag)(uint32(0x00)),
-		Challenge:         []byte(Challenge),
+		Challenge:         []byte{},
 		Context:           uint32(0x00),
 		TargetInformation: NewSecurityBuffer(),
 		OtherData:         []byte{},
 		OtherDataOffset:   48,
 	}
+
+	msg.SetChallenge(challenge)
 
 	msg.SetSecurityBuffer(&msg.TargetName, []byte(domainName))
 
@@ -173,6 +177,23 @@ func NewNTLMSSP_CHALLENGEShort() NTLMSSP_CHALLENGE {
 	return msg
 }
 
+func (msg *NTLMSSP_CHALLENGE) SetChallenge(challenge string) {
+	if len(challenge) > 8 {
+		logger.Printf("[!] Provided challege %s is too long. Expected 8 bytes. It will be truncated. Challenge will be : %s\n", challenge, challenge[0:7])
+		challenge = challenge[0:7]
+	}
+	if len(challenge) < 8 {
+		logger.Printf("[!] Provided challege %s is too small. Expected 8 bytes. It will be padded with \"0\". ", challenge)
+		for i := len(challenge); i <= 8; i++ {
+			challenge = challenge + "0"
+		}
+		logger.Printf("Challenge wille be : %s\n", challenge)
+		challenge = challenge[0:7]
+	}
+
+	msg.Challenge = []byte(challenge)
+}
+
 func (msg *NTLMSSP_CHALLENGE) ToBytes() []byte {
 	var result []byte
 
@@ -192,7 +213,7 @@ func (msg *NTLMSSP_CHALLENGE) ToBytes() []byte {
 	result = append(result, FlagsBytes...)
 
 	ChallengeBytes := make([]byte, 8)
-	copy(ChallengeBytes, Challenge)
+	copy(ChallengeBytes, msg.Challenge)
 	result = append(result, ChallengeBytes...)
 
 	ContextBytes := make([]byte, 8)

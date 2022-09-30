@@ -58,7 +58,7 @@ var rootCmd = &cobra.Command{
 	Long:  "GOP provides a toolbox to do pentest tasks.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if noLogOption {
-			logger.NewLoggerNull()
+			logger.NewLoggerStdout()
 			return
 		}
 
