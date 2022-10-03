@@ -2,8 +2,11 @@ package ntlm
 
 import (
 	"encoding/binary"
+	"fmt"
+	"strings"
 
 	"github.com/hophouse/gop/utils/logger"
+	"golang.org/x/sys/windows"
 )
 
 type SecurityBuffer struct {
@@ -13,7 +16,7 @@ type SecurityBuffer struct {
 	RawData               []byte
 }
 
-func NewSecurityBuffer() SecurityBuffer {
+func NewEmptySecurityBuffer() SecurityBuffer {
 	return SecurityBuffer{
 		BufferLength:          uint16(0),
 		BufferAllocatedLength: uint16(0),
@@ -23,22 +26,49 @@ func NewSecurityBuffer() SecurityBuffer {
 }
 
 func ReadSecurityBuffer(data []byte, start int) SecurityBuffer {
-	buffer := SecurityBuffer{
-		BufferLength:          binary.LittleEndian.Uint16(data[start : start+2]),
-		BufferAllocatedLength: binary.LittleEndian.Uint16(data[start+2 : start+4]),
-		StartOffset:           binary.LittleEndian.Uint32(data[start+4 : start+8]),
-		RawData:               []byte{},
-	}
+	buffer := SecurityBuffer{}
 
-	if int(buffer.BufferAllocatedLength) > 0 {
-		buffer.RawData = data[int(buffer.StartOffset) : int(buffer.StartOffset)+int(buffer.BufferAllocatedLength)]
-	}
+	buffer.SetSecurityBuffer(data[start:], data)
 
 	return buffer
 }
 
-func (sbuf SecurityBuffer) ToBytes() []byte {
-	buffer := make([]byte, 0, 0)
+func (sbuf *SecurityBuffer) SetSecurityBuffer(securityBufferHeader []byte, rawData []byte) error {
+	// Set the security buffer
+	sbuf.BufferLength = binary.LittleEndian.Uint16(securityBufferHeader[0:2])
+
+	sbuf.BufferAllocatedLength = binary.LittleEndian.Uint16(securityBufferHeader[2:4])
+
+	sbuf.StartOffset = binary.LittleEndian.Uint32(securityBufferHeader[4:8])
+
+	sbuf.RawData = make([]byte, sbuf.BufferAllocatedLength)
+
+	n := copy(sbuf.RawData, rawData[sbuf.StartOffset:int(sbuf.StartOffset)+int(sbuf.BufferLength)])
+
+	if n != int(sbuf.BufferLength) {
+		err := fmt.Errorf("copied %d data, but expected %d to be copied", n, sbuf.BufferLength)
+		return err
+	}
+
+	return nil
+}
+
+func NewSecurityBuffer(ntlmRawData *[]byte, data []byte) SecurityBuffer {
+
+	buffer := SecurityBuffer{}
+	// Set the security buffer
+	buffer.BufferLength = uint16(len(data))
+	buffer.BufferAllocatedLength = uint16(len(data))
+	buffer.StartOffset = uint32(len(*ntlmRawData))
+	buffer.RawData = make([]byte, buffer.BufferAllocatedLength)
+
+	*ntlmRawData = append(*ntlmRawData, data...)
+
+	return buffer
+}
+
+func (sbuf *SecurityBuffer) ToBytes() []byte {
+	buffer := []byte{}
 
 	bufferLengthBytes := make([]byte, 2)
 	binary.LittleEndian.PutUint16(bufferLengthBytes, sbuf.BufferLength)
@@ -52,11 +82,23 @@ func (sbuf SecurityBuffer) ToBytes() []byte {
 	binary.LittleEndian.PutUint32(bufferStartOffsetBytes, sbuf.StartOffset)
 	buffer = append(buffer, bufferStartOffsetBytes...)
 
+	buffer = append(buffer, sbuf.RawData...)
+
 	return buffer
 }
 
 func (sbuf *SecurityBuffer) PrintSecurityBuffer() {
-	logger.Printf("\tBuffer length                : %x\n", sbuf.BufferLength)
-	logger.Printf("\tBuffer Allocated length      : %x\n", sbuf.BufferAllocatedLength)
-	logger.Printf("\tOffset                       : %x\n", sbuf.StartOffset)
+	logger.Printf(sbuf.ToString())
+}
+
+func (sbuf *SecurityBuffer) ToString() string {
+	var str strings.Builder
+
+	str.WriteString(fmt.Sprintf("\tBuffer length                : %d\n", sbuf.BufferLength))
+	str.WriteString(fmt.Sprintf("\tBuffer Allocated length      : %d\n", sbuf.BufferAllocatedLength))
+	str.WriteString(fmt.Sprintf("\tOffset                       : %d\n", sbuf.StartOffset))
+	str.WriteString(fmt.Sprintf("\tData Bytes                   : %b\n", sbuf.RawData))
+	str.WriteString(fmt.Sprintf("\tData String                  : %s\n", windows.ByteSliceToString(sbuf.RawData[:])))
+
+	return str.String()
 }

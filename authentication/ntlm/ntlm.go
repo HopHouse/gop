@@ -18,7 +18,6 @@ type NTLMMessage interface {
 	Read([]byte)
 	ToString() string
 	ToBytes() []byte
-	SetSecurityBuffer(sbuf *SecurityBuffer)
 }
 
 type NTLMSSP_NEGOTIATE struct {
@@ -32,29 +31,36 @@ type NTLMSSP_NEGOTIATE struct {
 	OtherDataOffset     int
 }
 
-func (msg *NTLMSSP_NEGOTIATE) SetSecurityBuffer(sbuf *SecurityBuffer, rawData []byte) {
-	// Set the security buffer
-	sbuf.BufferLength = uint16(len([]byte(rawData)))
-	sbuf.BufferAllocatedLength = uint16(len([]byte(rawData)))
-	sbuf.StartOffset = uint32(msg.OtherDataOffset)
-	sbuf.RawData = []byte(rawData)
-
-	// Add data to OtherData
-	msg.OtherData = append(msg.OtherData, []byte(rawData)...)
-
-	msg.OtherDataOffset = msg.OtherDataOffset + len([]byte(rawData))
-
-	return
-}
-
 func (msg *NTLMSSP_NEGOTIATE) Read(data []byte) {
-	msg.SSPSignature = data[0:8]
-	msg.MessageType = binary.LittleEndian.Uint32(data[8:12])
-	msg.Flags = (Flag)(binary.BigEndian.Uint32(data[12:16]))
-	msg.SuppliedDomain = ReadSecurityBuffer(data, 16)
-	msg.SuppliedWorkstation = ReadSecurityBuffer(data, 24)
-	msg.OSVersionStructure = data[32:41]
-	msg.OtherData = data[40:]
+	offset := 0
+
+	msg.SSPSignature = data[offset : offset+8]
+	offset += 8
+
+	msg.MessageType = binary.LittleEndian.Uint32(data[offset : offset+4])
+	offset += 4
+
+	msg.Flags = (Flag)(binary.BigEndian.Uint32(data[offset : offset+4]))
+	offset += 4
+
+	err := msg.SuppliedDomain.SetSecurityBuffer(data[offset:offset+8], data)
+	if err != nil {
+		logger.Printf("Error while reading the NTLM Negotiate supplied domain : %s\n", err)
+	}
+	offset += 8
+
+	err = msg.SuppliedWorkstation.SetSecurityBuffer(data[offset:offset+8], data)
+	if err != nil {
+		logger.Printf("Error while reading the NTLM Negotiate supplied workstation : %s\n", err)
+	}
+	offset += 8
+
+	msg.OSVersionStructure = data[offset : offset+8]
+	offset += 8
+
+	if len(data) > offset+8 {
+		copy(msg.OtherData, data[offset:])
+	}
 }
 
 func (msg *NTLMSSP_NEGOTIATE) ToString() string {
@@ -62,11 +68,14 @@ func (msg *NTLMSSP_NEGOTIATE) ToString() string {
 
 	str.WriteString(fmt.Sprintf("NTLMSSP Signature      : %s\n", string(msg.SSPSignature)))
 	str.WriteString(fmt.Sprintf("NTLM Message Type      : %v\n", msg.MessageType))
-	str.WriteString(fmt.Sprint("Flags : \n"))
+	str.WriteString(fmt.Sprint("Flags :\n"))
 	str.WriteString(msg.Flags.ToString())
 	str.WriteString(fmt.Sprintf("Supplied Domain : %s\n", string(msg.SuppliedDomain.RawData)))
 	str.WriteString(fmt.Sprintf("Supplied Workstation : %s\n", string(msg.SuppliedWorkstation.RawData)))
 	str.WriteString(fmt.Sprintf("OS Version : %v.%v - Build %d\n", msg.OSVersionStructure[0], msg.OSVersionStructure[1], binary.LittleEndian.Uint16(msg.OSVersionStructure[2:4])))
+	str.WriteString(fmt.Sprintf("Other Data        : %v\n", msg.OtherData))
+	str.WriteString(fmt.Sprintf("Other Data string : %v\n", string(msg.OtherData)))
+	str.WriteString(fmt.Sprintf("Other Data Offset : %v\n", msg.OtherDataOffset))
 	str.WriteString(fmt.Sprint("\n"))
 
 	return str.String()
@@ -79,7 +88,7 @@ type NTLMSSP_CHALLENGE struct {
 	Flags              Flag
 	Challenge          []byte
 	Context            uint32
-	TargetInformation  SecurityBuffer
+	TargetInformation  TargetInformation
 	OSVersionStructure []byte
 	OtherData          []byte
 	OtherDataOffset    int
@@ -91,11 +100,11 @@ func (msg *NTLMSSP_CHALLENGE) ToString() string {
 	str.WriteString(fmt.Sprintf("NTLMSSP Signature      : %s\n", string(msg.SSPSignature)))
 	str.WriteString(fmt.Sprintf("NTLM Message Type      : %v\n", msg.MessageType))
 	str.WriteString(fmt.Sprintf("TargetName      : %s\n", string(msg.TargetName.RawData)))
-	str.WriteString(fmt.Sprint("Flags : \n"))
+	str.WriteString(fmt.Sprint("Flags :\n"))
 	str.WriteString(msg.Flags.ToString())
 	str.WriteString(fmt.Sprintf("Challenge : %x\n", msg.Challenge))
 	str.WriteString(fmt.Sprintf("Context : %d\n", msg.Context))
-	str.WriteString(fmt.Sprintf("TargetInformation      : %v\n", msg.TargetInformation.RawData))
+	str.WriteString(fmt.Sprintf("TargetInformation      :\n%s\n", msg.TargetInformation.ToString()))
 	str.WriteString(fmt.Sprintf("OS Version : %v.%v - Build %d\n", msg.OSVersionStructure[0], msg.OSVersionStructure[1], binary.LittleEndian.Uint16(msg.OSVersionStructure[2:4])))
 	str.WriteString(fmt.Sprintf("Other Data        : %v\n", msg.OtherData))
 	str.WriteString(fmt.Sprintf("Other Data string : %v\n", string(msg.OtherData)))
@@ -104,31 +113,17 @@ func (msg *NTLMSSP_CHALLENGE) ToString() string {
 
 	return str.String()
 }
-func (msg *NTLMSSP_CHALLENGE) SetSecurityBuffer(sbuf *SecurityBuffer, rawData []byte) {
-	// Set the security buffer
-	sbuf.BufferLength = uint16(len([]byte(rawData)))
-	sbuf.BufferAllocatedLength = uint16(len([]byte(rawData)))
-	sbuf.StartOffset = uint32(msg.OtherDataOffset)
-	sbuf.RawData = []byte(rawData)
-
-	// Add data to OtherData
-	msg.OtherData = append(msg.OtherData, []byte(rawData)...)
-
-	msg.OtherDataOffset = msg.OtherDataOffset + len([]byte(rawData))
-
-	return
-}
 
 // OSVersionStructure is optional and not added into it
 func NewNTLMSSP_CHALLENGE(challenge string, domainName string) NTLMSSP_CHALLENGE {
 	msg := NTLMSSP_CHALLENGE{
 		SSPSignature:       append([]byte("NTLMSSP"), 0x00),
 		MessageType:        uint32(0x2),
-		TargetName:         NewSecurityBuffer(),
+		TargetName:         NewEmptySecurityBuffer(),
 		Flags:              (Flag)(uint32(0x00)),
 		Challenge:          []byte{},
 		Context:            uint32(0x00),
-		TargetInformation:  NewSecurityBuffer(),
+		TargetInformation:  TargetInformation{},
 		OSVersionStructure: []byte{},
 		OtherData:          []byte{},
 		OtherDataOffset:    48,
@@ -136,7 +131,8 @@ func NewNTLMSSP_CHALLENGE(challenge string, domainName string) NTLMSSP_CHALLENGE
 
 	msg.SetChallenge(challenge)
 
-	msg.SetSecurityBuffer(&msg.TargetName, []byte(domainName))
+	domainNameBytes := []byte(domainName)
+	msg.TargetName = NewSecurityBuffer(&msg.OtherData, domainNameBytes)
 
 	//targetInformationDomainNameBytes := TargetInformation{
 	//	Type:    uint16(0x0002),
@@ -251,29 +247,43 @@ func (msg *NTLMSSP_CHALLENGE) ToBytes() []byte {
 }
 
 func (msg *NTLMSSP_CHALLENGE) Read(data []byte) {
-	msg.SSPSignature = data[0:7]
+	offset := 0
 
-	msg.MessageType = binary.LittleEndian.Uint32(data[8:12])
+	msg.SSPSignature = data[offset : offset+8]
+	offset += 8
 
-	msg.TargetName = ReadSecurityBuffer(data, 12)
-	offset := 12 + len(msg.TargetName.RawData)
+	msg.MessageType = binary.LittleEndian.Uint32(data[offset : offset+4])
+	offset += 4
+
+	err := msg.TargetName.SetSecurityBuffer(data[offset:offset+8], data)
+	if err != nil {
+		logger.Printf("Error while reading the NTLM Challenge supplied target name : %s\n", err)
+	}
+	offset += 8
 
 	msg.Flags = (Flag)(binary.LittleEndian.Uint32(data[offset : offset+4]))
-	offset = offset + 4
+	offset += 4
 
 	msg.Challenge = data[offset : offset+8]
-	offset = offset + 8
+	offset += 8
 
 	binary.LittleEndian.PutUint32(data[offset:offset+8], msg.Context)
-	offset = offset + 8
+	offset += 8
 
-	msg.TargetInformation = ReadSecurityBuffer(data, offset)
-	offset = offset + len(msg.TargetInformation.RawData)
+	targetInformationSecurityBuffer := NewEmptySecurityBuffer()
+	err = targetInformationSecurityBuffer.SetSecurityBuffer(data[offset:offset+8], data)
+	if err != nil {
+		logger.Printf("Error while reading the NTLM Challenge supplied target information : %s\n", err)
+	}
+	msg.TargetInformation.Read(targetInformationSecurityBuffer.RawData)
+	offset += 8
 
 	msg.OSVersionStructure = data[offset : offset+4]
-	offset = offset + 4
+	offset += 4
 
-	msg.OtherData = data[offset:]
+	if len(data) > offset {
+		msg.OtherData = data[offset:]
+	}
 }
 
 type NTLMSSP_AUTH struct {
@@ -304,53 +314,74 @@ type NTLMSSP_AUTH struct {
 }
 
 func (msg *NTLMSSP_AUTH) Read(data []byte) {
-	msg.SSPSignature = data[0:8]
-	msg.MessageType = binary.LittleEndian.Uint32(data[8:12])
+	offset := 0
+
+	msg.SSPSignature = data[offset : offset+8]
+	offset += 8
+
+	msg.MessageType = binary.LittleEndian.Uint32(data[offset : offset+4])
+	offset += 4
 
 	msg.OtherDataOffset = 52
 
-	msg.LMv2Response = ReadSecurityBuffer(data, 12)
-	if msg.OtherDataOffset < int(msg.LMv2Response.StartOffset) {
-
-		msg.OtherDataOffset = int(msg.LMv2Response.StartOffset)
+	err := msg.LMv2Response.SetSecurityBuffer(data[offset:offset+8], data)
+	if err != nil {
+		logger.Printf("Error while reading the NTLM Auth LMv2 Response : %s\n", err)
 	}
+	offset += 8
 
-	msg.NTLMv2Response = ReadSecurityBuffer(data, 20)
-	if msg.OtherDataOffset < int(msg.NTLMv2Response.StartOffset) {
-		msg.OtherDataOffset = int(msg.NTLMv2Response.StartOffset)
+	err = msg.NTLMv2Response.SetSecurityBuffer(data[offset:offset+8], data)
+	if err != nil {
+		logger.Printf("Error while reading the NTLM Auth NTLMv2 Response : %s\n", err)
 	}
+	offset += 8
 
-	msg.TargetName = ReadSecurityBuffer(data, 28)
-	if msg.OtherDataOffset < int(msg.TargetName.StartOffset) {
-		msg.OtherDataOffset = int(msg.TargetName.StartOffset)
+	err = msg.TargetName.SetSecurityBuffer(data[offset:offset+8], data)
+	if err != nil {
+		logger.Printf("Error while reading the NTLM Auth target name : %s\n", err)
 	}
+	offset += 8
 
-	msg.Username = ReadSecurityBuffer(data, 36)
-	if msg.OtherDataOffset < int(msg.Username.StartOffset) {
-		msg.OtherDataOffset = int(msg.Username.StartOffset)
+	err = msg.Username.SetSecurityBuffer(data[offset:offset+8], data)
+	if err != nil {
+		logger.Printf("Error while reading the NTLM Auth user name : %s\n", err)
 	}
+	offset += 8
 
-	msg.Workstation = ReadSecurityBuffer(data, 44)
-	if msg.OtherDataOffset < int(msg.Workstation.StartOffset) {
-		msg.OtherDataOffset = int(msg.Workstation.StartOffset)
+	err = msg.Workstation.SetSecurityBuffer(data[offset:offset+8], data)
+	if err != nil {
+		logger.Printf("Error while reading the NTLM Auth workstation name : %s\n", err)
 	}
+	offset += 8
 
 	// Session Key is optional. If LMv2 Security Buffer has an offset equal to 52,
 	// so the session key is not present
-	if msg.OtherDataOffset > 52 {
-		msg.SessionKey = ReadSecurityBuffer(data, 52)
+	if len(data) > 52 {
+		err = msg.SessionKey.SetSecurityBuffer(data[offset:offset+8], data)
+		if err != nil {
+			logger.Printf("Error while reading the NTLM Auth sessoion key : %s\n", err)
+		}
+		offset += 8
 	}
 
 	// Flags are optional. If LMv2 Security Buffer has an offset equal to 60,
 	// so the session key is present
-	if msg.OtherDataOffset > 60 {
-		msg.Flags = (Flag)(binary.BigEndian.Uint32(data[60:64]))
+	if len(data) > 64 {
+		if msg.OtherDataOffset > 60 {
+			msg.Flags = (Flag)(binary.BigEndian.Uint32(data[offset : offset+4]))
+		}
+		offset += 4
 	}
 
 	// Os Version is optional. If LMv2 Security Buffer has an offset equal to 64,
 	// so the session key is present
-	if msg.OtherDataOffset > 64 {
-		msg.OSVersionStructure = data[64:72]
+	if len(data) > 64 {
+		msg.OSVersionStructure = data[offset : offset+8]
+		offset += 8
+	}
+
+	if len(data) > offset {
+		msg.OtherData = data[offset:]
 	}
 	msg.OtherData = data[72:]
 }
@@ -370,23 +401,10 @@ func (msg *NTLMSSP_AUTH) ToString() string {
 	str.WriteString(fmt.Sprintf("UserName : %s\n", msg.Username.RawData))
 	str.WriteString(fmt.Sprintf("Workstation : %s\n", msg.Workstation.RawData))
 	str.WriteString(fmt.Sprintf("SessionKey : %x\n", msg.SessionKey.RawData))
-	str.WriteString(fmt.Sprintf("Flags : \n"))
-	str.WriteString(fmt.Sprintf("%s", msg.Flags.ToString()))
+	str.WriteString(fmt.Sprintf("Flags :\n"))
+	str.WriteString(fmt.Sprint(msg.Flags.ToString()))
 	str.WriteString(fmt.Sprintf("OS Version : %v.%v - Build %d\n", msg.OSVersionStructure[0], msg.OSVersionStructure[1], binary.LittleEndian.Uint16(msg.OSVersionStructure[2:4])))
 	str.WriteString(fmt.Sprintf("\n"))
 
 	return str.String()
-}
-
-func (msg *NTLMSSP_AUTH) SetSecurityBuffer(sbuf *SecurityBuffer, rawData []byte) {
-	// Set the security buffer
-	sbuf.BufferLength = uint16(len([]byte(rawData)))
-	sbuf.BufferAllocatedLength = uint16(len([]byte(rawData)))
-	sbuf.StartOffset = uint32(msg.OtherDataOffset)
-	sbuf.RawData = []byte(rawData)
-
-	// Add data to OtherData
-	msg.OtherData = append(msg.OtherData, []byte(rawData)...)
-
-	msg.OtherDataOffset = msg.OtherDataOffset + len([]byte(rawData))
 }

@@ -125,7 +125,7 @@ func init() {
 	serverCmd.AddCommand(serverGoPhishProxyHTTPCmd)
 	serverCmd.AddCommand(serverRelayCmd)
 
-	serverCmd.PersistentFlags().StringVarP(&UrlOption, "url", "u", "", "Url to target.")
+	serverCmd.PersistentFlags().StringVarP(&UrlOption, "target", "t", "", "Url to target.")
 
 	serverCmd.PersistentFlags().StringVarP(&interfaceOption, "interface", "i", "", "Interface to take IP adress.")
 	serverCmd.PersistentFlags().StringVarP(&hostOption, "Host", "H", "0.0.0.0", "Define the proxy host.")

