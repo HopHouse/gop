@@ -1,6 +1,9 @@
 package ntlm
 
-import "encoding/binary"
+import (
+	"bytes"
+	"encoding/binary"
+)
 
 type TargetInformation struct {
 	Type    uint16
@@ -22,4 +25,10 @@ func (targetInformation TargetInformation) ToBytes() []byte {
 	buffer = append(buffer, []byte(string(targetInformation.Content))...)
 
 	return buffer
+}
+
+func (targetInformation TargetInformation) Read(buffer []byte) {
+	targetInformation.Type = binary.LittleEndian.Uint16(buffer[0:2])
+	targetInformation.Length = binary.LittleEndian.Uint16(buffer[2:4])
+	targetInformation.Content = bytes.Runes(buffer[4:targetInformation.Length])
 }

@@ -185,13 +185,19 @@ func copyHeader(newHeader http.Header, header http.Header) {
 	}
 }
 
-func doHTTPRequest(r *http.Request) *http.Response {
+func CopyRequest(r *http.Request) *http.Request {
 	newRequest, err := http.NewRequest(r.Method, r.URL.String(), nil)
 	if ok := utils.CheckError(err); ok {
 		return nil
 	}
 
 	copyHeader(newRequest.Header, r.Header)
+
+	return newRequest
+}
+
+func doHTTPRequest(r *http.Request) *http.Response {
+	newRequest := CopyRequest(r)
 
 	client := http.Client{}
 	resp, err := client.Do(newRequest)

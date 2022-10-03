@@ -62,12 +62,12 @@ func (msg *NTLMSSP_NEGOTIATE) ToString() string {
 
 	str.WriteString(fmt.Sprintf("NTLMSSP Signature      : %s\n", string(msg.SSPSignature)))
 	str.WriteString(fmt.Sprintf("NTLM Message Type      : %v\n", msg.MessageType))
-	str.WriteString(fmt.Sprintf("Flags : \n"))
+	str.WriteString(fmt.Sprint("Flags : \n"))
 	str.WriteString(msg.Flags.ToString())
-	str.WriteString(fmt.Sprintf("Supplied Domain : %x\n", msg.SuppliedDomain.RawData))
-	str.WriteString(fmt.Sprintf("Supplied Workstation : %x\n", msg.SuppliedWorkstation.RawData))
+	str.WriteString(fmt.Sprintf("Supplied Domain : %s\n", string(msg.SuppliedDomain.RawData)))
+	str.WriteString(fmt.Sprintf("Supplied Workstation : %s\n", string(msg.SuppliedWorkstation.RawData)))
 	str.WriteString(fmt.Sprintf("OS Version : %v.%v - Build %d\n", msg.OSVersionStructure[0], msg.OSVersionStructure[1], binary.LittleEndian.Uint16(msg.OSVersionStructure[2:4])))
-	str.WriteString(fmt.Sprintf("\n"))
+	str.WriteString(fmt.Sprint("\n"))
 
 	return str.String()
 }
@@ -85,6 +85,25 @@ type NTLMSSP_CHALLENGE struct {
 	OtherDataOffset    int
 }
 
+func (msg *NTLMSSP_CHALLENGE) ToString() string {
+	var str strings.Builder
+
+	str.WriteString(fmt.Sprintf("NTLMSSP Signature      : %s\n", string(msg.SSPSignature)))
+	str.WriteString(fmt.Sprintf("NTLM Message Type      : %v\n", msg.MessageType))
+	str.WriteString(fmt.Sprintf("TargetName      : %s\n", string(msg.TargetName.RawData)))
+	str.WriteString(fmt.Sprint("Flags : \n"))
+	str.WriteString(msg.Flags.ToString())
+	str.WriteString(fmt.Sprintf("Challenge : %x\n", msg.Challenge))
+	str.WriteString(fmt.Sprintf("Context : %d\n", msg.Context))
+	str.WriteString(fmt.Sprintf("TargetInformation      : %v\n", msg.TargetInformation.RawData))
+	str.WriteString(fmt.Sprintf("OS Version : %v.%v - Build %d\n", msg.OSVersionStructure[0], msg.OSVersionStructure[1], binary.LittleEndian.Uint16(msg.OSVersionStructure[2:4])))
+	str.WriteString(fmt.Sprintf("Other Data        : %v\n", msg.OtherData))
+	str.WriteString(fmt.Sprintf("Other Data string : %v\n", string(msg.OtherData)))
+	str.WriteString(fmt.Sprintf("Other Data Offset : %v\n", msg.OtherDataOffset))
+	str.WriteString(fmt.Sprint("\n"))
+
+	return str.String()
+}
 func (msg *NTLMSSP_CHALLENGE) SetSecurityBuffer(sbuf *SecurityBuffer, rawData []byte) {
 	// Set the security buffer
 	sbuf.BufferLength = uint16(len([]byte(rawData)))
@@ -101,17 +120,18 @@ func (msg *NTLMSSP_CHALLENGE) SetSecurityBuffer(sbuf *SecurityBuffer, rawData []
 }
 
 // OSVersionStructure is optional and not added into it
-func NewNTLMSSP_CHALLENGEShort(challenge string, domainName string) NTLMSSP_CHALLENGE {
+func NewNTLMSSP_CHALLENGE(challenge string, domainName string) NTLMSSP_CHALLENGE {
 	msg := NTLMSSP_CHALLENGE{
-		SSPSignature:      append([]byte("NTLMSSP"), 0x00),
-		MessageType:       uint32(0x2),
-		TargetName:        NewSecurityBuffer(),
-		Flags:             (Flag)(uint32(0x00)),
-		Challenge:         []byte{},
-		Context:           uint32(0x00),
-		TargetInformation: NewSecurityBuffer(),
-		OtherData:         []byte{},
-		OtherDataOffset:   48,
+		SSPSignature:       append([]byte("NTLMSSP"), 0x00),
+		MessageType:        uint32(0x2),
+		TargetName:         NewSecurityBuffer(),
+		Flags:              (Flag)(uint32(0x00)),
+		Challenge:          []byte{},
+		Context:            uint32(0x00),
+		TargetInformation:  NewSecurityBuffer(),
+		OSVersionStructure: []byte{},
+		OtherData:          []byte{},
+		OtherDataOffset:    48,
 	}
 
 	msg.SetChallenge(challenge)
@@ -223,8 +243,37 @@ func (msg *NTLMSSP_CHALLENGE) ToBytes() []byte {
 	TargetInformationBytes := msg.TargetInformation.ToBytes()
 	result = append(result, TargetInformationBytes...)
 
+	OSVersionStructureBytes := msg.OSVersionStructure
+	result = append(result, OSVersionStructureBytes...)
+
 	result = append(result, msg.OtherData...)
 	return result
+}
+
+func (msg *NTLMSSP_CHALLENGE) Read(data []byte) {
+	msg.SSPSignature = data[0:7]
+
+	msg.MessageType = binary.LittleEndian.Uint32(data[8:12])
+
+	msg.TargetName = ReadSecurityBuffer(data, 12)
+	offset := 12 + len(msg.TargetName.RawData)
+
+	msg.Flags = (Flag)(binary.LittleEndian.Uint32(data[offset : offset+4]))
+	offset = offset + 4
+
+	msg.Challenge = data[offset : offset+8]
+	offset = offset + 8
+
+	binary.LittleEndian.PutUint32(data[offset:offset+8], msg.Context)
+	offset = offset + 8
+
+	msg.TargetInformation = ReadSecurityBuffer(data, offset)
+	offset = offset + len(msg.TargetInformation.RawData)
+
+	msg.OSVersionStructure = data[offset : offset+4]
+	offset = offset + 4
+
+	msg.OtherData = data[offset:]
 }
 
 type NTLMSSP_AUTH struct {
@@ -312,9 +361,6 @@ func (msg *NTLMSSP_AUTH) ToBytes() []byte {
 
 func (msg *NTLMSSP_AUTH) ToString() string {
 	var str strings.Builder
-
-	str.WriteString(fmt.Sprintf("NTLMSSP Signature      : %s\n", string(msg.SSPSignature)))
-	str.WriteString(fmt.Sprintf("NTLM Message Type      : %v\n", msg.MessageType))
 
 	str.WriteString(fmt.Sprintf("NTLMSSP Signature      : %s\n", string(msg.SSPSignature)))
 	str.WriteString(fmt.Sprintf("NTLM Message Type      : %v\n", msg.MessageType))

@@ -2,6 +2,7 @@ package ntlm
 
 import (
 	"encoding/base64"
+	"encoding/binary"
 	"fmt"
 	"net/http"
 	"strings"
@@ -30,7 +31,7 @@ func ServerNegociate(w http.ResponseWriter, r *http.Request) error {
 
 // Second message received by the server
 func ServerChallege(w http.ResponseWriter, r *http.Request, challenge string, domainName string) error {
-	msg2 := NewNTLMSSP_CHALLENGEShort(challenge, domainName)
+	msg2 := NewNTLMSSP_CHALLENGE(challenge, domainName)
 	msg2b64 := base64.RawStdEncoding.EncodeToString(msg2.ToBytes())
 
 	header := fmt.Sprintf("NTLM %s", msg2b64)
@@ -65,36 +66,44 @@ func ServerAuthenticate(w http.ResponseWriter, r *http.Request) (NTLMSSP_AUTH, N
 	return msg3, ntlmv2Response, nil
 }
 
-func NTLMPreliminaryChecks(w http.ResponseWriter, r *http.Request) ([]byte, error) {
+func NTLMPreliminaryChecks(w http.ResponseWriter, r *http.Request) error {
 	authorization := r.Header.Get("Authorization")
 
 	// Sometimes even if NTLM auth is required, the server is sending and other header
 	if !strings.HasPrefix(authorization, "NTLM") {
 		err := fmt.Errorf("[NON NTLM HEADER CAPTURED] [%s]: %s\n", utils.GetSourceIP(r), authorization)
-		return []byte{}, err
+		return err
 	}
 
 	// Remove the "NTLM " string at the beginning
 	authorization_bytes, err := base64.StdEncoding.DecodeString(authorization[5:])
 	if err != nil {
-		fmt.Errorf("Decode error authorization header : %s\n", authorization)
-		return []byte{}, err
+		err = fmt.Errorf("Decode error authorization header : %s : %s\n", authorization, err)
+		return err
 	}
 
 	if len(authorization_bytes) < 40 {
-		fmt.Errorf("Decoded authorization header is less than 40 bytes. Header was : %s\n", authorization)
-		return []byte{}, err
+		err := fmt.Errorf("Decoded authorization header is less than 40 bytes. Header was : %s\n", authorization)
+		return err
 	}
 
 	if len(authorization_bytes) < 12 {
-		fmt.Errorf("Decoded authorization header is less than 12 bytes. Header was : %s\n", authorization)
-		return []byte{}, err
+		err := fmt.Errorf("Decoded authorization header is less than 12 bytes. Header was : %s\n", authorization)
+		return err
 	}
 
-	return authorization_bytes, nil
+	return nil
 }
 
-func NTLMDispatch(n NTLMAuthMiddleware, msgType uint32, w http.ResponseWriter, r *http.Request) (*NTLMSSP_AUTH, *NTLMv2Response, error) {
+func NTLMDispatch(n NTLMAuth, w http.ResponseWriter, r *http.Request) (*NTLMSSP_AUTH, *NTLMv2Response, error) {
+	authorization := r.Header.Get("Authorization")
+	authorization_bytes, err := base64.StdEncoding.DecodeString(authorization[5:])
+	if err != nil {
+		err := fmt.Errorf("Decode error authorization header : %s\n", authorization)
+		return nil, nil, err
+	}
+	msgType := binary.LittleEndian.Uint32(authorization_bytes[8:12])
+
 	// Received Negociate message. Handle it and answer with a Challenge message
 	if msgType == uint32(1) {
 		err := ServerNegociate(w, r)

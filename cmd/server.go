@@ -90,6 +90,8 @@ var serverGoPhishProxyHTTPCmd = &cobra.Command{
 var serverRelayCmd = &cobra.Command{
 	Use: "relay",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		rootCmd.PersistentPreRun(cmd, args)
+
 		if interfaceOption != "" {
 			ief, err := net.InterfaceByName(interfaceOption)
 			if err != nil { // get interface
@@ -111,7 +113,7 @@ var serverRelayCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gopRelay.Run()
+		gopRelay.Run(UrlOption)
 	},
 }
 
@@ -122,6 +124,8 @@ func init() {
 	serverCmd.AddCommand(serverReverseHTTPSProxyHTTPCmd)
 	serverCmd.AddCommand(serverGoPhishProxyHTTPCmd)
 	serverCmd.AddCommand(serverRelayCmd)
+
+	serverCmd.PersistentFlags().StringVarP(&UrlOption, "url", "u", "", "Url to target.")
 
 	serverCmd.PersistentFlags().StringVarP(&interfaceOption, "interface", "i", "", "Interface to take IP adress.")
 	serverCmd.PersistentFlags().StringVarP(&hostOption, "Host", "H", "0.0.0.0", "Define the proxy host.")

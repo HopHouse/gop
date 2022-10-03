@@ -22,6 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/hophouse/gop/utils/logger"
@@ -80,7 +81,7 @@ var rootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		logger.Println(err)
+		fmt.Println(err)
 		os.Exit(1)
 	}
 }
