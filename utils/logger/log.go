@@ -158,54 +158,75 @@ func Fprint(w io.Writer, v ...any) (n int, err error) {
 	mu.Lock()
 	log := (*log.Logger)(Log)
 	if log.Writer() == io.Discard {
+		mu.Unlock()
 		return
 	}
 
 	if log.Writer() == os.Stdout {
-		n, err = fmt.Fprint(w, v...)
-	} else {
-		n, err = fmt.Fprint(w, v...)
-		n, err = fmt.Fprint(log.Writer(), v...)
+		fmt.Fprint(w, v...)
+		mu.Unlock()
+		return
 	}
-
-	mu.Unlock()
-	return
+	if w == log.Writer() {
+		fmt.Fprint(w, v...)
+		mu.Unlock()
+		return
+	} else {
+		fmt.Fprint(w, v...)
+		fmt.Fprint(log.Writer(), v...)
+		mu.Unlock()
+		return
+	}
 }
 
 func Fprintln(w io.Writer, v ...any) (n int, err error) {
 	mu.Lock()
 	log := (*log.Logger)(Log)
 	if log.Writer() == io.Discard {
+		mu.Unlock()
 		return
 	}
 
 	if log.Writer() == os.Stdout {
-		n, err = fmt.Fprintln(w, v...)
-	} else {
-		n, err = fmt.Fprintln(w, v...)
-		n, err = fmt.Fprintln(log.Writer(), v...)
+		fmt.Fprintln(w, v...)
+		mu.Unlock()
+		return
 	}
-	mu.Unlock()
-
-	return
+	if w == log.Writer() {
+		fmt.Fprintln(w, v...)
+		mu.Unlock()
+		return
+	} else {
+		fmt.Fprintln(w, v...)
+		fmt.Fprintln(log.Writer(), v...)
+		mu.Unlock()
+		return
+	}
 }
 
 func Fprintf(w io.Writer, format string, v ...any) (n int, err error) {
 	mu.Lock()
 	log := (*log.Logger)(Log)
 	if log.Writer() == io.Discard {
+		mu.Unlock()
 		return
 	}
 
 	if log.Writer() == os.Stdout {
-		n, err = fmt.Fprintf(w, format, v...)
-	} else {
-		n, err = fmt.Fprintf(w, format, v...)
-		n, err = fmt.Fprintf(log.Writer(), format, v...)
+		fmt.Fprintf(w, format, v...)
+		mu.Unlock()
+		return
 	}
-
-	mu.Unlock()
-	return
+	if w == log.Writer() {
+		fmt.Fprintf(w, format, v...)
+		mu.Unlock()
+		return
+	} else {
+		fmt.Fprintf(w, format, v...)
+		fmt.Fprintf(log.Writer(), format, v...)
+		mu.Unlock()
+		return
+	}
 }
 
 func Fatal(v ...any) {

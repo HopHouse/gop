@@ -17,6 +17,8 @@ var (
 	redirectPrefixOption   string
 	gophishUrlOption       string
 	gophishWhiteListOption []string
+	serverAddressOption    string
+	targetsOption          []string
 )
 
 // serverCmd represents the serve command
@@ -89,31 +91,8 @@ var serverGoPhishProxyHTTPCmd = &cobra.Command{
 
 var serverRelayCmd = &cobra.Command{
 	Use: "relay",
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		rootCmd.PersistentPreRun(cmd, args)
-
-		if interfaceOption != "" {
-			ief, err := net.InterfaceByName(interfaceOption)
-			if err != nil { // get interface
-				return
-			}
-			addrs, err := ief.Addrs()
-			if err != nil { // get addresses
-				return
-			}
-			for _, addr := range addrs { // get ipv4 address
-				ipv4Addr := addr.(*net.IPNet).IP.To4()
-				if ipv4Addr != nil {
-					break
-				}
-				if ipv4Addr != nil {
-					hostOption = ipv4Addr.String()
-				}
-			}
-		}
-	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gopRelay.Run(UrlOption)
+		gopRelay.Run(serverAddressOption, targetsOption)
 	},
 }
 
@@ -125,7 +104,8 @@ func init() {
 	serverCmd.AddCommand(serverGoPhishProxyHTTPCmd)
 	serverCmd.AddCommand(serverRelayCmd)
 
-	serverCmd.PersistentFlags().StringVarP(&UrlOption, "target", "t", "", "Url to target.")
+	serverCmd.PersistentFlags().StringVarP(&serverAddressOption, "server", "s", "", "Address to listen for IPv4 traffic.")
+	serverCmd.PersistentFlags().StringSliceVarP(&targetsOption, "targets", "t", []string{}, "URLs to target.")
 
 	serverCmd.PersistentFlags().StringVarP(&interfaceOption, "interface", "i", "", "Interface to take IP adress.")
 	serverCmd.PersistentFlags().StringVarP(&hostOption, "Host", "H", "0.0.0.0", "Define the proxy host.")
