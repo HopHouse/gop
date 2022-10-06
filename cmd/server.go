@@ -5,6 +5,7 @@ import (
 
 	"github.com/hophouse/gop/gopRelay"
 	gopserver "github.com/hophouse/gop/gopServer"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -46,6 +47,8 @@ var serverCmd = &cobra.Command{
 				}
 			}
 		}
+
+		logger.NewLoggerDateTimeFile(logFileNameOption)
 	},
 }
 
