@@ -1,13 +1,8 @@
 package gopserver
 
 import (
-	"bytes"
-	"crypto/rand"
 	"crypto/tls"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -44,32 +39,18 @@ func RunServerHTTPSCmd(host string, port string, directory string, auth string, 
 	if err != nil {
 		return nil
 	}
-	serverCert, serverKey := gopproxy.GenerateCA()
-
-	caBytes, err := x509.CreateCertificate(rand.Reader, serverCert, serverCert, serverKey.Public(), serverKey)
+	caManager, err := gopproxy.InitCertManager("", "")
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatalf(err.Error())
 	}
 
-	serverCertPEM := new(bytes.Buffer)
-	pem.Encode(serverCertPEM, &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: caBytes,
-	})
-
-	serverPrivKeyPEM := new(bytes.Buffer)
-	pem.Encode(serverPrivKeyPEM, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(serverKey),
-	})
-
-	cer, err := tls.X509KeyPair(serverCertPEM.Bytes(), serverPrivKeyPEM.Bytes())
+	cert, err := caManager.CreateCertificate(host)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatalf(err.Error())
 	}
 
 	server.TLSConfig = &tls.Config{
-		Certificates:       []tls.Certificate{cer},
+		Certificates:       []tls.Certificate{cert},
 		InsecureSkipVerify: true,
 	}
 	logger.Fatal(server.ListenAndServeTLS("", ""))

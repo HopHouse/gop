@@ -6,6 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/chromedp/cdproto v0.0.0-20220924210414-0e3390be1777
 	github.com/chromedp/chromedp v0.8.5
+	github.com/gobuffalo/packd v1.0.2 // indirect
 	github.com/gobuffalo/packr/v2 v2.8.3
 	github.com/gocolly/colly v1.2.0
 	github.com/google/uuid v1.3.0
@@ -13,6 +14,8 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/hophouse/golang-whois v0.0.0-20201201134657-ef4b2ee3bb08
 	github.com/jroimartin/gocui v0.5.0
+	github.com/markbates/oncer v1.0.0
+	github.com/markbates/safe v1.0.1
 	github.com/miekg/dns v1.1.50
 	github.com/spf13/cobra v1.5.0
 	github.com/urfave/negroni v1.0.0
@@ -29,7 +32,6 @@ require (
 	github.com/antchfx/xpath v1.2.1 // indirect
 	github.com/chromedp/sysutil v1.0.0 // indirect
 	github.com/gobuffalo/logger v1.0.7 // indirect
-	github.com/gobuffalo/packd v1.0.2 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
@@ -42,8 +44,6 @@ require (
 	github.com/kennygrant/sanitize v1.2.4 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/markbates/errx v1.1.0 // indirect
-	github.com/markbates/oncer v1.0.0 // indirect
-	github.com/markbates/safe v1.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/nsf/termbox-go v1.1.1 // indirect
 	github.com/rivo/uniseg v0.4.2 // indirect

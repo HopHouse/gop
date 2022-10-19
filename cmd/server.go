@@ -2,11 +2,10 @@ package cmd
 
 import (
 	"net"
+	"sync"
 
-	"github.com/hophouse/gop/authentication/ntlm"
-	"github.com/hophouse/gop/gopRelay"
+	"github.com/gobuffalo/packr/v2"
 	gopserver "github.com/hophouse/gop/gopServer"
-	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -19,6 +18,9 @@ var (
 	redirectPrefixOption   string
 	gophishUrlOption       string
 	gophishWhiteListOption []string
+	vhostOption            string
+	exfilUrlOption         string
+	httpsOption            bool
 )
 
 // serverCmd represents the serve command
@@ -53,15 +55,11 @@ var serverHTTPCmd = &cobra.Command{
 	Use:   "http",
 	Short: "Serve a specific directory through an HTTP server.",
 	Run: func(cmd *cobra.Command, args []string) {
-		gopserver.RunServerHTTPCmd(hostOption, portOption, directoryServeOption, authOption, realmOption)
-	},
-}
-
-var serverHTTPSCmd = &cobra.Command{
-	Use:   "https",
-	Short: "Serve a specific directory through an HTTPS server.",
-	Run: func(cmd *cobra.Command, args []string) {
-		gopserver.RunServerHTTPSCmd(hostOption, portOption, directoryServeOption, authOption, realmOption)
+		if httpsOption {
+			gopserver.RunServerHTTPSCmd(hostOption, portOption, directoryServeOption, authOption, realmOption)
+		} else {
+			gopserver.RunServerHTTPCmd(hostOption, portOption, directoryServeOption, authOption, realmOption)
+		}
 	},
 }
 
@@ -89,12 +87,35 @@ var serverGoPhishProxyHTTPCmd = &cobra.Command{
 	},
 }
 
+var serverJSExfilHTTPCmd = &cobra.Command{
+	Use:   "JSExfil",
+	Short: "",
+	Run: func(cmd *cobra.Command, args []string) {
+		js := &gopserver.JavascriptExfilStruct{
+			Host:     hostOption,
+			Port:     portOption,
+			Vhost:    vhostOption,
+			ExfilUrl: exfilUrlOption,
+			Scheme:   "http",
+			Box:      packr.New("JSExfil", "../gopServer/JSExfil"),
+			InputMu:  &sync.Mutex{},
+		}
+
+		if httpsOption {
+			js.Scheme = "https"
+			js.RunJavascriptExfilHTTPSServerCmd()
+		} else {
+			js.RunJavascriptExfilHTTPServerCmd()
+		}
+	},
+}
+
 func init() {
 	serverCmd.AddCommand(serverHTTPCmd)
-	serverCmd.AddCommand(serverHTTPSCmd)
 	serverCmd.AddCommand(serverReverseHTTPProxyHTTPCmd)
 	serverCmd.AddCommand(serverReverseHTTPSProxyHTTPCmd)
 	serverCmd.AddCommand(serverGoPhishProxyHTTPCmd)
+	serverCmd.AddCommand(serverJSExfilHTTPCmd)
 
 	serverCmd.PersistentFlags().StringVarP(&interfaceOption, "interface", "i", "", "Interface to take IP adress.")
 	serverCmd.PersistentFlags().StringVarP(&hostOption, "Host", "H", "0.0.0.0", "Define the proxy host.")
@@ -103,10 +124,7 @@ func init() {
 	serverHTTPCmd.PersistentFlags().StringVarP(&directoryServeOption, "directory", "d", ".", "Directory to serve.")
 	serverHTTPCmd.PersistentFlags().StringVarP(&authOption, "auth", "a", "", "Add an authentication option to the server. Could be either \"Basic\" or \"NTLM\".")
 	serverHTTPCmd.PersistentFlags().StringVarP(&realmOption, "realm", "", "", "Realm used for the \"Basic\" authentication.")
-
-	serverHTTPSCmd.PersistentFlags().StringVarP(&directoryServeOption, "directory", "d", ".", "Directory to serve.")
-	serverHTTPSCmd.PersistentFlags().StringVarP(&authOption, "auth", "a", "", "Add an authentication option to the server. Could be either \"Basic\" or \"NTLM\".")
-	serverHTTPSCmd.PersistentFlags().StringVarP(&realmOption, "realm", "", "", "Realm used for the \"Basic\" authentication.")
+	serverHTTPCmd.PersistentFlags().BoolVarP(&httpsOption, "https", "", false, "Define whether or not an SSL/TLS layer is added.")
 
 	serverReverseHTTPProxyHTTPCmd.PersistentFlags().StringVarP(&dstUrlOption, "destination", "d", "http://127.0.0.1:80", "Destination where traffic will be redirected.")
 	serverReverseHTTPProxyHTTPCmd.MarkPersistentFlagRequired("destination")
@@ -127,4 +145,8 @@ func init() {
 	serverGoPhishProxyHTTPCmd.Flags().StringVarP(&gophishUrlOption, "gophish", "", "http://localhost/", "Url to the GoPhish server.")
 	serverGoPhishProxyHTTPCmd.Flags().StringSliceVarP(&gophishWhiteListOption, "white-list", "", []string{"track"}, "Path where no authentucation will be asked.")
 	serverGoPhishProxyHTTPCmd.MarkFlagRequired("gophish")
+
+	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&vhostOption, "vhost", "v", "", "Virtual host to use for the server.")
+	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&exfilUrlOption, "exfil-url", "", "", "Exfil URL in a form of http(s)://domain.tld.")
+	serverJSExfilHTTPCmd.PersistentFlags().BoolVarP(&httpsOption, "https", "", false, "Define whether or not an SSL/TLS layer is added.")
 }
