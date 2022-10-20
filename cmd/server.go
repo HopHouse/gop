@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"io/ioutil"
 	"net"
 	"sync"
 
 	"github.com/gobuffalo/packr/v2"
 	gopserver "github.com/hophouse/gop/gopServer"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -21,6 +23,7 @@ var (
 	vhostOption            string
 	exfilUrlOption         string
 	httpsOption            bool
+	customHTMLFile         string
 )
 
 // serverCmd represents the serve command
@@ -101,6 +104,18 @@ var serverJSExfilHTTPCmd = &cobra.Command{
 			InputMu:  &sync.Mutex{},
 		}
 
+		if customHTMLFile != "" {
+			index, err := ioutil.ReadFile(customHTMLFile)
+			if err != nil {
+				logger.Fatalln(err)
+			}
+
+			err = js.Box.AddBytes("index.html", index)
+			if err != nil {
+				logger.Fatalln(err)
+			}
+		}
+
 		if httpsOption {
 			js.Scheme = "https"
 			js.RunJavascriptExfilHTTPSServerCmd()
@@ -149,4 +164,5 @@ func init() {
 	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&vhostOption, "vhost", "v", "", "Virtual host to use for the server.")
 	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&exfilUrlOption, "exfil-url", "", "", "Exfil URL in a form of http(s)://domain.tld.")
 	serverJSExfilHTTPCmd.PersistentFlags().BoolVarP(&httpsOption, "https", "", false, "Define whether or not an SSL/TLS layer is added.")
+	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&customHTMLFile, "custom-html", "", "", "Define a custom HTML file to use.")
 }
