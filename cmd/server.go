@@ -90,6 +90,14 @@ var serverGoPhishProxyHTTPCmd = &cobra.Command{
 	},
 }
 
+var serverRedirectHTTPCmd = &cobra.Command{
+	Use:   "redirect",
+	Short: "",
+	Run: func(cmd *cobra.Command, args []string) {
+		gopserver.RunRedirectServerHTTPCmd(hostOption, portOption, vhostOption, dstUrlOption, httpsOption)
+	},
+}
+
 var serverJSExfilHTTPCmd = &cobra.Command{
 	Use:   "JSExfil",
 	Short: "",
@@ -130,6 +138,7 @@ func init() {
 	serverCmd.AddCommand(serverReverseHTTPProxyHTTPCmd)
 	serverCmd.AddCommand(serverReverseHTTPSProxyHTTPCmd)
 	serverCmd.AddCommand(serverGoPhishProxyHTTPCmd)
+	serverCmd.AddCommand(serverRedirectHTTPCmd)
 	serverCmd.AddCommand(serverJSExfilHTTPCmd)
 
 	serverCmd.PersistentFlags().StringVarP(&interfaceOption, "interface", "i", "", "Interface to take IP adress.")
@@ -160,6 +169,10 @@ func init() {
 	serverGoPhishProxyHTTPCmd.Flags().StringVarP(&gophishUrlOption, "gophish", "", "http://localhost/", "Url to the GoPhish server.")
 	serverGoPhishProxyHTTPCmd.Flags().StringSliceVarP(&gophishWhiteListOption, "white-list", "", []string{"track"}, "Path where no authentucation will be asked.")
 	serverGoPhishProxyHTTPCmd.MarkFlagRequired("gophish")
+
+	serverRedirectHTTPCmd.PersistentFlags().StringVarP(&dstUrlOption, "destination", "d", "http://127.0.0.1:80", "Destination where traffic will be redirected.")
+	serverRedirectHTTPCmd.PersistentFlags().StringVarP(&vhostOption, "vhost", "v", "", "Virtual host to use for the server.")
+	serverRedirectHTTPCmd.PersistentFlags().BoolVarP(&httpsOption, "https", "", false, "Define whether or not an SSL/TLS layer is added.")
 
 	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&vhostOption, "vhost", "v", "", "Virtual host to use for the server.")
 	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&exfilUrlOption, "exfil-url", "", "", "Exfil URL in a form of http(s)://domain.tld.")

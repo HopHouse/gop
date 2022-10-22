@@ -104,3 +104,50 @@ func GetServerCmd(host string, port string, directory string, auth string, realm
 
 	return server, nil
 }
+
+func RunRedirectServerHTTPCmd(host string, port string, vhost string, destination string, https bool) error {
+	addr := fmt.Sprintf("%s:%s", host, port)
+
+	r := mux.NewRouter()
+	r.PathPrefix("/").Handler(http.RedirectHandler(destination, 302))
+
+	n := negroni.New(negroni.NewRecovery())
+	n.Use(&logMiddleware{})
+	n.UseHandler(r)
+
+	server := http.Server{
+		Addr:    addr,
+		Handler: n,
+	}
+
+	if !https {
+		logger.Printf("[+] Starting redirect server listening to : http://%s\n", addr)
+
+		logger.Fatal(server.ListenAndServe())
+	} else {
+		caManager, err := gopproxy.InitCertManager("", "")
+		if err != nil {
+			logger.Fatalf(err.Error())
+		}
+
+		certSubject := host
+		if vhost != "" {
+			certSubject = vhost
+		}
+		cert, err := caManager.CreateCertificate(certSubject)
+		if err != nil {
+			logger.Fatalf(err.Error())
+		}
+
+		server.TLSConfig = &tls.Config{
+			Certificates:       []tls.Certificate{cert},
+			InsecureSkipVerify: true,
+		}
+
+		logger.Printf("[+] Starting redirect server listening to : https://%s\n", addr)
+		logger.Fatal(server.ListenAndServeTLS("", ""))
+
+	}
+
+	return nil
+}
