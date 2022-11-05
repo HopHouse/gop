@@ -17,23 +17,31 @@ Usage:
   gop [command]
 
 Available Commands:
-  crawler        Crawler command to crawl recursively or not a domain or a website.
+  [WIP]tee       Act as the unix tee command but also display the executed command.
+  completion     Generate the autocompletion script for the specified shell
+  crawler         Crawler command to crawl recursively or not a domain or a website.
+  generate       Generate module.
   help           Help about any command
   host           Resolve hostname to get the IP address.
-  osint          OSINT module.
+  irc            IRC module to chat.
+  kill-switch
+  pomodoro
   proxy          Set up a proxy to use
   scan           Scan commands to scan any kind of assets.
   schedule       Schedule a command to be executed at a precise time. If an option is not defined, the value of the current date will be taken.
-  screenshot     Take screenshots of the supplied URLs. The program will take the stdin if no input file is passed as argument.
-  search         Search for files on disk that matches a specific patterne. Regex or partial filename can be passed to the script.
-  serve          Serve a specific directory through an HTTP server.
+  screenshot      Take screenshots of the supplied URLs. The program will take the stdin if no input file is passed as argument.
+  server
   shell          Set up a shell either reverse or bind.
-  static-crawler The static crawler command will visit the supplied Website found link, script and style sheet inside it.
-  visit          Visit supplied URLs.
+  static-crawler  The static crawler command will visit the supplied Website found link, script and style sheet inside it.
+  station        Use it as a station to manage and retrieve simple reverse shell in plain TCP.
+  tunnel         .
+  visit           Visit supplied URLs.
+  web
 
 Flags:
   -h, --help                      help for gop
       --logfile string            Set a custom log file. (default "logs.txt")
+      --no-log                    Do not create a log file.
       --output-directory string   Use the following directory to output results.
 
 Use "gop [command] --help" for more information about a command.
