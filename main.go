@@ -21,8 +21,11 @@ THE SOFTWARE.
 */
 package main
 
-import cmd "github.com/hophouse/gop/cmd"
+import (
+	cmd "github.com/hophouse/gop/cmd"
+)
 
 func main() {
+
 	cmd.Execute()
 }

@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -75,14 +76,26 @@ func NewLoggerStdoutDateTimeFile() {
 	Log = New(os.Stdout, "", log.LstdFlags|log.Lshortfile|log.Lmsgprefix)
 }
 
-func CreateOutputDir(directoryName string, commandName string) {
-	var err error
-
+func CreateOutputDir(directoryName string, commandName string) string {
 	//  Main directory structure of the ouput
 	t := time.Now()
+
 	if directoryName == "" {
 		directoryName = t.Format("20060102-15-04-05") + "-gop-" + commandName
 	}
+
+	currentDirectory, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	directoryName = filepath.Join(currentDirectory, directoryName)
+
+	directoryName, _ = filepath.Abs(directoryName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	directoryName = filepath.Clean(directoryName)
 
 	if _, err := os.Stat(directoryName); os.IsNotExist(err) {
 		errDir := os.MkdirAll(directoryName, 0755)
@@ -91,14 +104,7 @@ func CreateOutputDir(directoryName string, commandName string) {
 		}
 	}
 
-	directoryName = directoryName + "/"
-
-	// Move to the new generated folder
-	os.Chdir(directoryName)
-	mydir, err := os.Getwd()
-	if err != nil {
-		fmt.Printf("[-] Error when created log dir %s", mydir)
-	}
+	return directoryName
 }
 
 func Writer() io.Writer {

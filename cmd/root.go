@@ -22,6 +22,8 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
+	"log"
 	"os"
 
 	"github.com/hophouse/gop/utils/logger"
@@ -29,7 +31,9 @@ import (
 )
 
 var (
-	LogFile *os.File
+	LogFile             *os.File
+	CurrentDirectory    string
+	CurrentLogDirectory string
 )
 
 var (
@@ -57,19 +61,26 @@ var rootCmd = &cobra.Command{
 	Short: "GOP provides a toolbox to do pentest tasks.",
 	Long:  "GOP provides a toolbox to do pentest tasks.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		var err error
+
 		if noLogOption {
 			logger.NewLoggerNull()
 			return
 		}
 
-		// If an output directory is specified, check if it exists and then move to it
-		if directoryNameOption != "" {
-			if _, err := os.Stat(directoryNameOption); os.IsNotExist(err) {
-				logger.Fatal("Specified directory by the option '-d' or '--directory', do not exists on the system.")
-			}
-			os.Chdir(directoryNameOption)
-		} else {
-			logger.CreateOutputDir(directoryNameOption, cmd.Use)
+		CurrentDirectory, err = os.Getwd()
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Current dir", CurrentDirectory)
+
+		directoryNameOption = logger.CreateOutputDir(directoryNameOption, cmd.Use)
+
+		// Move to the new generated folder
+		os.Chdir(directoryNameOption)
+		mydir, err := os.Getwd()
+		if err != nil {
+			fmt.Printf("[-] Error when created log dir %s", mydir)
 		}
 
 		logger.NewLoggerDateTime("logs.txt")

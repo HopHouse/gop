@@ -3,6 +3,7 @@ package cmd
 import (
 	"io/ioutil"
 	"net"
+	"path/filepath"
 	"sync"
 
 	"github.com/gobuffalo/packr/v2"
@@ -30,16 +31,26 @@ var (
 var serverCmd = &cobra.Command{
 	Use: "server",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		var err error
 		rootCmd.PersistentPreRun(cmd, args)
+
+		if !filepath.IsAbs(directoryServeOption) {
+			directoryServeOption, err = filepath.Abs(filepath.Join(CurrentDirectory, directoryServeOption))
+			if err != nil { // get interface
+				logger.Fatalln(err)
+			}
+		}
+
+		directoryServeOption = filepath.Clean(directoryServeOption)
 
 		if interfaceOption != "" {
 			ief, err := net.InterfaceByName(interfaceOption)
 			if err != nil { // get interface
-				return
+				logger.Fatalln(err)
 			}
 			addrs, err := ief.Addrs()
 			if err != nil { // get addresses
-				return
+				logger.Fatalln(err)
 			}
 			for _, addr := range addrs { // get ipv4 address
 				ipv4Addr := addr.(*net.IPNet).IP.To4()
