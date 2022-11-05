@@ -68,6 +68,18 @@ This command will serve file through a HTTP Web server. A few authentication met
 ### Add a new server
 
 ```Golang
+package main
+
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/gorilla/mux"
+	"github.com/hophouse/gop/utils/logger"
+	"github.com/urfave/negroni"
+)
+
+
 type NewServer struct {
 	Server Server
 }
