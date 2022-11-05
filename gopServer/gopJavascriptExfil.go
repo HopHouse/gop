@@ -2,7 +2,6 @@ package gopserver
 
 import (
 	"bufio"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,70 +13,22 @@ import (
 
 	"github.com/gobuffalo/packr/v2"
 	"github.com/gorilla/mux"
-	gopproxy "github.com/hophouse/gop/gopProxy"
 	"github.com/hophouse/gop/utils"
 	"github.com/hophouse/gop/utils/logger"
 	"github.com/urfave/negroni"
 )
 
-type JavascriptExfilStruct struct {
-	Host     string
-	Port     string
-	Scheme   string
-	Vhost    string
+type JavascriptExfilServer struct {
+	Server   Server
 	ExfilUrl string
 	Box      *packr.Box
 	InputMu  *sync.Mutex
 }
 
-func (js *JavascriptExfilStruct) RunJavascriptExfilHTTPServerCmd() {
-	server, err := js.GetServerCmd()
-	if err != nil {
-		return
-	}
+func (js JavascriptExfilServer) GetServer(r *mux.Router, n *negroni.Negroni) (http.Server, error) {
 
-	addr := fmt.Sprintf("%s:%s", js.Host, js.Port)
-	logger.Printf("[+] Starting JSExfil server listening to : http://%s\n", addr)
+	addr := fmt.Sprintf("%s:%s", js.Server.Host, js.Server.Port)
 
-	logger.Fatal(server.ListenAndServe())
-}
-
-func (js *JavascriptExfilStruct) RunJavascriptExfilHTTPSServerCmd() {
-	server, err := js.GetServerCmd()
-	if err != nil {
-		return
-	}
-
-	caManager, err := gopproxy.InitCertManager("", "")
-	if err != nil {
-		logger.Fatalf(err.Error())
-	}
-
-	cert, err := caManager.CreateCertificate(js.GetCertSubject())
-	if err != nil {
-		logger.Fatalf(err.Error())
-	}
-
-	server.TLSConfig = &tls.Config{
-		Certificates:       []tls.Certificate{cert},
-		InsecureSkipVerify: true,
-	}
-
-	addr := fmt.Sprintf("%s:%s", js.Host, js.Port)
-	logger.Printf("[+] Starting JSExfil server listening to : https://%s\n", addr)
-	logger.Fatal(server.ListenAndServeTLS("", ""))
-}
-
-func (js *JavascriptExfilStruct) GetServerCmd() (http.Server, error) {
-
-	addr := fmt.Sprintf("%s:%s", js.Host, js.Port)
-
-	r := js.CreateJSExfilRouter()
-
-	n := negroni.New(negroni.NewRecovery())
-	n.Use(&JSExfilLogMiddleware{
-		js: js,
-	})
 	n.UseHandler(r)
 
 	server := http.Server{
@@ -88,28 +39,28 @@ func (js *JavascriptExfilStruct) GetServerCmd() (http.Server, error) {
 	return server, nil
 }
 
-func (js *JavascriptExfilStruct) CreateJSExfilRouter() *mux.Router {
+func (js JavascriptExfilServer) CreateRouter() *mux.Router {
 	// Router
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		js.IndexHandler(w, r)
+		js.indexHandler(w, r)
 	}).Methods("GET")
 
 	r.HandleFunc("/index.html", func(w http.ResponseWriter, r *http.Request) {
-		js.IndexHandler(w, r)
+		js.indexHandler(w, r)
 	}).Methods("GET")
 
 	r.HandleFunc("/exfil.js", func(w http.ResponseWriter, r *http.Request) {
-		js.JSExfilHandler(w, r)
+		js.jSExfilHandler(w, r)
 	}).Methods("GET")
 
 	r.HandleFunc("/exfil-input", func(w http.ResponseWriter, r *http.Request) {
-		js.JSExfilInputHandler(w, r)
+		js.jSExfilInputHandler(w, r)
 	}).Methods("GET")
 
 	r.HandleFunc("/exfil-output", func(w http.ResponseWriter, r *http.Request) {
-		js.JSExfilOutputHandler(w, r)
+		js.jSExfilOutputHandler(w, r)
 	}).Methods("POST")
 
 	// Will respond to all requests that do not match previous selectors
@@ -120,7 +71,7 @@ func (js *JavascriptExfilStruct) CreateJSExfilRouter() *mux.Router {
 	return r
 }
 
-func (js *JavascriptExfilStruct) IndexHandler(w http.ResponseWriter, r *http.Request) {
+func (js JavascriptExfilServer) indexHandler(w http.ResponseWriter, r *http.Request) {
 	htmlCode, err := js.Box.FindString("index.html")
 	if err != nil {
 		logger.Fatal(err)
@@ -129,18 +80,18 @@ func (js *JavascriptExfilStruct) IndexHandler(w http.ResponseWriter, r *http.Req
 	fmt.Fprintf(w, "%s\n", htmlCode)
 }
 
-func (js *JavascriptExfilStruct) JSExfilHandler(w http.ResponseWriter, r *http.Request) {
+func (js JavascriptExfilServer) jSExfilHandler(w http.ResponseWriter, r *http.Request) {
 	jsCode, err := js.Box.FindString("exfil.js")
 	if err != nil {
 		logger.Fatal(err)
 	}
 
-	jsCode = strings.ReplaceAll(jsCode, "{{EXFIL-URL}}", js.GetExfilUrl())
+	jsCode = strings.ReplaceAll(jsCode, "{{EXFIL-URL}}", js.getExfilUrl())
 
 	fmt.Fprintf(w, "%s\n", jsCode)
 }
 
-func (js *JavascriptExfilStruct) JSExfilInputHandler(w http.ResponseWriter, r *http.Request) {
+func (js JavascriptExfilServer) jSExfilInputHandler(w http.ResponseWriter, r *http.Request) {
 	var input string
 	for {
 		input = ""
@@ -197,7 +148,7 @@ func (js *JavascriptExfilStruct) JSExfilInputHandler(w http.ResponseWriter, r *h
 	fmt.Fprintf(w, "%s", input)
 }
 
-func (js *JavascriptExfilStruct) JSExfilOutputHandler(w http.ResponseWriter, r *http.Request) {
+func (js JavascriptExfilServer) jSExfilOutputHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		logger.Println(err)
@@ -210,24 +161,30 @@ func (js *JavascriptExfilStruct) JSExfilOutputHandler(w http.ResponseWriter, r *
 	w.Write([]byte("HTTP1/1 200 OK\n\n"))
 }
 
-func (js *JavascriptExfilStruct) GetExfilUrl() string {
+func (js JavascriptExfilServer) getExfilUrl() string {
 	if js.ExfilUrl != "" {
 		return js.ExfilUrl
 	}
 
-	return fmt.Sprintf("%s://%s:%s", js.Scheme, js.GetCertSubject(), js.Port)
+	return fmt.Sprintf("%s://%s:%s", js.Server.Scheme, js.GetCertSubject(), js.Server.Port)
 }
 
-func (js *JavascriptExfilStruct) GetCertSubject() string {
-	if js.Vhost != "" {
-		return js.Vhost
-	} else {
-		return js.Host
-	}
+func (js JavascriptExfilServer) GetCertSubject() string {
+	return js.Server.GetCertSubject()
+}
+
+func (js JavascriptExfilServer) CreateMiddleware() *negroni.Negroni {
+	n := js.Server.CreateMiddleware()
+
+	n.Use(&JSExfilLogMiddleware{
+		js: js,
+	})
+
+	return n
 }
 
 type JSExfilLogMiddleware struct {
-	js *JavascriptExfilStruct
+	js JavascriptExfilServer
 }
 
 func (l JSExfilLogMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {

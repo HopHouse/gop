@@ -36,7 +36,7 @@ var serverCmd = &cobra.Command{
 
 		if !filepath.IsAbs(directoryServeOption) {
 			directoryServeOption, err = filepath.Abs(filepath.Join(CurrentDirectory, directoryServeOption))
-			if err != nil { // get interface
+			if err != nil {
 				logger.Fatalln(err)
 			}
 		}
@@ -69,10 +69,22 @@ var serverHTTPCmd = &cobra.Command{
 	Use:   "http",
 	Short: "Serve a specific directory through an HTTP server.",
 	Run: func(cmd *cobra.Command, args []string) {
+		fs := gopserver.FilseServer{
+			Server: gopserver.Server{
+				Host:   hostOption,
+				Port:   portOption,
+				Scheme: "http",
+				Vhost:  vhostOption,
+				Auth:   authOption,
+				Realm:  realmOption,
+			},
+			Directory: directoryServeOption,
+		}
 		if httpsOption {
-			gopserver.RunServerHTTPSCmd(hostOption, portOption, directoryServeOption, authOption, realmOption)
+			fs.Server.Scheme = "https"
+			gopserver.RunServerHTTPSCmd(fs)
 		} else {
-			gopserver.RunServerHTTPCmd(hostOption, portOption, directoryServeOption, authOption, realmOption)
+			gopserver.RunServerHTTPCmd(fs)
 		}
 	},
 }
@@ -113,12 +125,14 @@ var serverJSExfilHTTPCmd = &cobra.Command{
 	Use:   "JSExfil",
 	Short: "",
 	Run: func(cmd *cobra.Command, args []string) {
-		js := &gopserver.JavascriptExfilStruct{
-			Host:     hostOption,
-			Port:     portOption,
-			Vhost:    vhostOption,
+		js := &gopserver.JavascriptExfilServer{
+			Server: gopserver.Server{
+				Host:   hostOption,
+				Port:   portOption,
+				Scheme: "http",
+				Vhost:  vhostOption,
+			},
 			ExfilUrl: exfilUrlOption,
-			Scheme:   "http",
 			Box:      packr.New("JSExfil", "../gopServer/JSExfil"),
 			InputMu:  &sync.Mutex{},
 		}
@@ -136,10 +150,10 @@ var serverJSExfilHTTPCmd = &cobra.Command{
 		}
 
 		if httpsOption {
-			js.Scheme = "https"
-			js.RunJavascriptExfilHTTPSServerCmd()
+			js.Server.Scheme = "https"
+			gopserver.RunServerHTTPSCmd(js)
 		} else {
-			js.RunJavascriptExfilHTTPServerCmd()
+			gopserver.RunServerHTTPCmd(js)
 		}
 	},
 }

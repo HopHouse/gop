@@ -4,8 +4,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,13 +15,61 @@ import (
 	"github.com/urfave/negroni"
 )
 
-func RunServerHTTPCmd(host string, port string, directory string, auth string, realm string) error {
+type Server struct {
+	Host   string
+	Port   string
+	Scheme string
+	Vhost  string
+	Auth   string
+	Realm  string
+}
+
+type ServerInterface interface {
+	GetCertSubject() string
+	CreateRouter() *mux.Router
+	CreateMiddleware() *negroni.Negroni
+	GetServer(*mux.Router, *negroni.Negroni) (http.Server, error)
+}
+
+func (s Server) GetCertSubject() string {
+	if s.Vhost != "" {
+		return s.Vhost
+	} else {
+		return s.Host
+	}
+}
+
+func (s Server) CreateMiddleware() *negroni.Negroni {
+	n := negroni.New(negroni.NewRecovery())
+	n.Use(&logMiddleware{})
+
+	// Apply an auth system if requested
+	switch strings.ToLower(s.Auth) {
+	case "basic":
+		logger.Printf("[+] Add HTTP Basic auth header\n")
+		n.Use(&basicAuth.BasicAuthMiddleware{
+			Realm: s.Realm,
+		})
+	case "ntlm":
+		logger.Printf("[+] Add HTTP NTLM auth header\n")
+		ntlmAuth.NtlmCapturedAuth = make(map[string]bool)
+		n.Use(&ntlmAuth.NTLMAuthMiddleware{})
+	}
+
+	return n
+}
+
+func RunServerHTTPCmd(object ServerInterface) error {
 	begin := time.Now()
 
-	server, err := GetServerCmd(host, port, directory, auth, realm)
+	r := object.CreateRouter()
+	n := object.CreateMiddleware()
+
+	server, err := object.GetServer(r, n)
 	if err != nil {
 		return err
 	}
+
 	logger.Fatal(server.ListenAndServe())
 
 	end := time.Now()
@@ -32,19 +78,23 @@ func RunServerHTTPCmd(host string, port string, directory string, auth string, r
 	return nil
 }
 
-func RunServerHTTPSCmd(host string, port string, directory string, auth string, realm string) error {
+func RunServerHTTPSCmd(object ServerInterface) error {
 	begin := time.Now()
 
-	server, err := GetServerCmd(host, port, directory, auth, realm)
+	r := object.CreateRouter()
+	n := object.CreateMiddleware()
+
+	server, err := object.GetServer(r, n)
 	if err != nil {
-		return nil
+		return err
 	}
+
 	caManager, err := gopproxy.InitCertManager("", "")
 	if err != nil {
 		logger.Fatalf(err.Error())
 	}
 
-	cert, err := caManager.CreateCertificate(host)
+	cert, err := caManager.CreateCertificate(object.GetCertSubject())
 	if err != nil {
 		logger.Fatalf(err.Error())
 	}
@@ -59,50 +109,6 @@ func RunServerHTTPSCmd(host string, port string, directory string, auth string, 
 	logger.Printf("\n -  Execution time: %s\n", end.Sub(begin))
 
 	return nil
-}
-
-func GetServerCmd(host string, port string, directory string, auth string, realm string) (http.Server, error) {
-	path, err := os.Getwd()
-	if err != nil {
-		return http.Server{}, err
-	}
-
-	if !strings.HasPrefix(directory, "/") && !strings.HasPrefix(directory, "C:\\") {
-		directory = filepath.Join(path, directory)
-	}
-
-	addr := fmt.Sprintf("%s:%s", host, port)
-	logger.Printf("[+] Serve file to: http://%s for %s\n", addr, directory)
-
-	// Router
-	r := mux.NewRouter()
-
-	fileServer := http.FileServer(http.Dir(directory))
-	r.PathPrefix("/").Handler(fileServer)
-	n := negroni.New(negroni.NewRecovery())
-	n.Use(&logMiddleware{})
-
-	// Apply an auth system if requested
-	switch strings.ToLower(auth) {
-	case "basic":
-		logger.Printf("[+] Add HTTP Basic auth header\n")
-		n.Use(&basicAuth.BasicAuthMiddleware{
-			Realm: realm,
-		})
-	case "ntlm":
-		logger.Printf("[+] Add HTTP NTLM auth header\n")
-		ntlmAuth.NtlmCapturedAuth = make(map[string]bool)
-		n.Use(&ntlmAuth.NTLMAuthMiddleware{})
-	}
-
-	n.UseHandler(r)
-
-	server := http.Server{
-		Addr:    addr,
-		Handler: n,
-	}
-
-	return server, nil
 }
 
 func RunRedirectServerHTTPCmd(host string, port string, vhost string, destination string, https bool) error {
