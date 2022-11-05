@@ -15,6 +15,10 @@ type LogType log.Logger
 var Log *LogType
 var mu sync.Mutex
 
+func init() {
+	NewLoggerStdoutDateTime()
+}
+
 func New(out io.Writer, prefix string, flag int) *LogType {
 	return (*LogType)(log.New(out, prefix, flag))
 }
