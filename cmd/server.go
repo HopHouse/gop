@@ -25,6 +25,7 @@ var (
 	exfilUrlOption         string
 	httpsOption            bool
 	customHTMLFile         string
+	customJSFile           string
 )
 
 // serverCmd represents the serve command
@@ -149,6 +150,17 @@ var serverJSExfilHTTPCmd = &cobra.Command{
 			}
 		}
 
+		if customJSFile != "" {
+			customJS, err := ioutil.ReadFile(customJSFile)
+			if err != nil {
+				logger.Fatalln(err)
+			}
+
+			err = js.Box.AddBytes("custom.js", customJS)
+			if err != nil {
+				logger.Fatalln(err)
+			}
+		}
 		if httpsOption {
 			js.Server.Scheme = "https"
 			gopserver.RunServerHTTPSCmd(js)
@@ -203,4 +215,5 @@ func init() {
 	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&exfilUrlOption, "exfil-url", "", "", "Exfil URL in a form of http(s)://domain.tld.")
 	serverJSExfilHTTPCmd.PersistentFlags().BoolVarP(&httpsOption, "https", "", false, "Define whether or not an SSL/TLS layer is added.")
 	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&customHTMLFile, "custom-html", "", "", "Define a custom HTML file to use.")
+	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&customJSFile, "custom-js", "", "", "Define a custom JavaScript file to use.")
 }
