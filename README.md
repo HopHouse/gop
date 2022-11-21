@@ -75,13 +75,14 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/hophouse/gop/gopServer"
 	"github.com/hophouse/gop/utils/logger"
 	"github.com/urfave/negroni"
 )
 
 
 type NewServer struct {
-	Server Server
+	Server gopserver.Server
 }
 
 func (s NewServer) GetCertSubject() string {
@@ -116,5 +117,25 @@ func (s NewServer) CreateRouter() *mux.Router {
 
 func (s NewServer) CreateMiddleware() *negroni.Negroni {
 	return s.Server.CreateMiddleware()
+}
+
+func main() {
+  s := NewServer{
+    Server: gopserver.Server{
+      Host:   "127.0.0.1",
+      Port:   "8000",
+      Vhost:  "",
+      Auth:   "",
+      Realm:  "",
+    },
+  }
+
+  // HTTP
+  s.Server.Scheme = "http"
+  gopserver.RunServerHTTPCmd(s)
+
+  // HTTPS
+  s.Server.Scheme = "https"
+  gopserver.RunServerHTTPSCmd(s)
 }
 ```
