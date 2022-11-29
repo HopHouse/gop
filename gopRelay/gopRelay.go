@@ -229,10 +229,10 @@ func (n *NTLMAuthHTTPRelay) initiateRelais(target string) error {
 	}
 	currentRelay.filename = fmt.Sprintf("%s-%s-%s-%s.html", time.Now().Format("20060102-150405"), n.ClientConnUUID, currentRelay.relayUUID, targetURLSanitized)
 
-	// proxyURL, _ := url.Parse("http://127.0.0.1:8888")
+	proxyURL, _ := url.Parse("http://127.0.0.1:8888")
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		// Proxy:           http.ProxyURL(proxyURL),
+		Proxy:           http.ProxyURL(proxyURL),
 	}
 	currentRelay.conn = &http.Client{Transport: tr}
 
@@ -434,14 +434,12 @@ func (n *NTLMAuthHTTPRelay) initiateRelais(target string) error {
 			 *
 			 */
 
-			// Save response
-
 			randomPath := uuid.NewString()
 			clientInitialResponseByte := []byte(
 				"HTTP/1.1 307 Temporary Redirect\n" +
 					"Location: /" + randomPath + " \n" +
-					"WWW-Authenticate: NTLM\n" +
-					"WWW-Authenticate: Negociate\n" +
+					// "WWW-Authenticate: NTLM\n" +
+					// "WWW-Authenticate: Negociate\n" +
 					"Connection: keep-alive\n" +
 					"Content-Length: 0\n" +
 					"\n\n")
@@ -568,6 +566,10 @@ func (r *Relay) SendRequestGetResponse(clientRequest *http.Request, c string, s 
 	r.mu.Unlock()
 
 	return clientResponse, nil
+}
+
+func (r *Relay) SendResponseGetRequest(clientResponse []byte, c string, s string) (*http.Request, error) {
+	return nil, fmt.Errorf("function not yet implemented")
 }
 
 func KeepAlive(w http.ResponseWriter, wg *sync.WaitGroup) {
