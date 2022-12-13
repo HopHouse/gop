@@ -28,7 +28,8 @@ import (
 )
 
 var (
-	modeOption string
+	modeOption    string
+	ssltlsOptions bool
 )
 
 // shellCmd represents the proxy command
@@ -40,7 +41,7 @@ var shellCmd = &cobra.Command{
 		logger.NewLoggerStdout()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gopshell.RunShellCmd(modeOption, hostOption, portOption)
+		gopshell.RunShellCmd(modeOption, hostOption, portOption, ssltlsOptions)
 	},
 }
 
@@ -48,4 +49,5 @@ func init() {
 	shellCmd.PersistentFlags().StringVarP(&hostOption, "Host", "H", "127.0.0.1", "Define the proxy host.")
 	shellCmd.PersistentFlags().StringVarP(&portOption, "Port", "P", "8000", "Define the proxy port.")
 	shellCmd.PersistentFlags().StringVarP(&modeOption, "Mode", "m", "reverse", "Define the mode where the shell is runned : blind or reverse.")
+	shellCmd.PersistentFlags().BoolVarP(&ssltlsOptions, "ssl", "", false, "Define if an SSL/TLS channel is used for the reverse option. [WIP for the bind option].")
 }

