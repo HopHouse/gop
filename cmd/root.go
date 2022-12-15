@@ -72,7 +72,6 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("Current dir", CurrentDirectory)
 
 		directoryNameOption = logger.CreateOutputDir(directoryNameOption, cmd.Use)
 
@@ -118,4 +117,5 @@ func init() {
 	rootCmd.AddCommand(staticCrawlerCmd)
 	rootCmd.AddCommand(stationCmd)
 	rootCmd.AddCommand(visitCmd)
+	rootCmd.AddCommand(x509Cmd)
 }
