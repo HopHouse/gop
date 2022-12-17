@@ -2,26 +2,55 @@ package gopX509
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/asn1"
+	"net"
+	"time"
 
 	"github.com/hophouse/gop/utils/logger"
 )
 
-func RunX509Names(address string) error {
+func RunX509Names(addresses []string) error {
 
 	names := make(map[string]interface{}, 0)
 
-	conf := &tls.Config{
-		InsecureSkipVerify: true,
+	for _, address := range addresses {
+
+		conf := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+
+		conn, err := tls.DialWithDialer(&net.Dialer{Timeout: 10 * time.Second}, "tcp", address, conf)
+		if err != nil {
+			logger.Fprintf(logger.Writer(), "Error on %s : %s\n", address, err)
+			continue
+		}
+		defer conn.Close()
+
+		cert := conn.ConnectionState().PeerCertificates[0]
+
+		newNames, err := ExtractNames(cert)
+		if err != nil {
+			logger.Fprintln(logger.Writer(), err)
+			continue
+		}
+
+		for item := range newNames {
+			logger.Fprintf(logger.Writer(), "[%s] %s\n", address, item)
+			names[item] = nil
+		}
 	}
 
-	conn, err := tls.Dial("tcp", address, conf)
-	if err != nil {
-		return err
+	for name := range names {
+		logger.Println(name)
 	}
-	defer conn.Close()
 
-	cert := conn.ConnectionState().PeerCertificates[0]
+	return nil
+}
+
+func ExtractNames(cert *x509.Certificate) (map[string]interface{}, error) {
+
+	names := make(map[string]interface{}, 0)
 
 	names[cert.Subject.CommonName] = nil
 
@@ -30,7 +59,8 @@ func RunX509Names(address string) error {
 			values := []asn1.RawValue{}
 			_, err := asn1.Unmarshal(ext.Value, &values)
 			if err != nil {
-				break
+				logger.Fprintln(logger.Writer(), err)
+				continue
 			}
 
 			for _, value := range values {
@@ -44,7 +74,8 @@ func RunX509Names(address string) error {
 			values := []asn1.RawValue{}
 			_, err := asn1.Unmarshal(ext.Value, &values)
 			if err != nil {
-				break
+				logger.Fprintln(logger.Writer(), err)
+				continue
 			}
 
 			for _, value := range values {
@@ -53,9 +84,5 @@ func RunX509Names(address string) error {
 		}
 	}
 
-	for name, _ := range names {
-		logger.Println(name)
-	}
-
-	return nil
+	return names, nil
 }

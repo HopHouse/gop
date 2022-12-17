@@ -22,12 +22,17 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"bufio"
+	"os"
+
 	"github.com/hophouse/gop/gopX509"
 	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
-var ()
+var (
+	addressOption []string
+)
 
 // x509Cmd represents the active command
 var x509Cmd = &cobra.Command{
@@ -38,8 +43,42 @@ var x509Cmd = &cobra.Command{
 var x509NamesCmd = &cobra.Command{
 	Use:   "names",
 	Short: "Extract CN (Common Name) and SAN (Subject Alternative Name) of a certificate",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		var err error
+
+		// Parse options
+		reader = os.Stdin
+
+		stat, err := reader.Stat()
+		if err != nil {
+			logger.Println("Error found in stdin:", err)
+			os.Exit(2)
+		}
+
+		if len(addressOption) > 0 {
+			if (stat.Mode() & os.ModeNamedPipe) != 0 {
+				logger.Println("[!] Cannot use stdin and address at the same time.")
+				os.Exit(2)
+			}
+			reader, err = os.Open(inputFileOption)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			// Chech if there is something in stdin
+			if (stat.Mode() & os.ModeNamedPipe) == 0 {
+				logger.Println("[!] You should pass something to stdin or use the address option.")
+				os.Exit(1)
+			}
+		}
+
+		scanner := bufio.NewScanner(reader)
+		for scanner.Scan() {
+			addressOption = append(addressOption, scanner.Text())
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
-		err := gopX509.RunX509Names(hostOption)
+		err := gopX509.RunX509Names(addressOption)
 		if err != nil {
 			logger.Fatal(err)
 		}
@@ -47,8 +86,7 @@ var x509NamesCmd = &cobra.Command{
 }
 
 func init() {
-	x509NamesCmd.PersistentFlags().StringVarP(&hostOption, "address", "a", "", "Address where to look for : Ex : 10.0.0.0:443.")
-	x509NamesCmd.MarkPersistentFlagRequired("address")
+	x509NamesCmd.PersistentFlags().StringSliceVarP(&addressOption, "address", "a", []string{}, "Address where to look for : Ex : 10.0.0.0:443.")
 
 	x509Cmd.AddCommand(x509NamesCmd)
 }

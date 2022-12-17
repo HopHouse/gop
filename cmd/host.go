@@ -46,7 +46,6 @@ var hostCmd = &cobra.Command{
 		if err != nil {
 			logger.Println("Error found in stdin:", err)
 			os.Exit(2)
-
 		}
 
 		if inputFileOption != "" {
