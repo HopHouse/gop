@@ -118,4 +118,5 @@ func init() {
 	rootCmd.AddCommand(stationCmd)
 	rootCmd.AddCommand(visitCmd)
 	rootCmd.AddCommand(x509Cmd)
+	rootCmd.AddCommand(fileDiffCmd)
 }
