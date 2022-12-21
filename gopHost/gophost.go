@@ -251,7 +251,7 @@ func checkAvailability(domain string) (bool, error) {
 		errorString := fmt.Sprintf("Top domain are not accepted : %v ", domain)
 		return false, errors.New(errorString)
 	}
-	tldDomain := strings.Join(topDomain[len(topDomain)-2:], ".")
+	tldDomain := topDomain[len(topDomain)-2] + "." + topDomain[len(topDomain)-1]
 
 	// Avoid having the message %% Too many requests...
 	var result string
