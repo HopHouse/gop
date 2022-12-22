@@ -5,6 +5,8 @@ import (
 	"crypto/x509"
 	"encoding/asn1"
 	"net"
+	"os"
+	"text/tabwriter"
 	"time"
 
 	"github.com/hophouse/gop/utils/logger"
@@ -12,7 +14,9 @@ import (
 
 func RunX509Names(addresses []string) error {
 
-	names := make(map[string]interface{}, 0)
+	names := make(map[string]map[string]interface{}, 0)
+
+	w := tabwriter.NewWriter(os.Stdout, 24, 4, 4, ' ', 0)
 
 	for _, address := range addresses {
 
@@ -35,15 +39,21 @@ func RunX509Names(addresses []string) error {
 			continue
 		}
 
-		for item := range newNames {
-			logger.Fprintf(logger.Writer(), "[%s] %s\n", address, item)
-			names[item] = nil
+		names[address] = newNames
+
+		for name, _ := range names[address] {
+			logger.Fprintf(logger.Writer(), "%s %s\n", address, name)
+			logger.Fprintf(w, "%s\t%s\n", address, name)
 		}
+
+		w.Flush()
 	}
 
-	for name := range names {
-		logger.Println(name)
-	}
+	// for address, names := range names {
+	// 	for name, _ := range names {
+	// 		// logger.Printf("[%s] %s\n", address, name)
+	// 	}
+	// }
 
 	return nil
 }
@@ -59,7 +69,7 @@ func ExtractNames(cert *x509.Certificate) (map[string]interface{}, error) {
 			values := []asn1.RawValue{}
 			_, err := asn1.Unmarshal(ext.Value, &values)
 			if err != nil {
-				logger.Fprintln(logger.Writer(), err)
+				logger.Fprintln(logger.Writer(), "Error cert.Extensions : ", err)
 				continue
 			}
 
@@ -74,7 +84,7 @@ func ExtractNames(cert *x509.Certificate) (map[string]interface{}, error) {
 			values := []asn1.RawValue{}
 			_, err := asn1.Unmarshal(ext.Value, &values)
 			if err != nil {
-				logger.Fprintln(logger.Writer(), err)
+				logger.Fprintln(logger.Writer(), "Error cert.ExtraExtensions : ", err)
 				continue
 			}
 
