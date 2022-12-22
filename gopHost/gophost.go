@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"os"
 	"strings"
@@ -19,6 +20,13 @@ type register struct {
 	domain            string
 	middleInformation []string
 	ip                []string
+}
+
+var DnsServers = []string{
+	"1.1.1.1:53", "1.0.0.1:53", // CloudFlare
+	"208.67.222.222:53", "208.67.220.220:53", // OpenDNS
+	"9.9.9.10:53", "149.112.112.10:53", // Quad9
+	"84.200.69.80:53", "84.200.70.40:53", // DNS.Watch
 }
 
 // RunHostCmd : Run the Host command and do a DNS lookup for each host inputed
@@ -156,9 +164,12 @@ func uniqueNonEmptyElementsOf(s []string) []string {
 }
 
 func workerLookupPetitPoucet(domainsChan chan string, gatherChan chan register, workersChan chan bool) {
-	dnsServer := "1.1.1.1:53"
+
+	rand.Seed(time.Now().UnixNano())
 
 	for domain := range domainsChan {
+		dnsServer := DnsServers[rand.Intn(len(DnsServers))]
+
 		cname := domain
 
 		register := register{
