@@ -55,26 +55,22 @@ var x509NamesCmd = &cobra.Command{
 			os.Exit(2)
 		}
 
-		if len(addressOption) > 0 {
-			if (stat.Mode() & os.ModeNamedPipe) != 0 {
-				logger.Println("[!] Cannot use stdin and address at the same time.")
-				os.Exit(2)
-			}
-			reader, err = os.Open(inputFileOption)
-			if err != nil {
-				panic(err)
-			}
-		} else {
-			// Chech if there is something in stdin
-			if (stat.Mode() & os.ModeNamedPipe) == 0 {
-				logger.Println("[!] You should pass something to stdin or use the address option.")
-				os.Exit(1)
-			}
+		// if len(addressOption) > 0 && (stat.Mode()&os.ModeNamedPipe) != 0 {
+		// 	logger.Println("[!] Cannot use stdin and address at the same time.")
+		// 	os.Exit(2)
+		// }
+
+		// Chech if there is something in stdin
+		if len(addressOption) <= 0 && (stat.Mode()&os.ModeNamedPipe) == 0 {
+			logger.Println("[!] You should pass something to stdin or use the address option.")
+			os.Exit(1)
 		}
 
-		scanner := bufio.NewScanner(reader)
-		for scanner.Scan() {
-			addressOption = append(addressOption, scanner.Text())
+		if (stat.Mode() & os.ModeNamedPipe) != 0 {
+			scanner := bufio.NewScanner(reader)
+			for scanner.Scan() {
+				addressOption = append(addressOption, scanner.Text())
+			}
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
