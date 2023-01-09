@@ -30,6 +30,7 @@ import (
 )
 
 var petitPoucetOption bool
+var freeOption bool
 
 // hostCmd represents the host command
 var hostCmd = &cobra.Command{
@@ -66,7 +67,7 @@ var hostCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		gophost.RunHostCmd(reader, concurrencyOption, petitPoucetOption)
+		gophost.RunHostCmd(reader, concurrencyOption, petitPoucetOption, freeOption)
 	},
 }
 
@@ -74,4 +75,5 @@ func init() {
 	hostCmd.PersistentFlags().StringVarP(&inputFileOption, "input-file", "i", "", "Specify domain names to check host.")
 	hostCmd.PersistentFlags().IntVarP(&concurrencyOption, "concurrency", "t", 10, "Number of thread used to check hosts.")
 	hostCmd.PersistentFlags().BoolVarP(&petitPoucetOption, "petit-poucet", "", false, "Activate the petit poucet option which display all the CNAMES during the resolve process.")
+	hostCmd.PersistentFlags().BoolVarP(&freeOption, "free", "", false, "[WIP] Check if the domain is avaialable for sale.")
 }

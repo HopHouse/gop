@@ -29,8 +29,12 @@ var DnsServers = []string{
 	"84.200.69.80:53", "84.200.70.40:53", // DNS.Watch
 }
 
+var AvailabilityCheck bool
+
 // RunHostCmd : Run the Host command and do a DNS lookup for each host inputed
-func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool) {
+func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool, availabilityCheckOption bool) {
+	AvailabilityCheck = availabilityCheckOption
+
 	// Scanner to read file
 	scanner := bufio.NewScanner(reader)
 	workersChan := make(chan bool)
@@ -82,13 +86,15 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool) {
 			ipList := strings.Join(elem.ip, " ")
 			domain := elem.domain
 
-			// format domain with availability data
-			available, err := checkAvailability(domain)
-			if err != nil {
-				logger.Printf("Error trying to whois the domaine. %s\n", err)
-			}
-			if available == true {
-				domain = fmt.Sprintf("[FREE] %s", domain)
+			if AvailabilityCheck {
+				// format domain with availability data
+				available, err := checkAvailability(domain)
+				if err != nil {
+					logger.Printf("Error trying to whois the domaine. %s\n", err)
+				}
+				if available == true {
+					domain = fmt.Sprintf("[FREE] %s", domain)
+				}
 			}
 
 			logger.Fprintf(w, "%s\t%s\n", domain, ipList)
@@ -100,24 +106,28 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool) {
 
 			domain := elem.domain
 
-			// format domain with availability data
-			available, err := checkAvailability(domain)
-			if err != nil {
-				logger.Printf("Error trying to whois the domaine. %s\n", err)
-			}
-			if available == true {
-				domain = fmt.Sprintf("[FREE] %s", domain)
+			if AvailabilityCheck {
+				// format domain with availability data
+				available, err := checkAvailability(domain)
+				if err != nil {
+					logger.Printf("Error trying to whois the domaine. %s\n", err)
+				}
+				if available == true {
+					domain = fmt.Sprintf("[FREE] %s", domain)
+				}
 			}
 			resultsSlice = append(resultsSlice, domain)
 
 			if len(elem.middleInformation) > 1 {
 				for _, domain := range elem.middleInformation {
-					available, err := checkAvailability(domain)
-					if err != nil {
-						logger.Printf("Error trying to whois the domaine. %s\n", err)
-					}
-					if available == true {
-						domain = fmt.Sprintf("[FREE] %s", domain)
+					if AvailabilityCheck {
+						available, err := checkAvailability(domain)
+						if err != nil {
+							logger.Printf("Error trying to whois the domaine. %s\n", err)
+						}
+						if available == true {
+							domain = fmt.Sprintf("[FREE] %s", domain)
+						}
 					}
 					resultsSlice = append(resultsSlice, domain)
 				}
