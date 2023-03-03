@@ -119,4 +119,5 @@ func init() {
 	rootCmd.AddCommand(visitCmd)
 	rootCmd.AddCommand(x509Cmd)
 	rootCmd.AddCommand(fileDiffCmd)
+	rootCmd.AddCommand(encodeCmd)
 }
