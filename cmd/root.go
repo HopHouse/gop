@@ -120,4 +120,5 @@ func init() {
 	rootCmd.AddCommand(x509Cmd)
 	rootCmd.AddCommand(fileDiffCmd)
 	rootCmd.AddCommand(encodeCmd)
+	rootCmd.AddCommand(binCmd)
 }
