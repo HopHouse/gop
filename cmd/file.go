@@ -29,7 +29,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// fileCmd represents the host command
+// fileCmd represents the file command
 var fileCmd = &cobra.Command{
 	Use: "file",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
