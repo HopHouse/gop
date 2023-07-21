@@ -1,4 +1,4 @@
-package gopbin
+package gopBin
 
 import (
 	"debug/pe"

@@ -28,7 +28,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/hophouse/gop/gopbin"
+	"github.com/hophouse/gop/gopBin"
 	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
@@ -53,7 +53,7 @@ var binEntropyCmd = &cobra.Command{
 		logger.NewLoggerNull()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		f, err := gopbin.GetFileEntropyHandle(inputFileOption)
+		f, err := gopBin.GetFileEntropyHandle(inputFileOption)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -69,7 +69,7 @@ var binCaveCmd = &cobra.Command{
 		logger.NewLoggerNull()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		err := gopbin.GetPECaves(inputFileOption, minCaveSizeOption)
+		err := gopBin.GetPECaves(inputFileOption, minCaveSizeOption)
 		if err != nil {
 			log.Fatalln(err)
 		}

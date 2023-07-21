@@ -1,8 +1,7 @@
-package gopbin
+package gopBin
 
 import (
 	"bytes"
-	"debug/pe"
 	"fmt"
 	"io"
 	"math"
@@ -111,13 +110,13 @@ func (f *File) PrintEntropy() {
 // 	return f.File.ComputeEntropy()
 // }
 
-func (f *PEFile) ParseBytes(filename string) error {
-	f.File.ParseBytes(filename)
+// func (f *PEFile) ParseBytes(filename string) error {
+// 	f.File.ParseBytes(filename)
 
-	peFile, err := pe.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer peFile.Close()
+// 	peFile, err := pe.Open(filename)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer peFile.Close()
 
-	for _, section := range peFile.Sections {
+// 	for _, section := range peFile.Sections {
