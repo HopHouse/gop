@@ -22,7 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -55,7 +55,7 @@ var killSwitchCmd = &cobra.Command{
 			}
 		}
 
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			logger.Println(err)
 			return

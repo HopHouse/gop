@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -127,7 +127,7 @@ var serverJSExfilHTTPCmd = &cobra.Command{
 	Short: "",
 	Run: func(cmd *cobra.Command, args []string) {
 		js := &gopserver.JavascriptExfilServer{
-			Server: gopserver.Server{
+			Server: &gopserver.Server{
 				Host:   hostOption,
 				Port:   portOption,
 				Scheme: "http",
@@ -139,7 +139,7 @@ var serverJSExfilHTTPCmd = &cobra.Command{
 		}
 
 		if customHTMLFile != "" {
-			index, err := ioutil.ReadFile(customHTMLFile)
+			index, err := os.ReadFile(customHTMLFile)
 			if err != nil {
 				logger.Fatalln(err)
 			}
@@ -151,7 +151,7 @@ var serverJSExfilHTTPCmd = &cobra.Command{
 		}
 
 		if customJSFile != "" {
-			customJS, err := ioutil.ReadFile(customJSFile)
+			customJS, err := os.ReadFile(customJSFile)
 			if err != nil {
 				logger.Fatalln(err)
 			}

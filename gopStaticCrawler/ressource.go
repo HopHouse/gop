@@ -18,14 +18,19 @@ type Ressource struct {
 	sync.RWMutex
 }
 
-func CreateRessource(urlReference string, script string, kind string) (isInternal bool, ressource Ressource) {
-	ressource.Internal = false
-	ressource.Url = script
-	ressource.Type = kind
+func CreateRessource(urlReference string, script string, kind string) (bool, *Ressource) {
+	ressource := &Ressource{
+		Url:      script,
+		Type:     kind,
+		Secure:   false,
+		Internal: false,
+		RWMutex:  sync.RWMutex{},
+	}
 
 	scriptUrl, err := url.Parse(script)
 	if err != nil {
 		logger.Println(err)
+		return false, ressource
 	}
 
 	// Define if it is secure
@@ -44,10 +49,11 @@ func CreateRessource(urlReference string, script string, kind string) (isInterna
 	if scriptUrl.Host == urlReferenceUrl.Host || scriptUrl.Host == "" {
 		ressource.Internal = true
 	}
+
 	return ressource.Internal, ressource
 }
 
-func (ressource Ressource) equal(newRessource Ressource) bool {
+func (ressource *Ressource) equal(newRessource *Ressource) bool {
 	ressource.RLock()
 	if ressource.Url == newRessource.Url {
 		if ressource.Type == newRessource.Type {
@@ -61,7 +67,7 @@ func (ressource Ressource) equal(newRessource Ressource) bool {
 	return false
 }
 
-func AddRessourceIfDoNotExists(ressources *[]Ressource, ressource Ressource) bool {
+func AddRessourceIfDoNotExists(ressources *[]*Ressource, ressource *Ressource) bool {
 	for _, item := range *ressources {
 		if added := item.equal(ressource); added == true {
 			//logger.Println("[-] Ressource already present ", ressource.Url)
@@ -86,7 +92,7 @@ func (ressource Ressource) ressourceString() string {
 	return result
 }
 
-func ressourceListString(ressources []Ressource) []string {
+func ressourceListString(ressources []*Ressource) []string {
 	result := make([]string, 0)
 	for _, s := range ressources {
 		result = append(result, s.ressourceString())
@@ -94,14 +100,14 @@ func ressourceListString(ressources []Ressource) []string {
 	return result
 }
 
-func PrintRessourceList(ressources_string []Ressource) {
+func PrintRessourceList(ressources_string []*Ressource) {
 	tmp := ressourceListString(ressources_string)
 	for _, s := range tmp {
 		logger.Println("  - ", s)
 	}
 }
 
-func (ressource Ressource) ressourceStringReport() string {
+func (ressource *Ressource) ressourceStringReport() string {
 	var result string
 	if ressource.Secure == true {
 		result = fmt.Sprintf("\\rowcolor{gristableau} %s & %s & \\textbf{\\color{Green}HTTPS}\\\\ \n", ressource.Url, ressource.Type)
@@ -111,7 +117,7 @@ func (ressource Ressource) ressourceStringReport() string {
 	return result
 }
 
-func ressourceListStringReport(ressources []Ressource) []string {
+func ressourceListStringReport(ressources []*Ressource) []string {
 	result := make([]string, 0)
 	result = append(result, "\\begin{center}\n")
 	result = append(result, "\\begin{tabular}{|c|c|c|}\n")
@@ -127,7 +133,7 @@ func ressourceListStringReport(ressources []Ressource) []string {
 	return result
 }
 
-func WriteRessourceListReport(ressources_string []Ressource) {
+func WriteRessourceListReport(ressources_string []*Ressource) {
 	tmp := ressourceListStringReport(ressources_string)
 	f, errorFile := os.OpenFile("external_ressources.tex", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if errorFile != nil {

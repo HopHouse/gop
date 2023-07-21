@@ -8,23 +8,22 @@ import (
 )
 
 var (
-	ScreenshotBar Bar
-	CrawlerBar    Bar
+	ScreenshotBar *ProgessBar
+	CrawlerBar    *ProgessBar
 )
 
-type Bar struct {
-	waitGroup *sync.WaitGroup
-	bar       *mpb.Bar
+type ProgessBar struct {
+	waitGroup sync.WaitGroup
+	mpbBar    *mpb.Bar
 	name      string
 	total     int
-	mutex     sync.Mutex
+	mutex     *sync.Mutex
 }
 
 type WaitGroupBar struct {
 	waitGroup sync.WaitGroup
 	progress  *mpb.Progress
-	mutex     sync.Mutex
-	bars      []*Bar
+	bars      []*ProgessBar
 }
 
 func InitWaitGroupBar() *WaitGroupBar {
@@ -33,10 +32,13 @@ func InitWaitGroupBar() *WaitGroupBar {
 	return &groupBar
 }
 
-func (groupBar *WaitGroupBar) AddBar(name string, main bool) (newBar Bar) {
+func NewBar(name string) *ProgessBar {
+	newBar := ProgessBar{}
 	newBar.name = name
 	newBar.total = 0
-	newBar.bar = groupBar.progress.AddBar(int64(1),
+	newBar.mutex = &sync.Mutex{}
+	newBar.waitGroup = sync.WaitGroup{}
+	newBar.mpbBar = mpb.New(mpb.WithWidth(1)).AddBar(1,
 		//mpb.NewSpinnerFiller([]string{}, mpb.SpinnerOnLeft),
 		mpb.PrependDecorators(decor.Name("[")),
 		mpb.AppendDecorators(
@@ -48,8 +50,14 @@ func (groupBar *WaitGroupBar) AddBar(name string, main bool) (newBar Bar) {
 		),
 	)
 
-	newBar.waitGroup = &groupBar.waitGroup
-	groupBar.bars = append(groupBar.bars, &newBar)
+	return &newBar
+}
+
+func (groupBar *WaitGroupBar) AddBar(name string, main bool) *ProgessBar {
+	newBar := NewBar(name)
+
+	newBar.waitGroup = groupBar.waitGroup
+	groupBar.bars = append(groupBar.bars, newBar)
 
 	return newBar
 }
@@ -58,40 +66,41 @@ func (groupBar *WaitGroupBar) Wait() {
 	groupBar.waitGroup.Wait()
 	for _, item := range groupBar.bars {
 		item.Wait()
-		item.bar.SetTotal(int64(item.total), true)
+		item.mpbBar.SetTotal(int64(item.total), true)
 	}
 	groupBar.progress.Wait()
 }
 
-func (bar *Bar) Add(delta int) {
+func (bar *ProgessBar) Add(delta int) {
 	bar.mutex.Lock()
 	bar.total += delta
 	bar.waitGroup.Add(delta)
 	bar.mutex.Unlock()
 }
-func (bar *Bar) AddAndIncrementTotal(delta int) {
+func (bar *ProgessBar) AddAndIncrementTotal(delta int) {
 	bar.mutex.Lock()
 	bar.total += delta
-	bar.bar.SetTotal(int64(bar.total), false)
+	bar.mpbBar.SetTotal(int64(bar.total), false)
 	bar.waitGroup.Add(delta)
 	bar.mutex.Unlock()
 }
 
-func (bar *Bar) Done() {
+func (bar *ProgessBar) Done() {
 	bar.mutex.Lock()
 	bar.waitGroup.Done()
-	bar.bar.IncrBy(1)
+	bar.mpbBar.IncrBy(1)
 	bar.mutex.Unlock()
 }
 
-func (bar *Bar) Wait() {
+func (bar *ProgessBar) Wait() {
 	bar.waitGroup.Wait()
-	bar.bar.SetTotal(int64(bar.total), true)
+	bar.SetTotal(bar.total)
+	bar.mpbBar.SetTotal(int64(bar.total), true)
 }
 
-func (bar *Bar) SetTotal(total int) {
+func (bar *ProgessBar) SetTotal(total int) {
 	bar.mutex.Lock()
 	bar.total = total
-	bar.bar.SetTotal(int64(bar.total), false)
+	bar.mpbBar.SetTotal(int64(bar.total), false)
 	bar.mutex.Unlock()
 }

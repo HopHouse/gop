@@ -62,27 +62,23 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		var err error
 
-		if noLogOption {
-			logger.NewLoggerNull()
-			return
-		}
-
 		CurrentDirectory, err = os.Getwd()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		logger.CurrentLogDirectory = logger.CreateOutputDir(directoryNameOption, cmd.Use)
+		if directoryNameOption == "" {
+			logger.CurrentLogDirectory = directoryNameOption
+		} else {
+			logger.CurrentLogDirectory = logger.CreateOutputDir(directoryNameOption, cmd.Use)
+		}
 
-		// Move to the new generated folder
-		//os.Chdir(directoryNameOption)
-		//mydir, err := os.Getwd()
-		//if err != nil {
-		//	fmt.Printf("[-] Error when created log dir %s", mydir)
-		//}
-
-		logFilePath := filepath.Join(logger.CurrentLogDirectory, logFileNameOption)
-		logger.NewLoggerDateTime(logFilePath)
+		if noLogOption {
+			logger.NewLoggerStdout()
+		} else {
+			logFilePath := filepath.Join(logger.CurrentLogDirectory, logFileNameOption)
+			logger.NewLoggerDateTime(logFilePath)
+		}
 	},
 }
 
@@ -96,8 +92,8 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&logFileNameOption, "logfile", "", "logs.txt", "Set a custom log file.")
-	rootCmd.PersistentFlags().BoolVarP(&noLogOption, "no-log", "", false, "Do not create a log file.")
+	rootCmd.PersistentFlags().StringVarP(&logFileNameOption, "log-file", "", "logs.txt", "Set a custom log file.")
+	rootCmd.PersistentFlags().BoolVarP(&noLogOption, "no-log", "", false, "Do not create a log file and display output to stdout.")
 	rootCmd.PersistentFlags().StringVarP(&directoryNameOption, "output-directory", "", "", "Use the following directory to output results.")
 
 	rootCmd.AddCommand(generateCmd)

@@ -86,7 +86,7 @@ func TakeScreenShot(item *Item, directory string, proxy string, cookie string, t
 		if strings.HasPrefix(err.Error(), "context deadline exceeded") {
 			logger.Fprintf(logger.Writer(), "[!] Timeout error for item.Url %s - %s\n", item.Url, err)
 		} else {
-			logger.Fprintf(logger.Writer(), "[!] Error in chromedp. Run for item.Url ", item.Url, " : ", err)
+			logger.Fprintln(logger.Writer(), "[!] Error in chromedp. Run for item.Url ", item.Url, " : ", err)
 		}
 		logger.Fprintln(logger.Writer(), "[-] Retry on :", item.Url)
 
@@ -106,10 +106,10 @@ func TakeScreenShot(item *Item, directory string, proxy string, cookie string, t
 		logger.Fprintln(logger.Writer(), "[!] Error, screenshot not taken for ", item.Url, " because it had a size of 0 bytes")
 		return
 	}
-	filename := filepath.Join(logger.CurrentLogDirectory, GetScreenshotFileName(item.Url))
+	filename := filepath.Join(directory, GetScreenshotFileName(item.Url))
 
 	if err := os.WriteFile(filename, buf, 0644); err != nil {
-		logger.Fprintf(logger.Writer(), "Error in os.WriteFile ", err, " for item.Url ", item.Url, " with filename ", filename, " and size of ", len(buf))
+		logger.Fprintln(logger.Writer(), "Error in os.WriteFile ", err, " for item.Url ", item.Url, " with filename ", filename, " and size of ", len(buf))
 		return
 	}
 

@@ -17,8 +17,8 @@ import (
 )
 
 var (
-	Internal_ressources []Ressource
-	External_ressources []Ressource
+	Internal_ressources []*Ressource
+	External_ressources []*Ressource
 	URLVisited          []string
 	ScreenshotList      []gopchromedp.Item
 	ConcurrencyChan     chan struct{}
@@ -29,8 +29,8 @@ func InitCrawler() *colly.Collector {
 
 	defineCallBacks(c)
 
-	Internal_ressources = make([]Ressource, 0)
-	External_ressources = make([]Ressource, 0)
+	Internal_ressources = make([]*Ressource, 0)
+	External_ressources = make([]*Ressource, 0)
 	URLVisited = make([]string, 0)
 	ScreenshotList = make([]gopchromedp.Item, 0)
 	ConcurrencyChan = make(chan struct{}, *GoCrawlerOptions.ConcurrencyPtr)
@@ -127,7 +127,7 @@ func defineCallBacks(c *colly.Collector) {
 		fmt.Fprintf(logger.Writer(), "[/] Response from %s: %d\n", r.Request.URL, r.StatusCode)
 
 		// Take a screenshot if the option was set
-		if *GoCrawlerOptions.ScreenshotPtr == true {
+		if *GoCrawlerOptions.ScreenshotPtr {
 			utils.ScreenshotBar.AddAndIncrementTotal(1)
 
 			go func() {

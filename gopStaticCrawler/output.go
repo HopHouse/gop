@@ -47,18 +47,18 @@ func PrintNewRessourceFound(isInternal, ressourceType, link string) {
 	fmt.Fprintf(logger.Writer(), "[+] [%s] [%s] %s\n", isInternal, ressourceType, link)
 }
 
-func PrintRessourcesResume(ressourceType string, url string, ressources *[]Ressource) {
+func PrintRessourcesResume(ressourceType string, url string, ressources []*Ressource) {
 	logger.Printf(color.Sprintf("\n %s ressources for %s\n", ressourceType, Yellow(url)))
-	PrintRessourceList(*ressources)
+	PrintRessourceList(ressources)
 }
 
-func PrintStatistics(duration time.Duration, internal_ressources *[]Ressource, external_ressources *[]Ressource) {
+func PrintStatistics(duration time.Duration, internal_ressources []*Ressource, external_ressources []*Ressource) {
 	var counterStyle, counterScript, counterLink, counterImage, counterUnknown int
 
 	counterStyle, counterScript, counterLink, counterImage, counterUnknown = 0, 0, 0, 0, 0
 	logger.Printf(color.Sprintf("\n[+] Statistics\n"))
-	logger.Printf(color.Sprintf(" -  Number of internal resources: %s\n", Cyan(len(*internal_ressources))))
-	for _, item := range *internal_ressources {
+	logger.Printf(color.Sprintf(" -  Number of internal resources: %s\n", Cyan(len(internal_ressources))))
+	for _, item := range internal_ressources {
 		switch item.Type {
 		case "link":
 			counterLink += 1
@@ -79,8 +79,8 @@ func PrintStatistics(duration time.Duration, internal_ressources *[]Ressource, e
 	logger.Printf(color.Sprintf("    - Number of unknowns: %s\n", Cyan(counterUnknown)))
 
 	counterStyle, counterScript, counterLink, counterImage, counterUnknown = 0, 0, 0, 0, 0
-	logger.Printf(color.Sprintf("\n -  Number of external resources: %s\n", Cyan(len(*external_ressources))))
-	for _, item := range *external_ressources {
+	logger.Printf(color.Sprintf("\n -  Number of external resources: %s\n", Cyan(len(external_ressources))))
+	for _, item := range external_ressources {
 		switch item.Type {
 		case "link":
 			counterLink += 1

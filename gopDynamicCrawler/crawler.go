@@ -23,8 +23,8 @@ type URLVisitedStruct struct {
 }
 
 var (
-	Internal_ressources []gopstaticcrawler.Ressource
-	External_ressources []gopstaticcrawler.Ressource
+	Internal_ressources []*gopstaticcrawler.Ressource
+	External_ressources []*gopstaticcrawler.Ressource
 	URLVisited          URLVisitedStruct
 	ScreenshotList      []gopchromedp.Item
 	ScreenshotChan      chan struct{}
@@ -33,8 +33,8 @@ var (
 
 func InitCrawler() {
 	// Define initial variables
-	Internal_ressources = make([]gopstaticcrawler.Ressource, 0)
-	External_ressources = make([]gopstaticcrawler.Ressource, 0)
+	Internal_ressources = make([]*gopstaticcrawler.Ressource, 0)
+	External_ressources = make([]*gopstaticcrawler.Ressource, 0)
 	URLVisited.slice = make([]string, 0)
 	ScreenshotList = make([]gopchromedp.Item, 0)
 	ScreenshotChan = make(chan struct{}, *GoCrawlerOptions.ConcurrencyPtr)
@@ -206,7 +206,7 @@ func TreatA(doc *goquery.Document) []string {
 		var isAdded bool
 
 		isInternal, ressource := gopstaticcrawler.CreateRessource(doc.Url.String(), link, "link")
-		if isInternal == true {
+		if isInternal {
 			isAdded = gopstaticcrawler.AddRessourceIfDoNotExists(&Internal_ressources, ressource)
 		} else {
 			isAdded = gopstaticcrawler.AddRessourceIfDoNotExists(&External_ressources, ressource)
@@ -225,7 +225,10 @@ func TreatA(doc *goquery.Document) []string {
 			URLVisited.RUnlock()
 
 			// Check if the domain is the good one
-			linkUrl, _ := url.Parse(link)
+			linkUrl, err := url.Parse(link)
+			if err != nil {
+				logger.Println(err)
+			}
 			if doc.Url.Host != linkUrl.Host {
 				//logger.Printf("[*] Url %s is not the same domain", linkUrl.Host)
 				return

@@ -32,8 +32,6 @@ import (
 // fileCmd represents the file command
 var fileCmd = &cobra.Command{
 	Use: "file",
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-	},
 }
 
 // fileCmd represents the host command
@@ -98,6 +96,8 @@ var fileDiffCmd = &cobra.Command{
 }
 
 func init() {
+	fileCmd.AddCommand(fileDiffCmd)
+
 	fileDiffCmd.Flags().StringVarP(&inputFileOption, "file", "f", "", "File to compare the stdin with.")
 	fileDiffCmd.MarkFlagRequired("file")
 }

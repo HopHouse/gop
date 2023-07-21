@@ -95,7 +95,7 @@ func GetHTMLCode(item *Item, url string, directory string, proxy string, cookie 
 			if strings.HasPrefix(err.Error(), "context deadline exceeded") {
 				logger.Fprintf(logger.Writer(), "[!] 2nd time, timeout error for URL %s - %s\n", url, err)
 			} else {
-				logger.Fprintf(logger.Writer(), "[!] 2nd time, error in chromedp.Run for URL ", url, " : ", err)
+				logger.Fprintln(logger.Writer(), "[!] 2nd time, error in chromedp.Run for URL ", url, " : ", err)
 			}
 		}
 		return
@@ -106,7 +106,7 @@ func GetHTMLCode(item *Item, url string, directory string, proxy string, cookie 
 		logger.Fprintln(logger.Writer(), "[!] Error, HTML content not taken for ", url, " because it had a size of 0 bytes")
 		return
 	}
-	filename := filepath.Join(logger.CurrentLogDirectory, GetHTMLFileName(url))
+	filename := filepath.Join(directory, GetHTMLFileName(url))
 
 	if err := os.WriteFile(filename, []byte(outerHTML), 0644); err != nil {
 		logger.Fprintln(logger.Writer(), "Error in os.WriteFile ", err, " for url ", url, " with filename ", filename, " and size of ", len(outerHTML))
