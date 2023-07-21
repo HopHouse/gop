@@ -42,8 +42,6 @@ var (
 // binCmd represents the bin command
 var binCmd = &cobra.Command{
 	Use: "bin",
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-	},
 }
 
 var binEntropyCmd = &cobra.Command{

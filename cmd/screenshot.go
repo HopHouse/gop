@@ -23,7 +23,6 @@ package cmd
 
 import (
 	"os"
-	"path/filepath"
 
 	gopscreen "github.com/hophouse/gop/gopScreen"
 	"github.com/hophouse/gop/utils/logger"
@@ -59,7 +58,7 @@ var screenshotCmd = &cobra.Command{
 				os.Exit(2)
 			}
 
-			reader, err = os.Open(filepath.Join("..", inputFileOption))
+			reader, err = os.Open(inputFileOption)
 			if err != nil {
 				panic(err)
 			}

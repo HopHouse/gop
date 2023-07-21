@@ -12,11 +12,16 @@ import (
 
 type LogType log.Logger
 
-var Log *LogType
-var mu sync.Mutex
+var (
+	CurrentLogDirectory string
+
+	Log *LogType
+	mu  *sync.Mutex
+)
 
 func init() {
 	NewLoggerStdoutDateTime()
+	mu = &sync.Mutex{}
 }
 
 func New(out io.Writer, prefix string, flag int) *LogType {
@@ -172,10 +177,12 @@ func Fprint(w io.Writer, v ...any) (n int, err error) {
 	}
 
 	if log.Writer() == os.Stdout {
-		n, err = fmt.Fprint(w, v...)
+		fmt.Fprint(w, v...)
+	} else if log.Writer() == w {
+		fmt.Fprint(log.Writer(), v...)
 	} else {
-		n, err = fmt.Fprint(w, v...)
-		n, err = fmt.Fprint(log.Writer(), v...)
+		fmt.Fprint(w, v...)
+		fmt.Fprint(log.Writer(), v...)
 	}
 
 	mu.Unlock()
@@ -190,10 +197,12 @@ func Fprintln(w io.Writer, v ...any) (n int, err error) {
 	}
 
 	if log.Writer() == os.Stdout {
-		n, err = fmt.Fprintln(w, v...)
+		fmt.Fprintln(w, v...)
+	} else if log.Writer() == w {
+		fmt.Fprintln(log.Writer(), v...)
 	} else {
-		n, err = fmt.Fprintln(w, v...)
-		n, err = fmt.Fprintln(log.Writer(), v...)
+		fmt.Fprintln(w, v...)
+		fmt.Fprintln(log.Writer(), v...)
 	}
 	mu.Unlock()
 
@@ -208,10 +217,12 @@ func Fprintf(w io.Writer, format string, v ...any) (n int, err error) {
 	}
 
 	if log.Writer() == os.Stdout {
-		n, err = fmt.Fprintf(w, format, v...)
+		fmt.Fprintf(w, format, v...)
+	} else if log.Writer() == w {
+		fmt.Fprintf(log.Writer(), format, v...)
 	} else {
-		n, err = fmt.Fprintf(w, format, v...)
-		n, err = fmt.Fprintf(log.Writer(), format, v...)
+		fmt.Fprintf(w, format, v...)
+		fmt.Fprintf(log.Writer(), format, v...)
 	}
 
 	mu.Unlock()

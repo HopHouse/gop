@@ -23,7 +23,6 @@ package cmd
 
 import (
 	"os"
-	"path"
 
 	gopscannetwork "github.com/hophouse/gop/gopScanNetwork"
 	"github.com/hophouse/gop/utils/logger"
@@ -59,7 +58,7 @@ var scanNetworkCmd = &cobra.Command{
 				logger.Println("[!] Cannot use stdin and input-file at the same time.")
 				os.Exit(2)
 			}
-			reader, err = os.Open(path.Join("..", inputFileOption))
+			reader, err = os.Open(inputFileOption)
 			if err != nil {
 				panic(err)
 			}

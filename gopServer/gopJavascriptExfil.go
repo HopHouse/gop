@@ -19,7 +19,7 @@ import (
 )
 
 type JavascriptExfilServer struct {
-	Server   Server
+	Server   *Server
 	ExfilUrl string
 	Box      *packr.Box
 	InputMu  *sync.Mutex

@@ -22,18 +22,17 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
 var (
-	LogFile             *os.File
-	CurrentDirectory    string
-	CurrentLogDirectory string
+	LogFile          *os.File
+	CurrentDirectory string
 )
 
 var (
@@ -73,16 +72,17 @@ var rootCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		directoryNameOption = logger.CreateOutputDir(directoryNameOption, cmd.Use)
+		logger.CurrentLogDirectory = logger.CreateOutputDir(directoryNameOption, cmd.Use)
 
 		// Move to the new generated folder
-		os.Chdir(directoryNameOption)
-		mydir, err := os.Getwd()
-		if err != nil {
-			fmt.Printf("[-] Error when created log dir %s", mydir)
-		}
+		//os.Chdir(directoryNameOption)
+		//mydir, err := os.Getwd()
+		//if err != nil {
+		//	fmt.Printf("[-] Error when created log dir %s", mydir)
+		//}
 
-		logger.NewLoggerDateTime("logs.txt")
+		logFilePath := filepath.Join(logger.CurrentLogDirectory, logFileNameOption)
+		logger.NewLoggerDateTime(logFilePath)
 	},
 }
 

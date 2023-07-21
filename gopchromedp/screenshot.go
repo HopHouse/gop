@@ -18,7 +18,7 @@ import (
 func TakeScreenShot(item *Item, directory string, proxy string, cookie string, timeout int) {
 	// take screenshot for all item.Urls
 	if strings.HasSuffix(item.Url, ".pdf") {
-		logger.Println("[+] Do not take a screenshot of the PDF ", item.Url)
+		logger.Fprintln(logger.Writer(), "[+] Do not take a screenshot of the PDF ", item.Url)
 		return
 	}
 
@@ -72,30 +72,30 @@ func TakeScreenShot(item *Item, directory string, proxy string, cookie string, t
 		chromedp.Navigate(item.Url),
 	)
 	if err != nil {
-		logger.Println("[+] Error visiting the item.Url : ", item.Url, " - ", err)
+		logger.Fprintln(logger.Writer(), "[+] Error visiting the item.Url : ", item.Url, " - ", err)
 		return
 	}
 
 	// buffer
 	var buf []byte
 
-	logger.Println("[+] Taking a screenshot of ", item.Url)
+	logger.Fprintln(logger.Writer(), "[+] Taking a screenshot of ", item.Url)
 
 	// capture entire browser viewport, returning png with quality=90
 	if err := chromedp.Run(tcontext, fullScreenshot(90, &buf)); err != nil {
 		if strings.HasPrefix(err.Error(), "context deadline exceeded") {
-			logger.Printf("[!] Timeout error for item.Url %s - %s\n", item.Url, err)
+			logger.Fprintf(logger.Writer(), "[!] Timeout error for item.Url %s - %s\n", item.Url, err)
 		} else {
-			logger.Println("[!] Error in chromedp. Run for item.Url ", item.Url, " : ", err)
+			logger.Fprintf(logger.Writer(), "[!] Error in chromedp. Run for item.Url ", item.Url, " : ", err)
 		}
-		logger.Println("[-] Retry on :", item.Url)
+		logger.Fprintln(logger.Writer(), "[-] Retry on :", item.Url)
 
 		// Retry
 		if err := chromedp.Run(tcontext, fullScreenshot(90, &buf)); err != nil {
 			if strings.HasPrefix(err.Error(), "context deadline exceeded") {
-				logger.Printf("[!] 2nd time, timeout error for item.Url %s - %s\n", item.Url, err)
+				logger.Fprintf(logger.Writer(), "[!] 2nd time, timeout error for item.Url %s - %s\n", item.Url, err)
 			} else {
-				logger.Println("[!] 2nd time, error in chromedp.Run for item.Url ", item.Url, " : ", err)
+				logger.Fprintln(logger.Writer(), "[!] 2nd time, error in chromedp.Run for item.Url ", item.Url, " : ", err)
 			}
 		}
 		return
@@ -103,17 +103,17 @@ func TakeScreenShot(item *Item, directory string, proxy string, cookie string, t
 
 	// Check if the screenshot was taken
 	if len(buf) == 0 || len(buf) == 3249 {
-		logger.Println("[!] Error, screenshot not taken for ", item.Url, " because it had a size of 0 bytes")
+		logger.Fprintln(logger.Writer(), "[!] Error, screenshot not taken for ", item.Url, " because it had a size of 0 bytes")
 		return
 	}
-	filename := filepath.Join(directory, GetScreenshotFileName(item.Url))
+	filename := filepath.Join(logger.CurrentLogDirectory, GetScreenshotFileName(item.Url))
 
 	if err := os.WriteFile(filename, buf, 0644); err != nil {
-		logger.Println("Error in os.WriteFile ", err, " for item.Url ", item.Url, " with filename ", filename, " and size of ", len(buf))
+		logger.Fprintf(logger.Writer(), "Error in os.WriteFile ", err, " for item.Url ", item.Url, " with filename ", filename, " and size of ", len(buf))
 		return
 	}
 
-	logger.Println("[+] Took a screenshot of ", item.Url, " - ", filename, " with a size of ", len(buf))
+	logger.Fprintln(logger.Writer(), "[+] Took a screenshot of ", item.Url, " - ", filename, " with a size of ", len(buf))
 }
 
 // GetScreenshotFileName Compute the filename based on the item.Url.

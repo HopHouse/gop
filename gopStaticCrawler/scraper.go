@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -131,7 +132,7 @@ func defineCallBacks(c *colly.Collector) {
 
 			go func() {
 				item := gopchromedp.NewItem(r.Request.URL.String())
-				gopchromedp.TakeScreenShot(&item, "screenshots/", *GoCrawlerOptions.ProxyPtr, *GoCrawlerOptions.CookiePtr, *GoCrawlerOptions.DelayPtr)
+				gopchromedp.TakeScreenShot(&item, filepath.Join(logger.CurrentLogDirectory, "screenshots"), *GoCrawlerOptions.ProxyPtr, *GoCrawlerOptions.CookiePtr, *GoCrawlerOptions.DelayPtr)
 
 				// Add screenshot to list
 				ScreenshotList = append(ScreenshotList, item)
