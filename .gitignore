@@ -45,7 +45,7 @@ _testmain.go
 /test/run.out
 /test/times.out
 
-vendor/*
+#vendor/*
 workdir/*
 *.txt
 *.tex
