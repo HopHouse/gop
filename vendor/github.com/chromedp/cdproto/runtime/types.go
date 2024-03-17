@@ -24,7 +24,7 @@ func (t ScriptID) String() string {
 }
 
 // SerializationOptions represents options for serialization. Overrides
-// generatePreview, returnByValue and generateWebDriverValue.
+// generatePreview and returnByValue.
 //
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Runtime#type-SerializationOptions
 type SerializationOptions struct {
@@ -382,6 +382,7 @@ const (
 	DeepSerializedValueTypeArraybuffer DeepSerializedValueType = "arraybuffer"
 	DeepSerializedValueTypeNode        DeepSerializedValueType = "node"
 	DeepSerializedValueTypeWindow      DeepSerializedValueType = "window"
+	DeepSerializedValueTypeGenerator   DeepSerializedValueType = "generator"
 )
 
 // MarshalEasyJSON satisfies easyjson.Marshaler.
@@ -444,6 +445,8 @@ func (t *DeepSerializedValueType) UnmarshalEasyJSON(in *jlexer.Lexer) {
 		*t = DeepSerializedValueTypeNode
 	case DeepSerializedValueTypeWindow:
 		*t = DeepSerializedValueTypeWindow
+	case DeepSerializedValueTypeGenerator:
+		*t = DeepSerializedValueTypeGenerator
 
 	default:
 		in.AddError(fmt.Errorf("unknown DeepSerializedValueType value: %v", v))

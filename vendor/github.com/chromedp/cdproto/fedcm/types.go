@@ -56,8 +56,7 @@ func (t *LoginState) UnmarshalJSON(buf []byte) error {
 	return easyjson.Unmarshal(buf, t)
 }
 
-// DialogType whether the dialog shown is an account chooser or an auto
-// re-authentication dialog.
+// DialogType the types of FedCM dialogs.
 //
 // See: https://chromedevtools.github.io/devtools-protocol/tot/FedCm#type-DialogType
 type DialogType string
@@ -69,8 +68,10 @@ func (t DialogType) String() string {
 
 // DialogType values.
 const (
-	DialogTypeAccountChooser DialogType = "AccountChooser"
-	DialogTypeAutoReauthn    DialogType = "AutoReauthn"
+	DialogTypeAccountChooser  DialogType = "AccountChooser"
+	DialogTypeAutoReauthn     DialogType = "AutoReauthn"
+	DialogTypeConfirmIdpLogin DialogType = "ConfirmIdpLogin"
+	DialogTypeError           DialogType = "Error"
 )
 
 // MarshalEasyJSON satisfies easyjson.Marshaler.
@@ -91,6 +92,10 @@ func (t *DialogType) UnmarshalEasyJSON(in *jlexer.Lexer) {
 		*t = DialogTypeAccountChooser
 	case DialogTypeAutoReauthn:
 		*t = DialogTypeAutoReauthn
+	case DialogTypeConfirmIdpLogin:
+		*t = DialogTypeConfirmIdpLogin
+	case DialogTypeError:
+		*t = DialogTypeError
 
 	default:
 		in.AddError(fmt.Errorf("unknown DialogType value: %v", v))
@@ -99,6 +104,99 @@ func (t *DialogType) UnmarshalEasyJSON(in *jlexer.Lexer) {
 
 // UnmarshalJSON satisfies json.Unmarshaler.
 func (t *DialogType) UnmarshalJSON(buf []byte) error {
+	return easyjson.Unmarshal(buf, t)
+}
+
+// DialogButton the buttons on the FedCM dialog.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/FedCm#type-DialogButton
+type DialogButton string
+
+// String returns the DialogButton as string value.
+func (t DialogButton) String() string {
+	return string(t)
+}
+
+// DialogButton values.
+const (
+	DialogButtonConfirmIdpLoginContinue DialogButton = "ConfirmIdpLoginContinue"
+	DialogButtonErrorGotIt              DialogButton = "ErrorGotIt"
+	DialogButtonErrorMoreDetails        DialogButton = "ErrorMoreDetails"
+)
+
+// MarshalEasyJSON satisfies easyjson.Marshaler.
+func (t DialogButton) MarshalEasyJSON(out *jwriter.Writer) {
+	out.String(string(t))
+}
+
+// MarshalJSON satisfies json.Marshaler.
+func (t DialogButton) MarshalJSON() ([]byte, error) {
+	return easyjson.Marshal(t)
+}
+
+// UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
+func (t *DialogButton) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	v := in.String()
+	switch DialogButton(v) {
+	case DialogButtonConfirmIdpLoginContinue:
+		*t = DialogButtonConfirmIdpLoginContinue
+	case DialogButtonErrorGotIt:
+		*t = DialogButtonErrorGotIt
+	case DialogButtonErrorMoreDetails:
+		*t = DialogButtonErrorMoreDetails
+
+	default:
+		in.AddError(fmt.Errorf("unknown DialogButton value: %v", v))
+	}
+}
+
+// UnmarshalJSON satisfies json.Unmarshaler.
+func (t *DialogButton) UnmarshalJSON(buf []byte) error {
+	return easyjson.Unmarshal(buf, t)
+}
+
+// AccountURLType the URLs that each account has.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/FedCm#type-AccountUrlType
+type AccountURLType string
+
+// String returns the AccountURLType as string value.
+func (t AccountURLType) String() string {
+	return string(t)
+}
+
+// AccountURLType values.
+const (
+	AccountURLTypeTermsOfService AccountURLType = "TermsOfService"
+	AccountURLTypePrivacyPolicy  AccountURLType = "PrivacyPolicy"
+)
+
+// MarshalEasyJSON satisfies easyjson.Marshaler.
+func (t AccountURLType) MarshalEasyJSON(out *jwriter.Writer) {
+	out.String(string(t))
+}
+
+// MarshalJSON satisfies json.Marshaler.
+func (t AccountURLType) MarshalJSON() ([]byte, error) {
+	return easyjson.Marshal(t)
+}
+
+// UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
+func (t *AccountURLType) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	v := in.String()
+	switch AccountURLType(v) {
+	case AccountURLTypeTermsOfService:
+		*t = AccountURLTypeTermsOfService
+	case AccountURLTypePrivacyPolicy:
+		*t = AccountURLTypePrivacyPolicy
+
+	default:
+		in.AddError(fmt.Errorf("unknown AccountURLType value: %v", v))
+	}
+}
+
+// UnmarshalJSON satisfies json.Unmarshaler.
+func (t *AccountURLType) UnmarshalJSON(buf []byte) error {
 	return easyjson.Unmarshal(buf, t)
 }
 
@@ -112,7 +210,7 @@ type Account struct {
 	GivenName         string     `json:"givenName"`
 	PictureURL        string     `json:"pictureUrl"`
 	IdpConfigURL      string     `json:"idpConfigUrl"`
-	IdpSigninURL      string     `json:"idpSigninUrl"`
+	IdpLoginURL       string     `json:"idpLoginUrl"`
 	LoginState        LoginState `json:"loginState"`
 	TermsOfServiceURL string     `json:"termsOfServiceUrl,omitempty"` // These two are only set if the loginState is signUp
 	PrivacyPolicyURL  string     `json:"privacyPolicyUrl,omitempty"`

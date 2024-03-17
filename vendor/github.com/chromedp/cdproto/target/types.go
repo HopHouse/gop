@@ -32,7 +32,7 @@ func (t SessionID) String() string {
 type Info struct {
 	TargetID         ID                   `json:"targetId"`
 	Type             string               `json:"type"`
-	Title            string               `json:"title"`
+	Title            string               `json:"title"` // List of types: https://source.chromium.org/chromium/chromium/src/+/main:content/browser/devtools/devtools_agent_host_impl.cc?ss=chromium&q=f:devtools%20-f:out%20%22::kTypeTab%5B%5D%22
 	URL              string               `json:"url"`
 	Attached         bool                 `json:"attached"`                // Whether the target has an attached client.
 	OpenerID         ID                   `json:"openerId,omitempty"`      // Opener target Id
@@ -47,7 +47,7 @@ type Info struct {
 //
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Target#type-FilterEntry
 type FilterEntry struct {
-	Exclude bool   `json:"exclude,omitempty"` // If set, causes exclusion of mathcing targets from the list.
+	Exclude bool   `json:"exclude,omitempty"` // If set, causes exclusion of matching targets from the list.
 	Type    string `json:"type,omitempty"`    // If not present, matches any type.
 }
 
@@ -59,7 +59,7 @@ type FilterEntry struct {
 //
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Target#type-TargetFilter
 type Filter []struct {
-	Exclude bool   `json:"exclude,omitempty"` // If set, causes exclusion of mathcing targets from the list.
+	Exclude bool   `json:"exclude,omitempty"` // If set, causes exclusion of matching targets from the list.
 	Type    string `json:"type,omitempty"`    // If not present, matches any type.
 }
 

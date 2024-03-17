@@ -32,7 +32,7 @@ type RuleSet struct {
 	BackendNodeID cdp.BackendNodeID `json:"backendNodeId,omitempty"` // A speculation rule set is either added through an inline <script> tag or through an external resource via the 'Speculation-Rules' HTTP header. For the first case, we include the BackendNodeId of the relevant <script> tag. For the second case, we include the external URL where the rule set was loaded from, and also RequestId if Network domain is enabled.  See also: - https://wicg.github.io/nav-speculation/speculation-rules.html#speculation-rules-script - https://wicg.github.io/nav-speculation/speculation-rules.html#speculation-rules-header
 	URL           string            `json:"url,omitempty"`
 	RequestID     network.RequestID `json:"requestId,omitempty"`
-	ErrorType     RuleSetErrorType  `json:"errorType,omitempty"` // Error information errorMessage is null iff errorType is null.
+	ErrorType     RuleSetErrorType  `json:"errorType,omitempty"` // Error information errorMessage is null if errorType is null.
 }
 
 // RuleSetErrorType [no description].
@@ -217,7 +217,6 @@ const (
 	PrerenderFinalStatusLowEndDevice                                               PrerenderFinalStatus = "LowEndDevice"
 	PrerenderFinalStatusInvalidSchemeRedirect                                      PrerenderFinalStatus = "InvalidSchemeRedirect"
 	PrerenderFinalStatusInvalidSchemeNavigation                                    PrerenderFinalStatus = "InvalidSchemeNavigation"
-	PrerenderFinalStatusInProgressNavigation                                       PrerenderFinalStatus = "InProgressNavigation"
 	PrerenderFinalStatusNavigationRequestBlockedByCsp                              PrerenderFinalStatus = "NavigationRequestBlockedByCsp"
 	PrerenderFinalStatusMainFrameNavigation                                        PrerenderFinalStatus = "MainFrameNavigation"
 	PrerenderFinalStatusMojoBinderPolicy                                           PrerenderFinalStatus = "MojoBinderPolicy"
@@ -229,7 +228,6 @@ const (
 	PrerenderFinalStatusNavigationBadHTTPStatus                                    PrerenderFinalStatus = "NavigationBadHttpStatus"
 	PrerenderFinalStatusClientCertRequested                                        PrerenderFinalStatus = "ClientCertRequested"
 	PrerenderFinalStatusNavigationRequestNetworkError                              PrerenderFinalStatus = "NavigationRequestNetworkError"
-	PrerenderFinalStatusMaxNumOfRunningPrerendersExceeded                          PrerenderFinalStatus = "MaxNumOfRunningPrerendersExceeded"
 	PrerenderFinalStatusCancelAllHostsForTesting                                   PrerenderFinalStatus = "CancelAllHostsForTesting"
 	PrerenderFinalStatusDidFailLoad                                                PrerenderFinalStatus = "DidFailLoad"
 	PrerenderFinalStatusStop                                                       PrerenderFinalStatus = "Stop"
@@ -240,11 +238,9 @@ const (
 	PrerenderFinalStatusAudioOutputDeviceRequested                                 PrerenderFinalStatus = "AudioOutputDeviceRequested"
 	PrerenderFinalStatusMixedContent                                               PrerenderFinalStatus = "MixedContent"
 	PrerenderFinalStatusTriggerBackgrounded                                        PrerenderFinalStatus = "TriggerBackgrounded"
-	PrerenderFinalStatusEmbedderTriggeredAndCrossOriginRedirected                  PrerenderFinalStatus = "EmbedderTriggeredAndCrossOriginRedirected"
 	PrerenderFinalStatusMemoryLimitExceeded                                        PrerenderFinalStatus = "MemoryLimitExceeded"
-	PrerenderFinalStatusFailToGetMemoryUsage                                       PrerenderFinalStatus = "FailToGetMemoryUsage"
 	PrerenderFinalStatusDataSaverEnabled                                           PrerenderFinalStatus = "DataSaverEnabled"
-	PrerenderFinalStatusHasEffectiveURL                                            PrerenderFinalStatus = "HasEffectiveUrl"
+	PrerenderFinalStatusTriggerURLHasEffectiveURL                                  PrerenderFinalStatus = "TriggerUrlHasEffectiveUrl"
 	PrerenderFinalStatusActivatedBeforeStarted                                     PrerenderFinalStatus = "ActivatedBeforeStarted"
 	PrerenderFinalStatusInactivePageRestriction                                    PrerenderFinalStatus = "InactivePageRestriction"
 	PrerenderFinalStatusStartFailed                                                PrerenderFinalStatus = "StartFailed"
@@ -273,8 +269,14 @@ const (
 	PrerenderFinalStatusMemoryPressureOnTrigger                                    PrerenderFinalStatus = "MemoryPressureOnTrigger"
 	PrerenderFinalStatusMemoryPressureAfterTriggered                               PrerenderFinalStatus = "MemoryPressureAfterTriggered"
 	PrerenderFinalStatusPrerenderingDisabledByDevTools                             PrerenderFinalStatus = "PrerenderingDisabledByDevTools"
-	PrerenderFinalStatusResourceLoadBlockedByClient                                PrerenderFinalStatus = "ResourceLoadBlockedByClient"
 	PrerenderFinalStatusSpeculationRuleRemoved                                     PrerenderFinalStatus = "SpeculationRuleRemoved"
+	PrerenderFinalStatusActivatedWithAuxiliaryBrowsingContexts                     PrerenderFinalStatus = "ActivatedWithAuxiliaryBrowsingContexts"
+	PrerenderFinalStatusMaxNumOfRunningEagerPrerendersExceeded                     PrerenderFinalStatus = "MaxNumOfRunningEagerPrerendersExceeded"
+	PrerenderFinalStatusMaxNumOfRunningNonEagerPrerendersExceeded                  PrerenderFinalStatus = "MaxNumOfRunningNonEagerPrerendersExceeded"
+	PrerenderFinalStatusMaxNumOfRunningEmbedderPrerendersExceeded                  PrerenderFinalStatus = "MaxNumOfRunningEmbedderPrerendersExceeded"
+	PrerenderFinalStatusPrerenderingURLHasEffectiveURL                             PrerenderFinalStatus = "PrerenderingUrlHasEffectiveUrl"
+	PrerenderFinalStatusRedirectedPrerenderingURLHasEffectiveURL                   PrerenderFinalStatus = "RedirectedPrerenderingUrlHasEffectiveUrl"
+	PrerenderFinalStatusActivationURLHasEffectiveURL                               PrerenderFinalStatus = "ActivationUrlHasEffectiveUrl"
 )
 
 // MarshalEasyJSON satisfies easyjson.Marshaler.
@@ -301,8 +303,6 @@ func (t *PrerenderFinalStatus) UnmarshalEasyJSON(in *jlexer.Lexer) {
 		*t = PrerenderFinalStatusInvalidSchemeRedirect
 	case PrerenderFinalStatusInvalidSchemeNavigation:
 		*t = PrerenderFinalStatusInvalidSchemeNavigation
-	case PrerenderFinalStatusInProgressNavigation:
-		*t = PrerenderFinalStatusInProgressNavigation
 	case PrerenderFinalStatusNavigationRequestBlockedByCsp:
 		*t = PrerenderFinalStatusNavigationRequestBlockedByCsp
 	case PrerenderFinalStatusMainFrameNavigation:
@@ -325,8 +325,6 @@ func (t *PrerenderFinalStatus) UnmarshalEasyJSON(in *jlexer.Lexer) {
 		*t = PrerenderFinalStatusClientCertRequested
 	case PrerenderFinalStatusNavigationRequestNetworkError:
 		*t = PrerenderFinalStatusNavigationRequestNetworkError
-	case PrerenderFinalStatusMaxNumOfRunningPrerendersExceeded:
-		*t = PrerenderFinalStatusMaxNumOfRunningPrerendersExceeded
 	case PrerenderFinalStatusCancelAllHostsForTesting:
 		*t = PrerenderFinalStatusCancelAllHostsForTesting
 	case PrerenderFinalStatusDidFailLoad:
@@ -347,16 +345,12 @@ func (t *PrerenderFinalStatus) UnmarshalEasyJSON(in *jlexer.Lexer) {
 		*t = PrerenderFinalStatusMixedContent
 	case PrerenderFinalStatusTriggerBackgrounded:
 		*t = PrerenderFinalStatusTriggerBackgrounded
-	case PrerenderFinalStatusEmbedderTriggeredAndCrossOriginRedirected:
-		*t = PrerenderFinalStatusEmbedderTriggeredAndCrossOriginRedirected
 	case PrerenderFinalStatusMemoryLimitExceeded:
 		*t = PrerenderFinalStatusMemoryLimitExceeded
-	case PrerenderFinalStatusFailToGetMemoryUsage:
-		*t = PrerenderFinalStatusFailToGetMemoryUsage
 	case PrerenderFinalStatusDataSaverEnabled:
 		*t = PrerenderFinalStatusDataSaverEnabled
-	case PrerenderFinalStatusHasEffectiveURL:
-		*t = PrerenderFinalStatusHasEffectiveURL
+	case PrerenderFinalStatusTriggerURLHasEffectiveURL:
+		*t = PrerenderFinalStatusTriggerURLHasEffectiveURL
 	case PrerenderFinalStatusActivatedBeforeStarted:
 		*t = PrerenderFinalStatusActivatedBeforeStarted
 	case PrerenderFinalStatusInactivePageRestriction:
@@ -413,10 +407,22 @@ func (t *PrerenderFinalStatus) UnmarshalEasyJSON(in *jlexer.Lexer) {
 		*t = PrerenderFinalStatusMemoryPressureAfterTriggered
 	case PrerenderFinalStatusPrerenderingDisabledByDevTools:
 		*t = PrerenderFinalStatusPrerenderingDisabledByDevTools
-	case PrerenderFinalStatusResourceLoadBlockedByClient:
-		*t = PrerenderFinalStatusResourceLoadBlockedByClient
 	case PrerenderFinalStatusSpeculationRuleRemoved:
 		*t = PrerenderFinalStatusSpeculationRuleRemoved
+	case PrerenderFinalStatusActivatedWithAuxiliaryBrowsingContexts:
+		*t = PrerenderFinalStatusActivatedWithAuxiliaryBrowsingContexts
+	case PrerenderFinalStatusMaxNumOfRunningEagerPrerendersExceeded:
+		*t = PrerenderFinalStatusMaxNumOfRunningEagerPrerendersExceeded
+	case PrerenderFinalStatusMaxNumOfRunningNonEagerPrerendersExceeded:
+		*t = PrerenderFinalStatusMaxNumOfRunningNonEagerPrerendersExceeded
+	case PrerenderFinalStatusMaxNumOfRunningEmbedderPrerendersExceeded:
+		*t = PrerenderFinalStatusMaxNumOfRunningEmbedderPrerendersExceeded
+	case PrerenderFinalStatusPrerenderingURLHasEffectiveURL:
+		*t = PrerenderFinalStatusPrerenderingURLHasEffectiveURL
+	case PrerenderFinalStatusRedirectedPrerenderingURLHasEffectiveURL:
+		*t = PrerenderFinalStatusRedirectedPrerenderingURLHasEffectiveURL
+	case PrerenderFinalStatusActivationURLHasEffectiveURL:
+		*t = PrerenderFinalStatusActivationURLHasEffectiveURL
 
 	default:
 		in.AddError(fmt.Errorf("unknown PrerenderFinalStatus value: %v", v))
@@ -507,7 +513,8 @@ const (
 	PrefetchStatusPrefetchFailedNetError                                      PrefetchStatus = "PrefetchFailedNetError"
 	PrefetchStatusPrefetchFailedNon2xX                                        PrefetchStatus = "PrefetchFailedNon2XX"
 	PrefetchStatusPrefetchFailedPerPageLimitExceeded                          PrefetchStatus = "PrefetchFailedPerPageLimitExceeded"
-	PrefetchStatusPrefetchEvicted                                             PrefetchStatus = "PrefetchEvicted"
+	PrefetchStatusPrefetchEvictedAfterCandidateRemoved                        PrefetchStatus = "PrefetchEvictedAfterCandidateRemoved"
+	PrefetchStatusPrefetchEvictedForNewerPrefetch                             PrefetchStatus = "PrefetchEvictedForNewerPrefetch"
 	PrefetchStatusPrefetchHeldback                                            PrefetchStatus = "PrefetchHeldback"
 	PrefetchStatusPrefetchIneligibleRetryAfter                                PrefetchStatus = "PrefetchIneligibleRetryAfter"
 	PrefetchStatusPrefetchIsPrivacyDecoy                                      PrefetchStatus = "PrefetchIsPrivacyDecoy"
@@ -560,8 +567,10 @@ func (t *PrefetchStatus) UnmarshalEasyJSON(in *jlexer.Lexer) {
 		*t = PrefetchStatusPrefetchFailedNon2xX
 	case PrefetchStatusPrefetchFailedPerPageLimitExceeded:
 		*t = PrefetchStatusPrefetchFailedPerPageLimitExceeded
-	case PrefetchStatusPrefetchEvicted:
-		*t = PrefetchStatusPrefetchEvicted
+	case PrefetchStatusPrefetchEvictedAfterCandidateRemoved:
+		*t = PrefetchStatusPrefetchEvictedAfterCandidateRemoved
+	case PrefetchStatusPrefetchEvictedForNewerPrefetch:
+		*t = PrefetchStatusPrefetchEvictedForNewerPrefetch
 	case PrefetchStatusPrefetchHeldback:
 		*t = PrefetchStatusPrefetchHeldback
 	case PrefetchStatusPrefetchIneligibleRetryAfter:
@@ -615,4 +624,14 @@ func (t *PrefetchStatus) UnmarshalEasyJSON(in *jlexer.Lexer) {
 // UnmarshalJSON satisfies json.Unmarshaler.
 func (t *PrefetchStatus) UnmarshalJSON(buf []byte) error {
 	return easyjson.Unmarshal(buf, t)
+}
+
+// PrerenderMismatchedHeaders information of headers to be displayed when the
+// header mismatch occurred.
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/Preload#type-PrerenderMismatchedHeaders
+type PrerenderMismatchedHeaders struct {
+	HeaderName      string `json:"headerName"`
+	InitialValue    string `json:"initialValue,omitempty"`
+	ActivationValue string `json:"activationValue,omitempty"`
 }

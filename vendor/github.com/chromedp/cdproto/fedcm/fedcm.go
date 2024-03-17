@@ -82,6 +82,61 @@ func (p *SelectAccountParams) Do(ctx context.Context) (err error) {
 	return cdp.Execute(ctx, CommandSelectAccount, p, nil)
 }
 
+// ClickDialogButtonParams [no description].
+type ClickDialogButtonParams struct {
+	DialogID     string       `json:"dialogId"`
+	DialogButton DialogButton `json:"dialogButton"`
+}
+
+// ClickDialogButton [no description].
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/FedCm#method-clickDialogButton
+//
+// parameters:
+//
+//	dialogID
+//	dialogButton
+func ClickDialogButton(dialogID string, dialogButton DialogButton) *ClickDialogButtonParams {
+	return &ClickDialogButtonParams{
+		DialogID:     dialogID,
+		DialogButton: dialogButton,
+	}
+}
+
+// Do executes FedCm.clickDialogButton against the provided context.
+func (p *ClickDialogButtonParams) Do(ctx context.Context) (err error) {
+	return cdp.Execute(ctx, CommandClickDialogButton, p, nil)
+}
+
+// OpenURLParams [no description].
+type OpenURLParams struct {
+	DialogID       string         `json:"dialogId"`
+	AccountIndex   int64          `json:"accountIndex"`
+	AccountURLType AccountURLType `json:"accountUrlType"`
+}
+
+// OpenURL [no description].
+//
+// See: https://chromedevtools.github.io/devtools-protocol/tot/FedCm#method-openUrl
+//
+// parameters:
+//
+//	dialogID
+//	accountIndex
+//	accountURLType
+func OpenURL(dialogID string, accountIndex int64, accountURLType AccountURLType) *OpenURLParams {
+	return &OpenURLParams{
+		DialogID:       dialogID,
+		AccountIndex:   accountIndex,
+		AccountURLType: accountURLType,
+	}
+}
+
+// Do executes FedCm.openUrl against the provided context.
+func (p *OpenURLParams) Do(ctx context.Context) (err error) {
+	return cdp.Execute(ctx, CommandOpenURL, p, nil)
+}
+
 // DismissDialogParams [no description].
 type DismissDialogParams struct {
 	DialogID        string `json:"dialogId"`
@@ -131,9 +186,11 @@ func (p *ResetCooldownParams) Do(ctx context.Context) (err error) {
 
 // Command names.
 const (
-	CommandEnable        = "FedCm.enable"
-	CommandDisable       = "FedCm.disable"
-	CommandSelectAccount = "FedCm.selectAccount"
-	CommandDismissDialog = "FedCm.dismissDialog"
-	CommandResetCooldown = "FedCm.resetCooldown"
+	CommandEnable            = "FedCm.enable"
+	CommandDisable           = "FedCm.disable"
+	CommandSelectAccount     = "FedCm.selectAccount"
+	CommandClickDialogButton = "FedCm.clickDialogButton"
+	CommandOpenURL           = "FedCm.openUrl"
+	CommandDismissDialog     = "FedCm.dismissDialog"
+	CommandResetCooldown     = "FedCm.resetCooldown"
 )

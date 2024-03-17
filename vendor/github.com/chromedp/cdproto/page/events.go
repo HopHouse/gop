@@ -114,7 +114,7 @@ type EventJavascriptDialogOpening struct {
 	URL               string     `json:"url"`                     // Frame url.
 	Message           string     `json:"message"`                 // Message that will be displayed by the dialog.
 	Type              DialogType `json:"type"`                    // Dialog type.
-	HasBrowserHandler bool       `json:"hasBrowserHandler"`       // True iff browser is capable showing or acting on the given dialog. When browser has no dialog handler for given target, calling alert while Page domain is engaged will stall the page execution. Execution can be resumed via calling Page.handleJavaScriptDialog.
+	HasBrowserHandler bool       `json:"hasBrowserHandler"`       // True if browser is capable showing or acting on the given dialog. When browser has no dialog handler for given target, calling alert while Page domain is engaged will stall the page execution. Execution can be resumed via calling Page.handleJavaScriptDialog.
 	DefaultPrompt     string     `json:"defaultPrompt,omitempty"` // Default dialog prompt.
 }
 
@@ -137,7 +137,7 @@ type EventLifecycleEvent struct {
 //
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Page#event-backForwardCacheNotUsed
 type EventBackForwardCacheNotUsed struct {
-	LoaderID                    cdp.LoaderID                                `json:"loaderId"`                              // The loader id for the associated navgation.
+	LoaderID                    cdp.LoaderID                                `json:"loaderId"`                              // The loader id for the associated navigation.
 	FrameID                     cdp.FrameID                                 `json:"frameId"`                               // The frame id of the associated frame.
 	NotRestoredExplanations     []*BackForwardCacheNotRestoredExplanation   `json:"notRestoredExplanations"`               // Array of reasons why the page could not be cached. This must not be empty.
 	NotRestoredExplanationsTree *BackForwardCacheNotRestoredExplanationTree `json:"notRestoredExplanationsTree,omitempty"` // Tree structure of reasons why the page could not be cached for each frame.
