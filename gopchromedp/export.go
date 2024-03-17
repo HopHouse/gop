@@ -1,25 +1,28 @@
 package gopchromedp
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
 
-	"github.com/gobuffalo/packr/v2"
 	"github.com/hophouse/gop/utils/logger"
+)
+
+var (
+	//go:embed template/*
+	box embed.FS
 )
 
 // GetScreenshotHTML Create the HTML page that references all the taken screenshots.
 func ExportHTMLPage() string {
-	var htmlCode string
-
-	box := packr.New("Application", "./template")
-
-	htmlCode, err := box.FindString("base.html")
+	htmlCode, err := box.ReadFile("template/base.html")
 	if err != nil {
 		logger.Fatal(err)
 	}
 
-	return htmlCode
+	htmlCodeStr := string(htmlCode[:])
+
+	return htmlCodeStr
 }
 
 func ExportLoadedResources(items []Item) string {

@@ -2,6 +2,7 @@ package gopserver
 
 import (
 	"bufio"
+	"embed"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gobuffalo/packr/v2"
 	"github.com/gorilla/mux"
 	"github.com/hophouse/gop/utils"
 	"github.com/hophouse/gop/utils/logger"
@@ -21,9 +21,14 @@ import (
 type JavascriptExfilServer struct {
 	Server   *Server
 	ExfilUrl string
-	Box      *packr.Box
-	InputMu  *sync.Mutex
+	//Box      *packr.Box
+	InputMu *sync.Mutex
 }
+
+var (
+	//go:embed JSExfil/*
+	box embed.FS
+)
 
 func (js JavascriptExfilServer) GetServer(r *mux.Router, n *negroni.Negroni) (http.Server, error) {
 
@@ -82,7 +87,8 @@ func (js JavascriptExfilServer) CreateRouter() *mux.Router {
 }
 
 func (js JavascriptExfilServer) indexHandler(w http.ResponseWriter, r *http.Request) {
-	htmlCode, err := js.Box.FindString("index.html")
+
+	htmlCode, err := box.ReadFile("index.html")
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -91,7 +97,7 @@ func (js JavascriptExfilServer) indexHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (js JavascriptExfilServer) jSUtilsHandler(w http.ResponseWriter, r *http.Request) {
-	jsCode, err := js.Box.FindString("utils.js")
+	jsCode, err := box.ReadFile("utils.js")
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -100,7 +106,7 @@ func (js JavascriptExfilServer) jSUtilsHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (js JavascriptExfilServer) jSCustomHandler(w http.ResponseWriter, r *http.Request) {
-	jsCode, err := js.Box.FindString("custom.js")
+	jsCode, err := box.ReadFile("custom.js")
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -109,14 +115,14 @@ func (js JavascriptExfilServer) jSCustomHandler(w http.ResponseWriter, r *http.R
 }
 
 func (js JavascriptExfilServer) jSExfilHandler(w http.ResponseWriter, r *http.Request) {
-	jsCode, err := js.Box.FindString("exfil.js")
+	jsCode, err := box.ReadFile("exfil.js")
 	if err != nil {
 		logger.Fatal(err)
 	}
 
-	jsCode = strings.ReplaceAll(jsCode, "{{EXFIL-URL}}", js.getExfilUrl())
+	jsCodeStr := strings.ReplaceAll(string(jsCode[:]), "{{EXFIL-URL}}", js.getExfilUrl())
 
-	fmt.Fprintf(w, "%s\n", jsCode)
+	fmt.Fprintf(w, "%s\n", jsCodeStr)
 }
 
 func (js JavascriptExfilServer) jSExfilInputHandler(w http.ResponseWriter, r *http.Request) {

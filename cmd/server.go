@@ -2,11 +2,9 @@ package cmd
 
 import (
 	"net"
-	"os"
 	"path/filepath"
 	"sync"
 
-	"github.com/gobuffalo/packr/v2"
 	gopserver "github.com/hophouse/gop/gopServer"
 	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
@@ -134,33 +132,38 @@ var serverJSExfilHTTPCmd = &cobra.Command{
 				Vhost:  vhostOption,
 			},
 			ExfilUrl: exfilUrlOption,
-			Box:      packr.New("JSExfil", "../gopServer/JSExfil"),
-			InputMu:  &sync.Mutex{},
+			//Box:      packr.New("JSExfil", "../gopServer/JSExfil"),
+			InputMu: &sync.Mutex{},
 		}
+		/*
+			 * Disabled following the depreciation of packr v2 and the chose of go:embed
+			if customHTMLFile != "" {
+				index, err := os.ReadFile(customHTMLFile)
+				if err != nil {
+					logger.Fatalln(err)
+				}
 
-		if customHTMLFile != "" {
-			index, err := os.ReadFile(customHTMLFile)
-			if err != nil {
-				logger.Fatalln(err)
+				err = js.Box.AddBytes("index.html", index)
+				if err != nil {
+					logger.Fatalln(err)
+				}
 			}
+		*/
 
-			err = js.Box.AddBytes("index.html", index)
-			if err != nil {
-				logger.Fatalln(err)
-			}
-		}
+		/*
+			 * Disabled following the depreciation of packr v2 and the chose of go:embed
+			if customJSFile != "" {
+				customJS, err := os.ReadFile(customJSFile)
+				if err != nil {
+					logger.Fatalln(err)
+				}
 
-		if customJSFile != "" {
-			customJS, err := os.ReadFile(customJSFile)
-			if err != nil {
-				logger.Fatalln(err)
+				err = js.Box.AddBytes("custom.js", customJS)
+				if err != nil {
+					logger.Fatalln(err)
+				}
 			}
-
-			err = js.Box.AddBytes("custom.js", customJS)
-			if err != nil {
-				logger.Fatalln(err)
-			}
-		}
+		*/
 		if httpsOption {
 			js.Server.Scheme = "https"
 			gopserver.RunServerHTTPSCmd(js)
@@ -214,6 +217,6 @@ func init() {
 	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&vhostOption, "vhost", "v", "", "Virtual host to use for the server.")
 	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&exfilUrlOption, "exfil-url", "", "", "Exfil URL in a form of http(s)://domain.tld.")
 	serverJSExfilHTTPCmd.PersistentFlags().BoolVarP(&httpsOption, "https", "", false, "Define whether or not an SSL/TLS layer is added.")
-	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&customHTMLFile, "custom-html", "", "", "Define a custom HTML file to use.")
-	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&customJSFile, "custom-js", "", "", "Define a custom JavaScript file to use.")
+	//serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&customHTMLFile, "custom-html", "", "", "Define a custom HTML file to use.")
+	//serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&customJSFile, "custom-js", "", "", "Define a custom JavaScript file to use.")
 }
