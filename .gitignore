@@ -56,3 +56,7 @@ Gopkg.lock
 gop
 gop.exe
 .vscode/
+
+
+# direnv
+.direnv
