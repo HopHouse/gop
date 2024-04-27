@@ -317,7 +317,10 @@ func handleSocksServerNegociation(tunnel tunnelInterface) (string, string, error
 		return "", "", err
 	}
 	logger.Println("\t[+] Sending method selection")
-	tunnel.Write(methodSelectionMessageBuff)
+	_, err = tunnel.Write(methodSelectionMessageBuff)
+	if err != nil {
+		logger.Printf("Error write : %s\n", err)
+	}
 
 	// Receive first request
 	buf = make([]byte, 4096)
@@ -347,7 +350,10 @@ func handleSocksServerNegociation(tunnel tunnelInterface) (string, string, error
 		return "", "", err
 	}
 	logger.Println("\t[+] Send response with size :", len(responseBuff))
-	tunnel.Write(responseBuff)
+	_, err = tunnel.Write(responseBuff)
+	if err != nil {
+		logger.Printf("Error write : %s\n", err)
+	}
 
 	network, _ := request.getNetwork()
 	address, _ := request.getAddress()
@@ -365,7 +371,10 @@ func handleSocksClientNegociation(connTunnel net.Conn, connSocks net.Conn) error
 	}
 
 	// Send Version Identifier to proxy server through the tunnel
-	connTunnel.Write(buf[:n])
+	_, err = connTunnel.Write(buf[:n])
+	if err != nil {
+		logger.Printf("Error write : %s\n", err)
+	}
 
 	// Receive method selection message from the socks server trough tunnel
 	buf = make([]byte, 4096)
@@ -375,7 +384,10 @@ func handleSocksClientNegociation(connTunnel net.Conn, connSocks net.Conn) error
 	}
 
 	// Send method selection message to the proxy client
-	connSocks.Write(buf[:n])
+	_, err = connSocks.Write(buf[:n])
+	if err != nil {
+		logger.Printf("Error write : %s\n", err)
+	}
 
 	// Receive request from proxy client
 	buf = make([]byte, 4096)
@@ -385,7 +397,10 @@ func handleSocksClientNegociation(connTunnel net.Conn, connSocks net.Conn) error
 	}
 
 	// Send request to sock server through tunnel
-	connTunnel.Write(buf[:n])
+	_, err = connTunnel.Write(buf[:n])
+	if err != nil {
+		logger.Printf("Error write : %s\n", err)
+	}
 
 	// Receive response from sock server through tunnel
 	buf = make([]byte, 4096)
@@ -395,7 +410,10 @@ func handleSocksClientNegociation(connTunnel net.Conn, connSocks net.Conn) error
 	}
 
 	// Send response to the proxy client
-	connSocks.Write(buf[:n])
+	_, err = connSocks.Write(buf[:n])
+	if err != nil {
+		logger.Printf("Error write : %s\n", err)
+	}
 
 	return nil
 }

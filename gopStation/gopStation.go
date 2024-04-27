@@ -97,16 +97,22 @@ func RunServerCmd(tcpAddress string, sslAddress string) {
 		}
 
 		serverCertPEM := new(bytes.Buffer)
-		pem.Encode(serverCertPEM, &pem.Block{
+		err = pem.Encode(serverCertPEM, &pem.Block{
 			Type:  "CERTIFICATE",
 			Bytes: caBytes,
 		})
+		if err != nil {
+			logger.Println(err)
+		}
 
 		serverPrivKeyPEM := new(bytes.Buffer)
-		pem.Encode(serverPrivKeyPEM, &pem.Block{
+		err = pem.Encode(serverPrivKeyPEM, &pem.Block{
 			Type:  "RSA PRIVATE KEY",
 			Bytes: x509.MarshalPKCS1PrivateKey(serverKey),
 		})
+		if err != nil {
+			logger.Println(err)
+		}
 
 		cer, err := tls.X509KeyPair(serverCertPEM.Bytes(), serverPrivKeyPEM.Bytes())
 		if err != nil {
@@ -160,7 +166,7 @@ func RunServerCmd(tcpAddress string, sslAddress string) {
 
 		input, _ := reader.ReadString('\n')
 		// convert CRLF to LF
-		input = strings.Replace(input, "\n", "", -1)
+		input = strings.ReplaceAll(input, "\n", "")
 		commands := strings.Split(strings.TrimSpace(input), " ")
 
 		if currentAgent != nil {
@@ -332,14 +338,18 @@ func displayHelp() {
 }
 
 func runShell(currentAgent *agentStruct) {
-
-	go io.Copy(os.Stdout, currentAgent.conn)
+	go func() {
+		_, err := io.Copy(os.Stdout, currentAgent.conn)
+		if err != nil {
+			logger.Println(err)
+		}
+	}()
 
 	for {
 		reader := bufio.NewReader(os.Stdin)
 		input, _ := reader.ReadString('\n')
 		// convert CRLF to LF
-		input = strings.Replace(input, "\n", "", -1)
+		input = strings.ReplaceAll(input, "\n", "")
 		command := strings.TrimSpace(input)
 		commandSlice := strings.Split(command, " ")
 

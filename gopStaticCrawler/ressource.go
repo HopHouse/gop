@@ -69,8 +69,8 @@ func (ressource *Ressource) equal(newRessource *Ressource) bool {
 
 func AddRessourceIfDoNotExists(ressources *[]*Ressource, ressource *Ressource) bool {
 	for _, item := range *ressources {
-		if added := item.equal(ressource); added == true {
-			//logger.Println("[-] Ressource already present ", ressource.Url)
+		if added := item.equal(ressource); added {
+			// logger.Println("[-] Ressource already present ", ressource.Url)
 			return false
 		}
 	}
@@ -82,7 +82,7 @@ func AddRessourceIfDoNotExists(ressources *[]*Ressource, ressource *Ressource) b
 func (ressource Ressource) ressourceString() string {
 	var result string
 	var secureString string
-	if ressource.Secure == true {
+	if ressource.Secure {
 		secureString = color.FgGreen.Render("HTTPS")
 	} else {
 		secureString = color.FgRed.Render("HTTP")
@@ -109,7 +109,7 @@ func PrintRessourceList(ressources_string []*Ressource) {
 
 func (ressource *Ressource) ressourceStringReport() string {
 	var result string
-	if ressource.Secure == true {
+	if ressource.Secure {
 		result = fmt.Sprintf("\\rowcolor{gristableau} %s & %s & \\textbf{\\color{Green}HTTPS}\\\\ \n", ressource.Url, ressource.Type)
 	} else {
 		result = fmt.Sprintf("\\rowcolor{gristableau} %s & %s & \\textbf{\\color{output.Red}HTTP}\\\\ \n", ressource.Url, ressource.Type)
@@ -135,7 +135,7 @@ func ressourceListStringReport(ressources []*Ressource) []string {
 
 func WriteRessourceListReport(ressources_string []*Ressource) {
 	tmp := ressourceListStringReport(ressources_string)
-	f, errorFile := os.OpenFile("external_ressources.tex", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	f, errorFile := os.OpenFile("external_ressources.tex", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666)
 	if errorFile != nil {
 		logger.Fatalf("error opening file: %v", errorFile)
 	}
@@ -147,5 +147,9 @@ func WriteRessourceListReport(ressources_string []*Ressource) {
 			logger.Println(error)
 		}
 	}
-	f.Sync()
+
+	err := f.Sync()
+	if err != nil {
+		logger.Println(err)
+	}
 }

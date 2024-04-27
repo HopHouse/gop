@@ -22,8 +22,8 @@ var (
 	vhostOption            string
 	exfilUrlOption         string
 	httpsOption            bool
-	customHTMLFile         string
-	customJSFile           string
+	// customHTMLFile         string
+	// customJSFile           string
 )
 
 // serverCmd represents the serve command
@@ -132,7 +132,7 @@ var serverJSExfilHTTPCmd = &cobra.Command{
 				Vhost:  vhostOption,
 			},
 			ExfilUrl: exfilUrlOption,
-			//Box:      packr.New("JSExfil", "../gopServer/JSExfil"),
+			// Box:      packr.New("JSExfil", "../gopServer/JSExfil"),
 			InputMu: &sync.Mutex{},
 		}
 		/*
@@ -217,6 +217,6 @@ func init() {
 	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&vhostOption, "vhost", "v", "", "Virtual host to use for the server.")
 	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&exfilUrlOption, "exfil-url", "", "", "Exfil URL in a form of http(s)://domain.tld.")
 	serverJSExfilHTTPCmd.PersistentFlags().BoolVarP(&httpsOption, "https", "", false, "Define whether or not an SSL/TLS layer is added.")
-	//serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&customHTMLFile, "custom-html", "", "", "Define a custom HTML file to use.")
-	//serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&customJSFile, "custom-js", "", "", "Define a custom JavaScript file to use.")
+	// serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&customHTMLFile, "custom-html", "", "", "Define a custom HTML file to use.")
+	// serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&customJSFile, "custom-js", "", "", "Define a custom JavaScript file to use.")
 }

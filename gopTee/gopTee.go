@@ -13,19 +13,31 @@ import (
 )
 
 func RunTeeCmd(outputFile string, cmdOption string) error {
-	file, err := os.OpenFile(outputFile, os.O_CREATE|os.O_APPEND, 0744)
+	file, err := os.OpenFile(outputFile, os.O_CREATE|os.O_APPEND, 0o744)
 	if err != nil {
 		return err
 	}
 
-	file.WriteString(fmt.Sprintf("[%s]\n", time.Now().Format("2006-01-02 03:04:05")))
+	_, err = fmt.Fprintf(file, "[%s]\n", time.Now().Format("2006-01-02 03:04:05"))
+	if err != nil {
+		logger.Println("Error writing date in file.")
+	}
+
 	path, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-	file.WriteString(path)
+
+	_, err = file.WriteString(path)
+	if err != nil {
+		logger.Println("Error writing path in file.")
+	}
+
 	cmdString := fmt.Sprintf("> %s\n", cmdOption)
-	file.WriteString(cmdString)
+	_, err = file.WriteString(cmdString)
+	if err != nil {
+		logger.Println("Error writing commad in file.")
+	}
 
 	cmdStringSlicePipe := strings.Split(cmdOption, "|")
 	logger.Println(cmdStringSlicePipe)
@@ -89,12 +101,24 @@ func ExecStackCmd(stack []*exec.Cmd, pipeSlice []*io.PipeWriter) error {
 	logger.Printf("Len stack : %d\n", len(stack))
 	for i := (len(stack) - 1); i >= 0; i-- {
 		logger.Printf("Starting Stack %d\n", i)
-		stack[i].Start()
+		err := stack[i].Start()
+		if err != nil {
+			return err
+		}
 	}
 
 	pipeSlice[0].Close()
-	stack[1].Start()
-	stack[1].Wait()
+
+	err := stack[1].Start()
+	if err != nil {
+		return err
+	}
+
+	err = stack[1].Wait()
+	if err != nil {
+		return err
+	}
+
 	logger.Println(stack[1].Output())
 
 	/*

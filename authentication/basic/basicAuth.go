@@ -25,7 +25,7 @@ func (n BasicAuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, n
 		return
 	}
 
-	if username, password, ok := r.BasicAuth(); ok == true {
+	if username, password, ok := r.BasicAuth(); ok {
 		logger.Printf("[AUTH-BASIC] [%s] [%s] [%s]\n", utils.GetSourceIP(r), username, password)
 	}
 

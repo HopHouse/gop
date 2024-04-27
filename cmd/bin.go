@@ -55,7 +55,10 @@ var binEntropyCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalln(err)
 		}
-		f.ParseBytes(inputFileOption)
+		err = f.ParseBytes(inputFileOption)
+		if err != nil {
+			logger.Printf("Error, coudl not parse bytes of %s : %s\n", inputFileOption, err)
+		}
 		f.PrintEntropy()
 	},
 }
@@ -71,7 +74,6 @@ var binCaveCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalln(err)
 		}
-
 	},
 }
 
@@ -82,12 +84,11 @@ var binWriteBytesCmd = &cobra.Command{
 		logger.NewLoggerNull()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-
 		fmt.Printf("[+] File name     : %s\n", inputFileOption)
 		fmt.Printf("[+] Offset        : %d\n", offsetOption)
 		fmt.Printf("[+] Bytefile name : %s\n", byteFileOption)
 
-		fOpen, err := os.OpenFile(inputFileOption, os.O_WRONLY, 0644)
+		fOpen, err := os.OpenFile(inputFileOption, os.O_WRONLY, 0o644)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -131,7 +132,6 @@ var binPEInfoCmd = &cobra.Command{
 		logger.NewLoggerNull()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-
 		fmt.Printf("[+] PE name : %s\n", inputFileOption)
 
 		PE, err := pe.Open(inputFileOption)
@@ -161,7 +161,6 @@ var binPEInfoCmd = &cobra.Command{
 		fmt.Printf("[+] Imported Library :\n")
 		for i, lib := range libs {
 			fmt.Printf("\t%d. %s\n", i, lib)
-
 		}
 
 		symbols, err := PE.ImportedSymbols()

@@ -1,14 +1,14 @@
 package gopproxy
 
 import (
+	"log"
+
 	"github.com/hophouse/gop/utils"
 	"github.com/hophouse/gop/utils/logger"
 	"github.com/jroimartin/gocui"
 )
 
-var (
-	G *gocui.Gui
-)
+var G *gocui.Gui
 
 func layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
@@ -57,7 +57,7 @@ func layout(g *gocui.Gui) error {
 			return err
 		}
 		v.Title = "Response Body"
-		//v.Autoscroll = true
+		// v.Autoscroll = true
 		v.Wrap = true
 	}
 
@@ -67,7 +67,7 @@ func layout(g *gocui.Gui) error {
 			return err
 		}
 		v.Title = "Mode"
-		//v.Autoscroll = true
+		// v.Autoscroll = true
 		v.Wrap = true
 	}
 
@@ -78,7 +78,7 @@ func layout(g *gocui.Gui) error {
 		}
 		v.Title = "Commands"
 		logger.Fprintf(v, " Ctrl+n: Next view | Ctrl+i: Toggle interception | Ctrl+Space: Forward | Ctrl+c: Exit")
-		//v.Autoscroll = true
+		// v.Autoscroll = true
 		v.Wrap = true
 	}
 
@@ -105,7 +105,7 @@ func RunGUI() error {
 	// Quit
 	if err := G.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
 		logger.Println(err)
-		//server.Close()
+		// server.Close()
 		return err
 	}
 
@@ -169,7 +169,11 @@ func initKeybindingsGeneral(g *gocui.Gui) error {
 	// Key Up
 	if err := g.SetKeybinding("", gocui.KeyArrowUp, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
-			scrollView(v, -1)
+			err := scrollView(v, -1)
+			if err != nil {
+				log.Println("Error in scollview during key up")
+				return err
+			}
 			return nil
 		}); err != nil {
 		return err
@@ -178,7 +182,11 @@ func initKeybindingsGeneral(g *gocui.Gui) error {
 	// Key Down
 	if err := g.SetKeybinding("", gocui.KeyArrowDown, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
-			scrollView(v, 1)
+			err := scrollView(v, 1)
+			if err != nil {
+				log.Println("Error in scollview during key up")
+				return err
+			}
 			return nil
 		}); err != nil {
 		return err
@@ -240,7 +248,10 @@ func selectViewOnClick(g *gocui.Gui, v *gocui.View) error {
 			return err
 		}
 	}
-	v.SetCursor(0, 0)
+	err := v.SetCursor(0, 0)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -284,9 +295,9 @@ func selectNextView(g *gocui.Gui, v *gocui.View) error {
 func toggleInterceptorMode(g *gocui.Gui, v *gocui.View) error {
 	logger.Printf("Toggle Interceptor mode from %v to %v", InterceptMode, !InterceptMode)
 	InterceptMode = !InterceptMode
-	var message string = ""
+	var message string
 
-	if InterceptMode == true {
+	if InterceptMode {
 		message = "Intercept"
 	}
 

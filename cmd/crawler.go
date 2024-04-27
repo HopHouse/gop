@@ -25,6 +25,7 @@ import (
 	"os"
 
 	gopdynamiccrawler "github.com/hophouse/gop/gopDynamicCrawler"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +40,10 @@ var crawlerCmd = &cobra.Command{
 		// Screenshots directory and HTML page
 		if screenshotOption {
 			if _, err := os.Stat("screenshots"); os.IsNotExist(err) {
-				os.Mkdir("screenshots", 0600)
+				err := os.Mkdir("screenshots", 0o600)
+				if err != nil {
+					logger.Fatalf("Error, could not create the \"screenshot\" folder : %s\n", err)
+				}
 			}
 		}
 
@@ -56,7 +60,7 @@ func init() {
 	crawlerCmd.MarkPersistentFlagRequired("url")
 	crawlerCmd.PersistentFlags().BoolVarP(&recursiveOption, "recursive", "r", false, "Crawl the website recursively.")
 	crawlerCmd.PersistentFlags().BoolVarP(&screenshotOption, "screenshot", "s", false, "Take a screenshot of each internal resource found.")
-	//crawlerCmd.PersistentFlags().StringVarP(&cookieOption, "cookie", "c", "", "Use the specified cookie.")
+	// crawlerCmd.PersistentFlags().StringVarP(&cookieOption, "cookie", "c", "", "Use the specified cookie.")
 	crawlerCmd.PersistentFlags().StringVarP(&proxyOption, "proxy", "p", "", "Use the specified proxy.")
 	crawlerCmd.PersistentFlags().IntVarP(&delayOption, "delay", "", 0, "Use this delay in seconds between each requests.")
 	crawlerCmd.PersistentFlags().IntVarP(&concurrencyOption, "concurrency", "t", 10, "Thread used to take screenshot.")

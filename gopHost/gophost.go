@@ -41,7 +41,7 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool, availability
 	domainsChan := make(chan string, concurrency)
 	gatherChan := make(chan register)
 	results := make([]register, 0)
-	//tldAvailability := make()
+	// tldAvailability := make()
 
 	for i := 0; i < concurrency; i++ {
 		if !petitPoucet {
@@ -92,7 +92,7 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool, availability
 				if err != nil {
 					logger.Printf("Error trying to whois the domaine. %s\n", err)
 				}
-				if available == true {
+				if available {
 					domain = fmt.Sprintf("[FREE] %s", domain)
 				}
 			}
@@ -112,7 +112,7 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool, availability
 				if err != nil {
 					logger.Printf("Error trying to whois the domaine. %s\n", err)
 				}
-				if available == true {
+				if available {
 					domain = fmt.Sprintf("[FREE] %s", domain)
 				}
 			}
@@ -125,7 +125,7 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool, availability
 						if err != nil {
 							logger.Printf("Error trying to whois the domaine. %s\n", err)
 						}
-						if available == true {
+						if available {
 							domain = fmt.Sprintf("[FREE] %s", domain)
 						}
 					}
@@ -143,7 +143,6 @@ func RunHostCmd(reader *os.File, concurrency int, petitPoucet bool, availability
 			logger.Printf("%s\n", results)
 		}
 	}
-
 }
 
 func workerLookup(domainsChan chan string, gatherChan chan register, workersChan chan bool) {
@@ -174,8 +173,7 @@ func uniqueNonEmptyElementsOf(s []string) []string {
 }
 
 func workerLookupPetitPoucet(domainsChan chan string, gatherChan chan register, workersChan chan bool) {
-
-	rand.Seed(time.Now().UnixNano())
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	for domain := range domainsChan {
 		dnsServer := DnsServers[rand.Intn(len(DnsServers))]
@@ -219,11 +217,11 @@ func lookupA(domain string, dnsServer string) ([]string, error) {
 
 	in, err := dns.Exchange(&msg, dnsServer)
 	if err != nil {
-		return ipList, errors.New("Server could not be contacted")
+		return ipList, errors.New("server could not be contacted")
 	}
 
 	if len(in.Answer) < 1 {
-		return ipList, errors.New("No A records")
+		return ipList, errors.New("no A records")
 	}
 
 	for _, answer := range in.Answer {
@@ -244,11 +242,11 @@ func lookupCNAME(domain string, dnsServer string) ([]string, error) {
 
 	in, err := dns.Exchange(&msg, dnsServer)
 	if err != nil {
-		return cnameList, errors.New("Server could not be contacted")
+		return cnameList, errors.New("server could not be contacted")
 	}
 
 	if len(in.Answer) < 1 {
-		return cnameList, errors.New("No CNAME records")
+		return cnameList, errors.New("no CNAME records")
 	}
 
 	for _, answer := range in.Answer {

@@ -115,7 +115,7 @@ func RunRedirectServerHTTPCmd(host string, port string, vhost string, destinatio
 	addr := fmt.Sprintf("%s:%s", host, port)
 
 	r := mux.NewRouter()
-	r.PathPrefix("/").Handler(http.RedirectHandler(destination, 302))
+	r.PathPrefix("/").Handler(http.RedirectHandler(destination, http.StatusFound))
 
 	n := negroni.New(negroni.NewRecovery())
 	n.Use(&logMiddleware{})

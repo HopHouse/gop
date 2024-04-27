@@ -21,7 +21,7 @@ func RunProxyCmd(options *Options) {
 	// Init InterceptChan
 	InterceptChan = make(chan bool, 1)
 
-	//RunHTTPProxyCmd(options)
+	// RunHTTPProxyCmd(options)
 	RunNetProxyCmd(options)
 }
 
@@ -51,12 +51,15 @@ func RunNetProxyCmd(options *Options) {
 		}
 	}()
 
-	RunGUI()
+	err = RunGUI()
+	if err != nil {
+		logger.Printf("Error with RunGUI : %s\n", err)
+	}
 }
 
 func handleConnection(conn net.Conn, certManager *CertManager) {
 	defer conn.Close()
-	//ClearAllGUIViews()
+	// ClearAllGUIViews()
 
 	// Copy request
 	logger.Printf("Receive conenction from %s to %s\n", conn.RemoteAddr(), conn.LocalAddr())
@@ -74,12 +77,14 @@ func handleConnection(conn net.Conn, certManager *CertManager) {
 		// DNSLookup for IP
 		_, err := net.ResolveTCPAddr("tcp4", req.URL.Host)
 		if ok := utils.CheckError(err); ok {
+			logger.Println(err)
 			return
 		}
 
 		// Dial the client
 		initConn, err := net.DialTimeout("tcp4", req.URL.Host, 2*time.Second)
 		if ok := utils.CheckError(err); ok {
+			logger.Println(err)
 			return
 		}
 		defer initConn.Close()
@@ -87,10 +92,15 @@ func handleConnection(conn net.Conn, certManager *CertManager) {
 		clientConn := tls.Client(initConn, &tls.Config{InsecureSkipVerify: true})
 		err = clientConn.Handshake()
 		if ok := utils.CheckError(err); ok {
+			logger.Println(err)
 			return
 		}
 
-		conn.Write([]byte("HTTP/1.1 200 OK\r\nProxy-agent: GoPentest/1.0\r\n\r\n"))
+		_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\nProxy-agent: GoPentest/1.0\r\n\r\n"))
+		if err != nil {
+			logger.Println(err)
+			return
+		}
 
 		cer, err := certManager.CreateCertificate(req.URL.Hostname())
 		if err != nil {
@@ -119,20 +129,28 @@ func handleConnection(conn net.Conn, certManager *CertManager) {
 		intercept()
 
 		dumpedReq, _ := httputil.DumpRequest(req, true)
-		clientConn.Write(dumpedReq)
+		_, err = clientConn.Write(dumpedReq)
+		if err != nil {
+			logger.Println(err)
+			return
+		}
 
 		clientReader := bufio.NewReader(clientConn)
 		res, err := http.ReadResponse(clientReader, req)
 		if ok := utils.CheckError(err); ok {
 			return
 		}
-		//defer res.Body.Close()
+		// defer res.Body.Close()
 
 		PrintGUIResponse(*res)
 		intercept()
 
 		dumpedRes, _ := httputil.DumpResponse(res, true)
-		proxyConn.Write(dumpedRes)
+		_, err = proxyConn.Write(dumpedRes)
+		if err != nil {
+			logger.Println(err)
+			return
+		}
 
 		proxyConn.Close()
 		clientConn.Close()
@@ -147,7 +165,7 @@ func handleConnection(conn net.Conn, certManager *CertManager) {
 	if res == nil {
 		return
 	}
-	//defer res.Body.Close()
+	// defer res.Body.Close()
 
 	PrintGUIResponse(*res)
 	intercept()
@@ -172,7 +190,7 @@ func sendNetResponse(conn net.Conn, resp *http.Response) {
 	}
 
 	_, err = conn.Write(respBuffer)
-	if ok := utils.CheckError(err); ok {
+	if utils.CheckError(err) {
 		return
 	}
 }
@@ -264,7 +282,7 @@ func PrintGUIResponse(r http.Response) {
 }
 
 func intercept() {
-	if InterceptMode == true {
+	if InterceptMode {
 		// Wait for data in channel and consimme it
 		<-InterceptChan
 	}

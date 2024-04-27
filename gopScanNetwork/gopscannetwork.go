@@ -100,7 +100,7 @@ func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsStr
 	}
 
 	// Run the scan
-	for host, _ := range hosts {
+	for host := range hosts {
 		for _, port := range ports {
 			inputChan <- fmt.Sprintf("%s:%d", host, port)
 		}
@@ -132,7 +132,7 @@ func RunScanNetwork(inputFile *os.File, tcpOption bool, udpOption bool, portsStr
 
 func printResults(hosts map[string]hostStruct, onlyOpen bool) {
 	for ip, item := range hosts {
-		if item.hasOpenServices == false && onlyOpen == true {
+		if !item.hasOpenServices && onlyOpen {
 			continue
 		}
 
@@ -142,7 +142,7 @@ func printResults(hosts map[string]hostStruct, onlyOpen bool) {
 			if strings.Compare(service.status, "Open") == 0 {
 				logger.Fprintf(w, "\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
 			} else {
-				if onlyOpen == false {
+				if !onlyOpen {
 					logger.Fprintf(w, "\t%s/%s\t%s\n", service.protocol, service.portString, service.status)
 				}
 			}
@@ -153,7 +153,7 @@ func printResults(hosts map[string]hostStruct, onlyOpen bool) {
 
 func printGreppableResults(hosts map[string]hostStruct, onlyOpen bool) {
 	for ip, item := range hosts {
-		if item.hasOpenServices == false && onlyOpen == true {
+		if !item.hasOpenServices && onlyOpen {
 			continue
 		}
 
@@ -161,7 +161,7 @@ func printGreppableResults(hosts map[string]hostStruct, onlyOpen bool) {
 			if strings.Compare(service.status, "Open") == 0 {
 				logger.Printf("%s,%s,%s,%s\n", ip, service.protocol, service.portString, service.status)
 			} else {
-				if onlyOpen == false {
+				if !onlyOpen {
 					logger.Printf("%s,%s,%s,%s\n", ip, service.protocol, service.portString, service.status)
 				}
 			}
@@ -171,7 +171,7 @@ func printGreppableResults(hosts map[string]hostStruct, onlyOpen bool) {
 
 func printShortResults(hosts map[string]hostStruct, onlyOpen bool) {
 	for ip, item := range hosts {
-		if item.hasOpenServices == false && onlyOpen == true {
+		if !item.hasOpenServices && onlyOpen {
 			continue
 		}
 		for _, service := range item.services {
@@ -181,6 +181,7 @@ func printShortResults(hosts map[string]hostStruct, onlyOpen bool) {
 		}
 	}
 }
+
 func scanWorker(inputChan chan string, workersChan chan bool, gatherChan chan serviceStruct, tcpOption bool, udpOtion bool) {
 	for entry := range inputChan {
 		service := serviceStruct{
@@ -235,7 +236,7 @@ func parsePortsOption(portsOption string) []int {
 		item := strings.TrimSpace(i)
 		// Check if a string that represent a set of ports is passed
 		portList, in := portStringMap[item]
-		if in == true {
+		if in {
 			item = strings.TrimSpace(portList)
 
 			// Recursively parse ports

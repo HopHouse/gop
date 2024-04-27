@@ -8,9 +8,7 @@ import (
 	"github.com/hophouse/gop/utils/logger"
 )
 
-var (
-	generatedWordlist []string
-)
+var generatedWordlist []string
 
 // RunEmailGen will create all the variations of email based on the inputed data.
 func RunPasswordGen(wordlist []string, delimiters []string, minYear int, maxYear int, outFile string, stdinOption bool) {
@@ -118,14 +116,17 @@ func RunPasswordGen(wordlist []string, delimiters []string, minYear int, maxYear
 			logger.Println(word)
 		}
 	} else {
-		f, err := os.OpenFile(outFile, os.O_CREATE|os.O_WRONLY, 0644)
+		f, err := os.OpenFile(outFile, os.O_CREATE|os.O_WRONLY, 0o644)
 		if err != nil {
 			logger.Fatal("Error opening file to write generated password.")
 		}
 		defer f.Close()
 
 		for _, word := range generatedWordlist {
-			f.WriteString(word + "\n")
+			_, err := f.WriteString(word + "\n")
+			if err != nil {
+				logger.Println("Error writing in file.")
+			}
 		}
 	}
 }

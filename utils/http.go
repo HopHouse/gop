@@ -12,7 +12,7 @@ import (
 )
 
 func ReadRequestFromFile(filename string) (*http.Request, error) {
-	httpRequestPtr := &http.Request{}
+	var httpRequestPtr *http.Request
 
 	f, err := os.Open(filename)
 	if err != nil {

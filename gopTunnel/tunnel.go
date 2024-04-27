@@ -80,7 +80,7 @@ func (t *PlainTextTunnel) Read(b []byte) (n int, err error) {
 }
 
 func (t *PlainTextTunnel) Write(b []byte) (n int, err error) {
-	//logger.Println("[+] Write", b)
+	// logger.Println("[+] Write", b)
 	return t.Conn.Write(b)
 }
 
@@ -104,17 +104,24 @@ func (t *TlsTunnel) Listen() error {
 		return err
 	}
 
+	// TODO Factorise code
 	serverCertPEM := new(bytes.Buffer)
-	pem.Encode(serverCertPEM, &pem.Block{
+	err = pem.Encode(serverCertPEM, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: caBytes,
 	})
+	if err != nil {
+		logger.Println(err)
+	}
 
 	serverPrivKeyPEM := new(bytes.Buffer)
-	pem.Encode(serverPrivKeyPEM, &pem.Block{
+	err = pem.Encode(serverPrivKeyPEM, &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(serverKey),
 	})
+	if err != nil {
+		logger.Println(err)
+	}
 
 	cer, err := tls.X509KeyPair(serverCertPEM.Bytes(), serverPrivKeyPEM.Bytes())
 	if err != nil {
@@ -206,7 +213,6 @@ func (t *HTTPPlainTextTunnel) Dial() error {
 }
 
 func (t *HTTPPlainTextTunnel) Read(b []byte) (n int, err error) {
-
 	prefix := "User-Agent: "
 	bSize := 0
 
@@ -361,7 +367,7 @@ func (t *UDPPlainTextTunnel) Read(b []byte) (n int, err error) {
 }
 
 func (t *UDPPlainTextTunnel) Write(b []byte) (n int, err error) {
-	//logger.Println("[+] Write", b)
+	// logger.Println("[+] Write", b)
 	return t.Conn.Write(b)
 }
 

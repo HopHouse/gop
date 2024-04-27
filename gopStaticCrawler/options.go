@@ -7,9 +7,7 @@ import (
 	"github.com/hophouse/gop/utils/logger"
 )
 
-var (
-	GoCrawlerOptions Options
-)
+var GoCrawlerOptions Options
 
 type Options struct {
 	UrlPtr         *string
@@ -52,13 +50,13 @@ func PrintOptions(options *Options) {
 	}
 
 	// Report option
-	if *options.ReportPtr == true {
+	if *options.ReportPtr {
 		logger.Println("Report option set")
 		logger.Println("[+] Report option set")
 	}
 
 	// Screenshot option
-	if *options.ScreenshotPtr != false {
+	if *options.ScreenshotPtr {
 		logger.Println("Using the screenshot option")
 	}
 

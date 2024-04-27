@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -40,8 +41,13 @@ func RunHTTPProxyCmd(options *Options) {
 	}
 
 	server := &http.Server{Addr: addr, Handler: proxy}
-	go server.ListenAndServe()
-	//RunGUI(server)
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Fatalln("Error during server.ListenAndServe function")
+		}
+	}()
+	// RunGUI(server)
 }
 
 func (p Proxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -63,8 +69,7 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Do request to target
 	req.Response = doHTTPRequest(req)
-	var res *http.Response
-	res = req.Response
+	res := req.Response
 	if res == nil {
 		return
 	}
@@ -77,8 +82,13 @@ func (p Proxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		logger.Println(err)
 		return
 	}
+
 	res.Body.Close()
-	w.Write(body)
+	_, err = w.Write(body)
+	if err != nil {
+		logger.Println(err)
+		return
+	}
 }
 
 func (p Proxy) handleHTTPSMethod(w http.ResponseWriter, req *http.Request) error {
@@ -96,7 +106,10 @@ func (p Proxy) handleHTTPSMethod(w http.ResponseWriter, req *http.Request) error
 	defer clientConn.Close()
 
 	logger.Printf("CONNECT from %s to %s \n", clientConn.LocalAddr(), clientConn.RemoteAddr())
-	w.Write([]byte("HTTP/1.1 200 OK\r\nProxy-agent: GoPentest/1.0\r\n\r\n"))
+	_, err = w.Write([]byte("HTTP/1.1 200 OK\r\nProxy-agent: GoPentest/1.0\r\n\r\n"))
+	if err != nil {
+		return err
+	}
 
 	// Hijack the connection
 	hj, ok := w.(http.Hijacker)
@@ -104,6 +117,7 @@ func (p Proxy) handleHTTPSMethod(w http.ResponseWriter, req *http.Request) error
 		http.Error(w, "webserver doesn't support hijacking", http.StatusInternalServerError)
 		return nil
 	}
+
 	conn, _, err := hj.Hijack()
 	if ok := utils.CheckError(err); ok {
 		return err
@@ -136,7 +150,10 @@ func (p Proxy) handleHTTPSMethod(w http.ResponseWriter, req *http.Request) error
 	intercept()
 
 	dumpedReq, _ := httputil.DumpRequest(req, true)
-	clientConn.Write(dumpedReq)
+	_, err = clientConn.Write(dumpedReq)
+	if err != nil {
+		return err
+	}
 
 	clientReader := bufio.NewReader(clientConn)
 	res, err := http.ReadResponse(clientReader, req)
@@ -144,7 +161,7 @@ func (p Proxy) handleHTTPSMethod(w http.ResponseWriter, req *http.Request) error
 		return err
 	}
 	if res == nil {
-		return errors.New("Reponse is nill")
+		return errors.New("reponse is nill")
 	}
 
 	PrintGUIResponse(*res)
@@ -154,7 +171,10 @@ func (p Proxy) handleHTTPSMethod(w http.ResponseWriter, req *http.Request) error
 	ClearAllGUIViews()
 
 	dumpedRes, _ := httputil.DumpResponse(res, true)
-	proxyConn.Write(dumpedRes)
+	_, err = proxyConn.Write(dumpedRes)
+	if err != nil {
+		return err
+	}
 
 	clientConn.Close()
 	proxyConn.Close()

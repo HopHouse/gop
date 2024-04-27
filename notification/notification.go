@@ -40,7 +40,12 @@ func NotifyAndWait(notification string) {
 		if err != nil {
 			logger.Println(err)
 		}
-		cmd.Wait()
+
+		err = cmd.Wait()
+		if err != nil {
+			logger.Println(err)
+		}
+
 	}
 }
 

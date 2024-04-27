@@ -217,7 +217,7 @@ func TreatA(doc *goquery.Document) []string {
 			URLVisited.RLock()
 			for _, item := range URLVisited.slice {
 				if item == link {
-					//logger.Printf("[*] Url %s already present", link)
+					// logger.Printf("[*] Url %s already present", link)
 					URLVisited.RUnlock()
 					return
 				}
@@ -230,11 +230,11 @@ func TreatA(doc *goquery.Document) []string {
 				logger.Println(err)
 			}
 			if doc.Url.Host != linkUrl.Host {
-				//logger.Printf("[*] Url %s is not the same domain", linkUrl.Host)
+				// logger.Printf("[*] Url %s is not the same domain", linkUrl.Host)
 				return
 			}
 
-			if isInternal == true {
+			if isInternal {
 				gopstaticcrawler.PrintNewRessourceFound("internal", "link", link)
 			} else {
 				gopstaticcrawler.PrintNewRessourceFound("external", "link", link)
@@ -244,7 +244,6 @@ func TreatA(doc *goquery.Document) []string {
 		if isAdded && isInternal {
 			results = append(results, link)
 		}
-		return
 	})
 	return results
 }
@@ -260,7 +259,7 @@ func TreatScriptSrc(doc *goquery.Document) []string {
 		}
 
 		if strings.HasPrefix(original_item, "javascript:void") {
-			//logger.Printf("[-] Not using this script %s from %s\n", original_item, url)
+			// logger.Printf("[-] Not using this script %s from %s\n", original_item, url)
 			return
 		}
 
@@ -332,7 +331,7 @@ func getAbsoluteURL(original_item string, urlItem string) string {
 // external scope
 func treatRessource(item string, url *url.URL) string {
 	var isAdded bool
-	var scriptKind = "link"
+	scriptKind := "link"
 
 	file := strings.Split(item, "?")[0]
 
@@ -349,7 +348,7 @@ func treatRessource(item string, url *url.URL) string {
 	}
 
 	isInternal, ressource := gopstaticcrawler.CreateRessource(url.String(), item, scriptKind)
-	if isInternal == true {
+	if isInternal {
 		isAdded = gopstaticcrawler.AddRessourceIfDoNotExists(&Internal_ressources, ressource)
 	} else {
 		isAdded = gopstaticcrawler.AddRessourceIfDoNotExists(&External_ressources, ressource)
@@ -360,7 +359,7 @@ func treatRessource(item string, url *url.URL) string {
 		URLVisited.RLock()
 		for _, i := range URLVisited.slice {
 			if i == item {
-				//logger.Printf("Url %s already present", item)
+				// logger.Printf("Url %s already present", item)
 				URLVisited.RUnlock()
 				return ""
 			}
@@ -370,11 +369,11 @@ func treatRessource(item string, url *url.URL) string {
 		// Check if the domain is the good one
 		itemUrl, _ := url.Parse(item)
 		if url.Host == itemUrl.Host {
-			//logger.Printf("Url %s is not the same domain", item)
+			// logger.Printf("Url %s is not the same domain", item)
 			return ""
 		}
 
-		if isInternal == true {
+		if isInternal {
 			gopstaticcrawler.PrintNewRessourceFound("internal", scriptKind, item)
 		} else {
 			gopstaticcrawler.PrintNewRessourceFound("external", scriptKind, item)

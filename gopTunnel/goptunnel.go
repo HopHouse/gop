@@ -21,13 +21,19 @@ func handleServerSend(currentTunnel tunnelInterface, socketAddress string, goRou
 
 	go func(currentTunnel tunnelInterface, connSocket net.Conn) {
 		logger.Println(goRoutineUUID.String(), "Copy currentTunnel<-connSocket")
-		io.Copy(currentTunnel, connSocket)
+		_, err := io.Copy(currentTunnel, connSocket)
+		if err != nil {
+			logger.Printf("Error during io.Copy : %s\n", err)
+		}
 		done <- true
 	}(currentTunnel, connSocket)
 
 	go func(currentTunnel tunnelInterface, connSocket net.Conn) {
 		logger.Println(goRoutineUUID.String(), "Copy currentSocks<-connTunnel")
-		io.Copy(connSocket, currentTunnel)
+		_, err := io.Copy(connSocket, currentTunnel)
+		if err != nil {
+			logger.Printf("Error during io.Copy : %s\n", err)
+		}
 		done <- true
 	}(currentTunnel, connSocket)
 
@@ -53,7 +59,10 @@ func handleServerListen(currentTunnel tunnelInterface, socketListener net.Listen
 	logger.Println(goRoutineUUID.String(), "Socket received traffic. Will send message")
 
 	logger.Println("Send \"send\" message")
-	currentTunnel.Write([]byte("send"))
+	_, err = currentTunnel.Write([]byte("send"))
+	if err != nil {
+		logger.Printf("Error during currentTunnel.Write : %s\n", err)
+	}
 	logger.Println("Sent \"send\" message")
 
 	done := make(chan bool)
@@ -144,7 +153,7 @@ func RunServer(tunnelAddress string, socketAddress string, tunnelType string, mo
 			currentTunnel := tunnel
 			err = currentTunnel.Accept()
 			if err != nil {
-				//logger.Fatalln(err)
+				// logger.Fatalln(err)
 				logger.Println(err)
 				continue
 			}
@@ -190,7 +199,6 @@ func RunServer(tunnelAddress string, socketAddress string, tunnelType string, mo
 	default:
 		logger.Fatalln("Unknown mode")
 	}
-
 }
 
 func handleClientSend(currentTunnel tunnelInterface, socketAddress string, goRoutineUUID uuid.UUID) {
@@ -335,13 +343,19 @@ func RunClient(tunnelAddress string, socketAddress string, tunnelType string, mo
 
 				go func(currentTunnel tunnelInterface, connSocket net.Conn) {
 					logger.Println(goRoutineUUID.String(), "Copy currentTunnel<-connSocket")
-					io.Copy(currentTunnel, connSocket)
+					_, err := io.Copy(currentTunnel, connSocket)
+					if err != nil {
+						logger.Println(goRoutineUUID.String(), "Copy error :", err)
+					}
 					done <- true
 				}(currentTunnel, connSocket)
 
 				go func(currentTunnel tunnelInterface, connSocket net.Conn) {
 					logger.Println(goRoutineUUID.String(), "Copy connSocket<-currentTunnel")
-					io.Copy(connSocket, currentTunnel)
+					_, err := io.Copy(connSocket, currentTunnel)
+					if err != nil {
+						logger.Println(goRoutineUUID.String(), "Copy error :", err)
+					}
 					done <- true
 				}(currentTunnel, connSocket)
 
@@ -419,13 +433,19 @@ func handleServerSocks5Connexion(tunnel tunnelInterface) {
 
 	go func() {
 		logger.Println("Run io.Copy currentSocks <- connTunnel")
-		io.Copy(newConn, tunnel)
+		_, err := io.Copy(newConn, tunnel)
+		if err != nil {
+			logger.Printf("Copy error : %s\n", err)
+		}
 		done <- true
 	}()
 
 	go func() {
 		logger.Println("Run io.Copy currentTunnel <- connSocket")
-		io.Copy(tunnel, newConn)
+		_, err := io.Copy(tunnel, newConn)
+		if err != nil {
+			logger.Printf("Copy error : %s\n", err)
+		}
 		done <- true
 	}()
 

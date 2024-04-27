@@ -84,16 +84,23 @@ func launchServer(options optionsStruct) net.Conn {
 	}
 
 	serverCertPEM := new(bytes.Buffer)
-	pem.Encode(serverCertPEM, &pem.Block{
+
+	err = pem.Encode(serverCertPEM, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: caBytes,
 	})
+	if err != nil {
+		logger.Println(err)
+	}
 
 	serverPrivKeyPEM := new(bytes.Buffer)
-	pem.Encode(serverPrivKeyPEM, &pem.Block{
+	err = pem.Encode(serverPrivKeyPEM, &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(serverKey),
 	})
+	if err != nil {
+		logger.Println(err)
+	}
 
 	cer, err := tls.X509KeyPair(serverCertPEM.Bytes(), serverPrivKeyPEM.Bytes())
 	if err != nil {
@@ -134,7 +141,10 @@ func connectToServer(options optionsStruct) net.Conn {
 
 func sendMessage(conn net.Conn, sendChan <-chan string) {
 	for sendItem := range sendChan {
-		conn.Write([]byte(sendItem))
+		_, err := conn.Write([]byte(sendItem))
+		if err != nil {
+			logger.Println(err)
+		}
 		G.Update(func(g *gocui.Gui) error { return nil })
 	}
 }
@@ -160,7 +170,10 @@ func GuiReceiveMessage(receiveChan chan string) {
 		message := receiveItem
 		view, err := G.View("chat")
 		if err == nil {
-			view.Write([]byte(message))
+			_, err = view.Write([]byte(message))
+			if err != nil {
+				logger.Println(err)
+			}
 			G.Update(func(g *gocui.Gui) error { return nil })
 		}
 	}
@@ -201,11 +214,11 @@ func executeCommand(command string) {
 	} else {
 		receiveChan <- getHelp()
 	}
-
 }
 
 func getHelp() string {
-	helpMessage := []string{"",
+	helpMessage := []string{
+		"",
 		"[+] Help menu :",
 		"\t!help : Displays help message",
 		"\t!username : Changes username",
@@ -267,7 +280,10 @@ func GuiSendMessage(g *gocui.Gui, v *gocui.View) error {
 			receiveChan <- message
 		}
 		v.Clear()
-		v.SetCursor(0, 0)
+		err := v.SetCursor(0, 0)
+		if err != nil {
+			logger.Println(err)
+		}
 	}
 
 	return nil
@@ -281,7 +297,11 @@ func mainGUI() {
 	defer g.Close()
 
 	g.SetManagerFunc(layout)
-	g.SetCurrentView("input")
+	_, err = g.SetCurrentView("input")
+	if err != nil {
+		logger.Println(err)
+	}
+
 	g.Cursor = false
 
 	if err := g.SetKeybinding("", gocui.KeyEnter, gocui.ModNone, GuiSendMessage); err != nil {

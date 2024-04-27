@@ -52,15 +52,21 @@ func InitCrawler() *colly.Collector {
 		if err != nil {
 			logger.Fatalf("Error with proxy: %s", err)
 		}
-		c.SetProxy(url.String())
+		err = c.SetProxy(url.String())
+		if err != nil {
+			logger.Fatalf("Error with proxy: %s", err)
+		}
 		c.SetProxyFunc(http.ProxyURL(url))
 	}
 
 	if *GoCrawlerOptions.DelayPtr != 0 {
-		c.Limit(&colly.LimitRule{
+		err := c.Limit(&colly.LimitRule{
 			DomainGlob: "*",
 			Delay:      time.Duration(*GoCrawlerOptions.DelayPtr) * time.Second,
 		})
+		if err != nil {
+			logger.Fatalf("Error with proxy: %s", err)
+		}
 	}
 	return c
 }
@@ -69,7 +75,7 @@ func VisiteURL(visited *[]string, c *colly.Collector, Url string) {
 	cleanedUrl := Url
 
 	// Remove GET parameters
-	if strings.Contains(Url, "?") == true {
+	if strings.Contains(Url, "?") {
 		cleanedUrl = strings.Split(Url, "?")[0]
 	}
 
@@ -94,9 +100,11 @@ func VisiteURL(visited *[]string, c *colly.Collector, Url string) {
 			logger.Printf("[-] This URL %s might contains a logout URL that may invalidate the session cookie. It will not be proceeded.", Url)
 			return
 		}
-
 	}
-	c.Visit(cleanedUrl)
+	err := c.Visit(cleanedUrl)
+	if err != nil {
+		logger.Fatalf("Error with proxy visiting %s : %s", cleanedUrl, err)
+	}
 
 	// Add to visited URL
 	*visited = append(*visited, cleanedUrl)
@@ -155,7 +163,7 @@ func defineCallBacks(c *colly.Collector) {
 		getAbsoluteURL(&link, original_link, url)
 
 		isInternal, ressource := CreateRessource(url.String(), link, "link")
-		if isInternal == true {
+		if isInternal {
 			if isAdded := AddRessourceIfDoNotExists(&Internal_ressources, ressource); isAdded {
 				PrintNewRessourceFound("internal", "link", link)
 			}
@@ -208,7 +216,7 @@ func TreatLinkHref(e *colly.HTMLElement) {
 
 // Tranform relative path to absolute path if needed and return url
 func getAbsoluteURL(item *string, original_item string, url *url.URL) {
-	var domain string = strings.Join(strings.Split(url.String(), "/")[:3], "/")
+	domain := strings.Join(strings.Split(url.String(), "/")[:3], "/")
 	if strings.HasPrefix(*item, "/") {
 		if strings.HasSuffix(url.String(), "/") {
 			*item = domain + (*item)[1:]
@@ -227,7 +235,7 @@ func getAbsoluteURL(item *string, original_item string, url *url.URL) {
 // Treat url, classify what the ressource is and add to the internal or
 // external scope
 func treatRessource(item string, url *url.URL) {
-	var scriptKind = "unknown"
+	scriptKind := "unknown"
 
 	file := strings.Split(item, "?")[0]
 
@@ -244,7 +252,7 @@ func treatRessource(item string, url *url.URL) {
 	}
 
 	isInternal, ressource := CreateRessource(url.String(), item, scriptKind)
-	if isInternal == true {
+	if isInternal {
 		if isAdded := AddRessourceIfDoNotExists(&Internal_ressources, ressource); isAdded {
 			PrintNewRessourceFound("internal", scriptKind, item)
 		}

@@ -102,7 +102,7 @@ func findInPath(path string, info os.FileInfo, err error) error {
 	for _, re := range regList {
 		res := re.MatchString(info.Name())
 		if res {
-			if info.IsDir() && *onlyFilesPtr == false {
+			if info.IsDir() && !*onlyFilesPtr {
 				logger.Printf("[+] [D] %s\n", path)
 			} else {
 				logger.Printf("[+] [F] %s\n", path)

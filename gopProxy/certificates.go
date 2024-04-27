@@ -9,7 +9,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"net"
 	"os"
@@ -35,19 +34,19 @@ func (certManager CertManager) SaveKeysToDisk() error {
 	var err error
 
 	// CA Certificate
-	err = os.WriteFile("ca.crt", certManager.CaCertPEM.Bytes(), 0644)
+	err = os.WriteFile("ca.crt", certManager.CaCertPEM.Bytes(), 0o644)
 	if err != nil {
 		return err
 	}
 
 	// CA Private Key
-	err = os.WriteFile("ca-privkey.key", certManager.CaPrivKeyPem.Bytes(), 0644)
+	err = os.WriteFile("ca-privkey.key", certManager.CaPrivKeyPem.Bytes(), 0o644)
 	if err != nil {
 		return err
 	}
 
 	// Certificate Private Key
-	err = os.WriteFile("cert-privkey.key", certManager.CertPrivKeyPEM.Bytes(), 0644)
+	err = os.WriteFile("cert-privkey.key", certManager.CertPrivKeyPEM.Bytes(), 0o644)
 	if err != nil {
 		return err
 	}
@@ -55,13 +54,21 @@ func (certManager CertManager) SaveKeysToDisk() error {
 	for name, cert := range certManager.CertStore {
 		fileName := fmt.Sprintf("%s.crt", name)
 		if cert.Certificate[0][:] != nil {
+			//
 			// Certificate
+			//
 			certPEM := new(bytes.Buffer)
-			pem.Encode(certPEM, &pem.Block{
+
+			err := pem.Encode(certPEM, &pem.Block{
 				Type:  "CERTIFICATE",
 				Bytes: cert.Certificate[0][:],
 			})
-			err := os.WriteFile(fileName, certPEM.Bytes(), 0644)
+			if err != nil {
+				return err
+			}
+
+			// Write to file
+			err = os.WriteFile(fileName, certPEM.Bytes(), 0o644)
 			if err != nil {
 				return err
 			}
@@ -95,7 +102,7 @@ func (certManager CertManager) CreateCertificate(host string) (tls.Certificate, 
 			Locality:     []string{"Paris"},
 			PostalCode:   []string{"75000"},
 		},
-		//IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
+		// IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
 		NotBefore:    time.Now(),
 		NotAfter:     time.Now().AddDate(10, 0, 0),
 		SubjectKeyId: []byte{1, 2, 3, 4, 6},
@@ -116,13 +123,17 @@ func (certManager CertManager) CreateCertificate(host string) (tls.Certificate, 
 	}
 
 	certPEM := new(bytes.Buffer)
-	pem.Encode(certPEM, &pem.Block{
+
+	err = pem.Encode(certPEM, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: certBytes,
 	})
+	if err != nil {
+		return tls.Certificate{}, err
+	}
 
-	//Save it
-	//os.WriteFile("server.crt", certPEM.Bytes(), 0644)
+	// Save it
+	// os.WriteFile("server.crt", certPEM.Bytes(), 0644)
 
 	cer, err := tls.X509KeyPair(certPEM.Bytes(), certManager.CertPrivKeyPEM.Bytes())
 	if err != nil {
@@ -145,31 +156,31 @@ func InitCertManager(caFile string, caPrivKeyFile string) (CertManager, error) {
 
 	// load CA public key/certificate
 	if caFile != "" && caPrivKeyFile != "" {
-		caPublicKeyFile, err := ioutil.ReadFile(caFile)
+		caPublicKeyFile, err := os.ReadFile(caFile)
 		if err != nil {
-			err := fmt.Errorf("Error reading CA - %s", err)
+			err := fmt.Errorf("error reading CA - %s", err)
 			return CertManager{}, err
 		}
 		pemBlock, _ := pem.Decode(caPublicKeyFile)
 		if pemBlock == nil {
-			err := fmt.Errorf("Error decoding CA - %s", err)
+			err := fmt.Errorf("error decoding CA - %s", err)
 			return CertManager{}, err
 		}
 		certManager.CaCRT, err = x509.ParseCertificate(pemBlock.Bytes)
 		if err != nil {
-			err := fmt.Errorf("Error parsing CA - %s", err)
+			err := fmt.Errorf("error parsing CA - %s", err)
 			return CertManager{}, err
 		}
 
 		// Load CA Private key
-		caPrivateKeyFile, err := ioutil.ReadFile(caPrivKeyFile)
+		caPrivateKeyFile, err := os.ReadFile(caPrivKeyFile)
 		if err != nil {
-			err := fmt.Errorf("Error reading CA private key - %s", err)
+			err := fmt.Errorf("error reading CA private key - %s", err)
 			return CertManager{}, err
 		}
 		pemBlock, _ = pem.Decode(caPrivateKeyFile)
 		if pemBlock == nil {
-			err := fmt.Errorf("Error decoding CA private key - %s", err)
+			err := fmt.Errorf("error decoding CA private key - %s", err)
 			return CertManager{}, err
 		}
 
@@ -186,16 +197,22 @@ func InitCertManager(caFile string, caPrivKeyFile string) (CertManager, error) {
 		}
 
 		certManager.CaCertPEM = new(bytes.Buffer)
-		pem.Encode(certManager.CaCertPEM, &pem.Block{
+		err = pem.Encode(certManager.CaCertPEM, &pem.Block{
 			Type:  "CERTIFICATE",
 			Bytes: caBytes,
 		})
+		if err != nil {
+			return CertManager{}, nil
+		}
 
 		certManager.CaPrivKeyPem = new(bytes.Buffer)
-		pem.Encode(certManager.CaPrivKeyPem, &pem.Block{
+		err = pem.Encode(certManager.CaPrivKeyPem, &pem.Block{
 			Type:  "RSA PRIVATE KEY",
 			Bytes: x509.MarshalPKCS1PrivateKey(certManager.CaPrivKey),
 		})
+		if err != nil {
+			return CertManager{}, nil
+		}
 	}
 
 	// Generate certPrivkey
@@ -206,11 +223,15 @@ func InitCertManager(caFile string, caPrivKeyFile string) (CertManager, error) {
 
 	// Cert private key
 	certManager.CertPrivKeyPEM = new(bytes.Buffer)
-	pem.Encode(certManager.CertPrivKeyPEM, &pem.Block{
+	err = pem.Encode(certManager.CertPrivKeyPEM, &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(certManager.CertPrivKey),
 	})
-	//os.WriteFile("server.key", certPrivKeyPEM.Bytes(), 0644)
+	if err != nil {
+		return CertManager{}, nil
+	}
+
+	// os.WriteFile("server.key", certPrivKeyPEM.Bytes(), 0644)
 
 	return certManager, nil
 }

@@ -25,6 +25,7 @@ import (
 	"os"
 
 	gopstaticcrawler "github.com/hophouse/gop/gopStaticCrawler"
+	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +40,11 @@ var staticCrawlerCmd = &cobra.Command{
 		// Screenshots directory and HTML page
 		if screenshotOption {
 			if _, err := os.Stat("screenshots"); os.IsNotExist(err) {
-				os.Mkdir("screenshots", 0600)
+				err := os.Mkdir("screenshots", 0o600)
+				if err != nil {
+					logger.Fatalf("Error, could not the create the \"screenshot\" folder : %s\n", err)
+				}
+
 			}
 		}
 

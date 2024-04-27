@@ -21,17 +21,14 @@ import (
 type JavascriptExfilServer struct {
 	Server   *Server
 	ExfilUrl string
-	//Box      *packr.Box
+	// Box      *packr.Box
 	InputMu *sync.Mutex
 }
 
-var (
-	//go:embed JSExfil/*
-	box embed.FS
-)
+//go:embed JSExfil/*
+var box embed.FS
 
 func (js JavascriptExfilServer) GetServer(r *mux.Router, n *negroni.Negroni) (http.Server, error) {
-
 	addr := fmt.Sprintf("%s:%s", js.Server.Host, js.Server.Port)
 
 	n.UseHandler(r)
@@ -86,8 +83,7 @@ func (js JavascriptExfilServer) CreateRouter() *mux.Router {
 	return r
 }
 
-func (js JavascriptExfilServer) indexHandler(w http.ResponseWriter, r *http.Request) {
-
+func (js JavascriptExfilServer) indexHandler(w http.ResponseWriter, _ *http.Request) {
 	htmlCode, err := box.ReadFile("index.html")
 	if err != nil {
 		logger.Fatal(err)
@@ -96,7 +92,7 @@ func (js JavascriptExfilServer) indexHandler(w http.ResponseWriter, r *http.Requ
 	fmt.Fprintf(w, "%s\n", htmlCode)
 }
 
-func (js JavascriptExfilServer) jSUtilsHandler(w http.ResponseWriter, r *http.Request) {
+func (js JavascriptExfilServer) jSUtilsHandler(w http.ResponseWriter, _ *http.Request) {
 	jsCode, err := box.ReadFile("utils.js")
 	if err != nil {
 		logger.Fatal(err)
@@ -105,7 +101,7 @@ func (js JavascriptExfilServer) jSUtilsHandler(w http.ResponseWriter, r *http.Re
 	fmt.Fprintf(w, "%s\n", jsCode)
 }
 
-func (js JavascriptExfilServer) jSCustomHandler(w http.ResponseWriter, r *http.Request) {
+func (js JavascriptExfilServer) jSCustomHandler(w http.ResponseWriter, _ *http.Request) {
 	jsCode, err := box.ReadFile("custom.js")
 	if err != nil {
 		logger.Fatal(err)
@@ -114,7 +110,7 @@ func (js JavascriptExfilServer) jSCustomHandler(w http.ResponseWriter, r *http.R
 	fmt.Fprintf(w, "%s\n", jsCode)
 }
 
-func (js JavascriptExfilServer) jSExfilHandler(w http.ResponseWriter, r *http.Request) {
+func (js JavascriptExfilServer) jSExfilHandler(w http.ResponseWriter, _ *http.Request) {
 	jsCode, err := box.ReadFile("exfil.js")
 	if err != nil {
 		logger.Fatal(err)
@@ -125,7 +121,7 @@ func (js JavascriptExfilServer) jSExfilHandler(w http.ResponseWriter, r *http.Re
 	fmt.Fprintf(w, "%s\n", jsCodeStr)
 }
 
-func (js JavascriptExfilServer) jSExfilInputHandler(w http.ResponseWriter, r *http.Request) {
+func (js JavascriptExfilServer) jSExfilInputHandler(w http.ResponseWriter, _ *http.Request) {
 	var input string
 	for {
 		input = ""
@@ -139,8 +135,8 @@ func (js JavascriptExfilServer) jSExfilInputHandler(w http.ResponseWriter, r *ht
 				continue
 			}
 			// convert CRLF to LF
-			input = strings.Replace(input, "\r", "", -1)
-			input = strings.Replace(input, "\n", "", -1)
+			input = strings.ReplaceAll(input, "\r", "")
+			input = strings.ReplaceAll(input, "\n", "")
 
 			if len(input) < 4 {
 				continue
@@ -198,7 +194,11 @@ func (js JavascriptExfilServer) jSExfilOutputHandler(w http.ResponseWriter, r *h
 
 	fmt.Printf("%s", body)
 
-	w.Write([]byte("HTTP1/1 200 OK\n\n"))
+	_, err = w.Write([]byte("HTTP1/1 200 OK\n\n"))
+	if err != nil {
+		logger.Println(err)
+		return
+	}
 }
 
 func (js JavascriptExfilServer) getExfilUrl() string {

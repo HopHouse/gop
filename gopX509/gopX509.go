@@ -13,7 +13,6 @@ import (
 )
 
 func RunX509Names(addresses []string) error {
-
 	names := make(map[string]map[string]interface{}, 0)
 
 	w := tabwriter.NewWriter(os.Stdout, 24, 4, 4, ' ', 0)
@@ -41,7 +40,7 @@ func RunX509Names(addresses []string) error {
 
 		names[address] = newNames
 
-		for name, _ := range names[address] {
+		for name := range names[address] {
 			logger.Fprintf(logger.Writer(), "%s %s\n", address, name)
 			logger.Fprintf(w, "%s\t%s\n", address, name)
 		}
@@ -59,7 +58,6 @@ func RunX509Names(addresses []string) error {
 }
 
 func ExtractNames(cert *x509.Certificate) (map[string]interface{}, error) {
-
 	names := make(map[string]interface{}, 0)
 
 	names[cert.Subject.CommonName] = nil
