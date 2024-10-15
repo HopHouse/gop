@@ -1,15 +1,19 @@
 # GOP - GOPentest
-![Go](https://github.com/HopHouse/gop/workflows/Go/badge.svg)
+
+[![Tests](https://github.com/HopHouse/gop/actions/workflows/test.yml/badge.svg)](https://github.com/HopHouse/gop/actions/workflows/test.yml)
 
 ## Requirements
- - `Google Chrome` is needed by the screenshot and crawler commands.
+
+- `Google Chrome` is needed by the screenshot and crawler commands.
 
 ## Installation
+
 ```powershell
 go install github.com/hophouse/gop@latest
 ```
 
 ## Commands
+
 ```
 GOP provides a toolbox to do pentest tasks.
 
@@ -47,22 +51,26 @@ Flags:
 Use "gop [command] --help" for more information about a command.
 ```
 
-
 ### Proxy
+
 If the proxy option is set, please use set the following option "Suppress Burp error messages in browser". If it is not done, all the response will have the status code `200 OK`. The option can be enabled in `Proxy -> Options -> Miscellaneous`.
 
 #### CertificateAutority - CA
+
 Generate a private key.
+
 ```powershell
 openssl genrsa -out ca.key 4096
 ```
 
 Generate the CA.
+
 ```powershell
 openssl req -new -x509 -sha256 -key ca.key -out ca.crt -days 3650
 ```
 
 ## Serve
+
 This command will serve file through a HTTP Web server. A few authentication methods can be added with the option `--auth`. The HTTP `Basic` and `NTLM` authentication are included.
 
 ### Add a new server
@@ -71,52 +79,52 @@ This command will serve file through a HTTP Web server. A few authentication met
 package main
 
 import (
-	"fmt"
-	"net/http"
+ "fmt"
+ "net/http"
 
-	"github.com/gorilla/mux"
-	"github.com/hophouse/gop/gopServer"
-	"github.com/hophouse/gop/utils/logger"
-	"github.com/urfave/negroni"
+ "github.com/gorilla/mux"
+ "github.com/hophouse/gop/gopServer"
+ "github.com/hophouse/gop/utils/logger"
+ "github.com/urfave/negroni"
 )
 
 
 type NewServer struct {
-	Server gopserver.Server
+ Server gopserver.Server
 }
 
 func (s NewServer) GetCertSubject() string {
-	return s.Server.GetCertSubject()
+ return s.Server.GetCertSubject()
 }
 
 func (s NewServer) GetServer(r *mux.Router, n *negroni.Negroni) (http.Server, error) {
-	addr := fmt.Sprintf("%s:%s", s.Server.Host, s.Server.Port)
-	logger.Printf("[+] HTTP server : %s://%s\n", s.Server.Scheme, addr)
+ addr := fmt.Sprintf("%s:%s", s.Server.Host, s.Server.Port)
+ logger.Printf("[+] HTTP server : %s://%s\n", s.Server.Scheme, addr)
 
-	n.UseHandler(r)
+ n.UseHandler(r)
 
-	server := http.Server{
-		Addr:    addr,
-		Handler: n,
-	}
+ server := http.Server{
+  Addr:    addr,
+  Handler: n,
+ }
 
-	return server, nil
+ return server, nil
 }
 
 func (s NewServer) CreateRouter() *mux.Router {
-	r := mux.NewRouter()
+ r := mux.NewRouter()
 
-	r.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-	})
+ r.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+ })
 
-	r.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	})
+ r.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+ })
 
-	return r
+ return r
 }
 
 func (s NewServer) CreateMiddleware() *negroni.Negroni {
-	return s.Server.CreateMiddleware()
+ return s.Server.CreateMiddleware()
 }
 
 func main() {
@@ -139,3 +147,4 @@ func main() {
   gopserver.RunServerHTTPSCmd(s)
 }
 ```
+
