@@ -78,6 +78,7 @@ func displayBar(name string, duration int) {
 	p := mpb.New(mpb.WithWidth(64))
 
 	total := 100
+
 	// adding a single bar, which will inherit container's width
 	bar := p.Add(int64(total),
 		// progress bar filler with customized style
@@ -90,7 +91,7 @@ func displayBar(name string, duration int) {
 	)
 
 	for i := 0; i < total; i++ {
-		time.Sleep(time.Duration(duration * int(time.Minute) / total))
+		time.Sleep(time.Duration(duration) * time.Duration(time.Minute) / time.Duration(total))
 		bar.Increment()
 	}
 
