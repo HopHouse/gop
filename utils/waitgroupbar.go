@@ -13,7 +13,7 @@ var (
 )
 
 type ProgessBar struct {
-	waitGroup sync.WaitGroup
+	waitGroup *sync.WaitGroup
 	mpbBar    *mpb.Bar
 	name      string
 	total     int
@@ -37,7 +37,7 @@ func NewBar(name string) *ProgessBar {
 	newBar.name = name
 	newBar.total = 0
 	newBar.mutex = &sync.Mutex{}
-	newBar.waitGroup = sync.WaitGroup{}
+	newBar.waitGroup = &sync.WaitGroup{}
 	newBar.mpbBar = mpb.New(mpb.WithWidth(1)).AddBar(1,
 		// mpb.NewSpinnerFiller([]string{}, mpb.SpinnerOnLeft),
 		mpb.PrependDecorators(decor.Name("[")),
@@ -56,7 +56,7 @@ func NewBar(name string) *ProgessBar {
 func (groupBar *WaitGroupBar) AddBar(name string, main bool) *ProgessBar {
 	newBar := NewBar(name)
 
-	newBar.waitGroup = groupBar.waitGroup
+	newBar.waitGroup = &groupBar.waitGroup
 	groupBar.bars = append(groupBar.bars, newBar)
 
 	return newBar
