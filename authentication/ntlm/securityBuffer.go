@@ -39,6 +39,14 @@ func ReadSecurityBuffer(data []byte, start int) SecurityBuffer {
 	return buffer
 }
 
+func (sbuf SecurityBuffer) SetSecurityBuffer(rawData []byte, otherDataOffset int) {
+	// Set the security buffer
+	sbuf.BufferLength = uint16(len([]byte(rawData)))
+	sbuf.BufferAllocatedLength = uint16(len([]byte(rawData)))
+	sbuf.StartOffset = uint32(otherDataOffset)
+	sbuf.RawData = []byte(rawData)
+}
+
 func (sbuf SecurityBuffer) ToBytes() []byte {
 	buffer := make([]byte, 0)
 

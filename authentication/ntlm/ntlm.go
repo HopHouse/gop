@@ -37,10 +37,7 @@ type NTLMSSP_NEGOTIATE struct {
 
 func (msg *NTLMSSP_NEGOTIATE) SetSecurityBuffer(sbuf *SecurityBuffer, rawData []byte) {
 	// Set the security buffer
-	sbuf.BufferLength = uint16(len([]byte(rawData)))
-	sbuf.BufferAllocatedLength = uint16(len([]byte(rawData)))
-	sbuf.StartOffset = uint32(msg.OtherDataOffset)
-	sbuf.RawData = []byte(rawData)
+	sbuf.SetSecurityBuffer(rawData, msg.OtherDataOffset)
 
 	// Add data to OtherData
 	msg.OtherData = append(msg.OtherData, []byte(rawData)...)
@@ -87,11 +84,9 @@ type NTLMSSP_CHALLENGE struct {
 }
 
 func (msg *NTLMSSP_CHALLENGE) SetSecurityBuffer(sbuf *SecurityBuffer, rawData []byte) {
+
 	// Set the security buffer
-	sbuf.BufferLength = uint16(len([]byte(rawData)))
-	sbuf.BufferAllocatedLength = uint16(len([]byte(rawData)))
-	sbuf.StartOffset = uint32(msg.OtherDataOffset)
-	sbuf.RawData = []byte(rawData)
+	sbuf.SetSecurityBuffer(rawData, msg.OtherDataOffset)
 
 	// Add data to OtherData
 	msg.OtherData = append(msg.OtherData, []byte(rawData)...)
@@ -330,10 +325,7 @@ func (msg *NTLMSSP_AUTH) ToString() string {
 
 func (msg *NTLMSSP_AUTH) SetSecurityBuffer(sbuf *SecurityBuffer, rawData []byte) {
 	// Set the security buffer
-	sbuf.BufferLength = uint16(len([]byte(rawData)))
-	sbuf.BufferAllocatedLength = uint16(len([]byte(rawData)))
-	sbuf.StartOffset = uint32(msg.OtherDataOffset)
-	sbuf.RawData = []byte(rawData)
+	sbuf.SetSecurityBuffer(rawData, msg.OtherDataOffset)
 
 	// Add data to OtherData
 	msg.OtherData = append(msg.OtherData, []byte(rawData)...)
