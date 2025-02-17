@@ -117,7 +117,7 @@ var serverRedirectHTTPCmd = &cobra.Command{
 	Use:   "redirect",
 	Short: "",
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Fatal(gopserver.RunRedirectServerHTTPCmd(hostOption, portOption, vhostOption, dstUrlOption, httpsOption))
+		log.Fatal(gopserver.RunRedirectServerHTTPCmd(hostOption, portOption, vhostOption, dstUrlOption, httpsOption, authOption, realmOption))
 	},
 }
 
@@ -214,6 +214,8 @@ func init() {
 	serverRedirectHTTPCmd.PersistentFlags().StringVarP(&dstUrlOption, "destination", "d", "http://127.0.0.1:80", "Destination where traffic will be redirected.")
 	serverRedirectHTTPCmd.PersistentFlags().StringVarP(&vhostOption, "vhost", "v", "", "Virtual host to use for the server.")
 	serverRedirectHTTPCmd.PersistentFlags().BoolVarP(&httpsOption, "https", "", false, "Define whether or not an SSL/TLS layer is added.")
+	serverRedirectHTTPCmd.PersistentFlags().StringVarP(&authOption, "auth", "a", "", "Add an authentication option to the server. Could be either \"Basic\" or \"NTLM\".")
+	serverRedirectHTTPCmd.PersistentFlags().StringVarP(&realmOption, "realm", "", "", "Realm used for the \"Basic\" authentication.")
 
 	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&vhostOption, "vhost", "v", "", "Virtual host to use for the server.")
 	serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&exfilUrlOption, "exfil-url", "", "", "Exfil URL in a form of http(s)://domain.tld.")

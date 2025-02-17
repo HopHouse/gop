@@ -2,6 +2,8 @@ package ntlm
 
 import (
 	"encoding/binary"
+	"fmt"
+	"strings"
 
 	"github.com/hophouse/gop/utils/logger"
 )
@@ -56,7 +58,17 @@ func (sbuf SecurityBuffer) ToBytes() []byte {
 }
 
 func (sbuf *SecurityBuffer) PrintSecurityBuffer() {
-	logger.Printf("\tBuffer length                : %x\n", sbuf.BufferLength)
-	logger.Printf("\tBuffer Allocated length      : %x\n", sbuf.BufferAllocatedLength)
-	logger.Printf("\tOffset                       : %x\n", sbuf.StartOffset)
+	logger.Printf(sbuf.ToString())
+}
+
+func (sbuf *SecurityBuffer) ToString() string {
+	var str strings.Builder
+
+	str.WriteString(fmt.Sprintf("\tBuffer length                : %d\n", sbuf.BufferLength))
+	str.WriteString(fmt.Sprintf("\tBuffer Allocated length      : %d\n", sbuf.BufferAllocatedLength))
+	str.WriteString(fmt.Sprintf("\tOffset                       : %d\n", sbuf.StartOffset))
+	str.WriteString(fmt.Sprintf("\tData Bytes                   : %b\n", sbuf.RawData))
+	str.WriteString(fmt.Sprintf("\tData String                  : %s\n", ByteSliceToString(sbuf.RawData[:])))
+
+	return str.String()
 }

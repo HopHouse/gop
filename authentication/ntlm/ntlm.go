@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"strings"
+
+	"github.com/hophouse/gop/utils/logger"
 )
 
 const (
@@ -170,6 +172,23 @@ func NewNTLMSSP_CHALLENGEShort() NTLMSSP_CHALLENGE {
 	)
 
 	return msg
+}
+
+func (msg *NTLMSSP_CHALLENGE) SetChallenge(challenge string) {
+	if len(challenge) > 8 {
+		logger.Printf("[!] Provided challege %s is too long. Expected 8 bytes. It will be truncated. Challenge will be : %s\n", challenge, challenge[0:7])
+		challenge = challenge[0:7]
+	}
+	if len(challenge) < 8 {
+		logger.Printf("[!] Provided challege %s is too small. Expected 8 bytes. It will be padded with \"0\". ", challenge)
+		for i := len(challenge); i <= 8; i++ {
+			challenge = challenge + "0"
+		}
+		logger.Printf("Challenge wille be : %s\n", challenge)
+		challenge = challenge[0:7]
+	}
+
+	msg.Challenge = []byte(challenge)
 }
 
 func (msg *NTLMSSP_CHALLENGE) ToBytes() []byte {

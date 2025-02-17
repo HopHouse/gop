@@ -194,12 +194,23 @@ func sendNetResponse(conn net.Conn, resp *http.Response) {
 	}
 }
 
-func copyHeader(newHeader http.Header, header http.Header) {
+func CopyHeader(newHeader http.Header, header http.Header) {
 	for key, i := range header {
 		for _, y := range i {
 			newHeader.Add(key, y)
 		}
 	}
+}
+
+func CopyRequest(r *http.Request) *http.Request {
+	newRequest, err := http.NewRequest(r.Method, r.URL.String(), nil)
+	if ok := utils.CheckError(err); ok {
+		return nil
+	}
+
+	CopyHeader(newRequest.Header, r.Header)
+
+	return newRequest
 }
 
 func doHTTPRequest(r *http.Request) *http.Response {
@@ -208,7 +219,7 @@ func doHTTPRequest(r *http.Request) *http.Response {
 		return nil
 	}
 
-	copyHeader(newRequest.Header, r.Header)
+	CopyHeader(newRequest.Header, r.Header)
 
 	client := http.Client{}
 	resp, err := client.Do(newRequest)

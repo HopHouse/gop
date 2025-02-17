@@ -111,7 +111,7 @@ func RunServerHTTPSCmd(object ServerInterface) error {
 	return nil
 }
 
-func RunRedirectServerHTTPCmd(host string, port string, vhost string, destination string, https bool) error {
+func RunRedirectServerHTTPCmd(host string, port string, vhost string, destination string, https bool, auth string, realm string) error {
 	addr := fmt.Sprintf("%s:%s", host, port)
 
 	r := mux.NewRouter()
@@ -119,6 +119,22 @@ func RunRedirectServerHTTPCmd(host string, port string, vhost string, destinatio
 
 	n := negroni.New(negroni.NewRecovery())
 	n.Use(&logMiddleware{})
+
+	// Apply an auth system if requested
+	switch strings.ToLower(auth) {
+	case "basic":
+		logger.Printf("[+] Add HTTP Basic auth header\n")
+		n.Use(&basicAuth.BasicAuthMiddleware{
+			Realm: realm,
+		})
+	case "ntlm":
+		logger.Printf("[+] Add HTTP NTLM auth header\n")
+		ntlmAuth.NtlmCapturedAuth = make(map[string]bool)
+		n.Use(&ntlmAuth.NTLMAuthMiddlewareMux{
+			NTLMHandler: ntlmAuth.DefaultNTLMAuthMiddleWare,
+		})
+	}
+
 	n.UseHandler(r)
 
 	server := http.Server{

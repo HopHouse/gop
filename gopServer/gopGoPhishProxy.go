@@ -68,7 +68,9 @@ func RunGoPhishProxyHTTPCmd(host string, port string, dstUrl string, gophishUrl 
 		ntlmAuth.NtlmCapturedAuth = make(map[string]bool)
 		r.Handle("/{URL:.*}", negroni.New(
 			&logMiddleware{},
-			&ntlmAuth.NTLMAuthMiddleware{},
+			&ntlmAuth.NTLMAuthMiddlewareMux{
+				NTLMHandler: ntlmAuth.DefaultNTLMAuthMiddleWare,
+			},
 			negroni.WrapFunc(proxy.HandleFunc),
 		))
 
