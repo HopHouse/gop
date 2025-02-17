@@ -6,23 +6,27 @@ import (
 	"path/filepath"
 	"sync"
 
+	goprelay "github.com/hophouse/gop/gopRelay"
 	gopserver "github.com/hophouse/gop/gopServer"
 	"github.com/hophouse/gop/utils/logger"
 	"github.com/spf13/cobra"
 )
 
 var (
-	directoryServeOption   string
-	dstUrlOption           string
-	interfaceOption        string
-	authOption             string
-	realmOption            string
-	redirectPrefixOption   string
-	gophishUrlOption       string
-	gophishWhiteListOption []string
-	vhostOption            string
-	exfilUrlOption         string
-	httpsOption            bool
+	directoryServeOption    string
+	dstUrlOption            string
+	interfaceOption         string
+	authOption              string
+	realmOption             string
+	redirectPrefixOption    string
+	gophishUrlOption        string
+	gophishWhiteListOption  []string
+	vhostOption             string
+	exfilUrlOption          string
+	httpsOption             bool
+	relayTargetUrl          []string
+	relayHTTPServerHostPort string
+	relayHTTPProxyHostPort  string
 	// customHTMLFile         string
 	// customJSFile           string
 )
@@ -174,6 +178,25 @@ var serverJSExfilHTTPCmd = &cobra.Command{
 	},
 }
 
+var serverRelayCmd = &cobra.Command{
+	Use: "relay",
+	Run: func(cmd *cobra.Command, args []string) {
+		logger.NewLoggerStdoutDateTimeFile()
+
+		// Run local proxy
+		go goprelay.RunLocalProxy()
+
+		// Run the relay server
+		go goprelay.RunRelayServer(relayTargetUrl)
+
+		// Run the HTTP server
+		go goprelay.RunHTTPServer(relayHTTPServerHostPort, goprelay.ProcessIncomingConnChan)
+
+		// Hang forever
+		select {}
+	},
+}
+
 func init() {
 	serverCmd.AddCommand(serverHTTPCmd)
 	serverCmd.AddCommand(serverReverseHTTPProxyHTTPCmd)
@@ -181,6 +204,7 @@ func init() {
 	serverCmd.AddCommand(serverGoPhishProxyHTTPCmd)
 	serverCmd.AddCommand(serverRedirectHTTPCmd)
 	serverCmd.AddCommand(serverJSExfilHTTPCmd)
+	serverCmd.AddCommand(serverRelayCmd)
 
 	serverCmd.PersistentFlags().StringVarP(&interfaceOption, "interface", "i", "", "Interface to take IP adress.")
 	serverCmd.PersistentFlags().StringVarP(&hostOption, "Host", "H", "0.0.0.0", "Define the proxy host.")
@@ -222,4 +246,9 @@ func init() {
 	serverJSExfilHTTPCmd.PersistentFlags().BoolVarP(&httpsOption, "https", "", false, "Define whether or not an SSL/TLS layer is added.")
 	// serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&customHTMLFile, "custom-html", "", "", "Define a custom HTML file to use.")
 	// serverJSExfilHTTPCmd.PersistentFlags().StringVarP(&customJSFile, "custom-js", "", "", "Define a custom JavaScript file to use.")
+
+	serverRelayCmd.PersistentFlags().StringSliceVarP(&relayTargetUrl, "targets", "t", []string{}, "URLs of the targets.")
+	_ = serverRelayCmd.MarkFlagRequired("targets")
+	serverRelayCmd.PersistentFlags().StringVarP(&relayHTTPProxyHostPort, "http-proxy", "", "127.0.0.1:4000", "HTTP proxy to listen for traffic to impersonate user (Default: 127.0.0.1:4000).")
+	serverRelayCmd.PersistentFlags().StringVarP(&relayHTTPServerHostPort, "http-server", "", "0.0.0.0:80", "HTTP proxy to listen for traffic to impersonate user (Default: 0.0.0.0:80).")
 }
