@@ -15,7 +15,7 @@ type SecurityBuffer struct {
 	RawData               []byte
 }
 
-func NewSecurityBuffer() SecurityBuffer {
+func NewEmptySecurityBuffer() SecurityBuffer {
 	return SecurityBuffer{
 		BufferLength:          uint16(0),
 		BufferAllocatedLength: uint16(0),

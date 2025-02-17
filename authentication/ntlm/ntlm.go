@@ -83,6 +83,26 @@ type NTLMSSP_CHALLENGE struct {
 	OtherDataOffset    int
 }
 
+func (msg *NTLMSSP_CHALLENGE) ToString() string {
+	var str strings.Builder
+
+	str.WriteString(fmt.Sprintf("NTLMSSP Signature      : %s\n", string(msg.SSPSignature)))
+	str.WriteString(fmt.Sprintf("NTLM Message Type      : %v\n", msg.MessageType))
+	str.WriteString(fmt.Sprintf("TargetName      : %s\n", string(msg.TargetName.RawData)))
+	str.WriteString(fmt.Sprint("Flags :\n"))
+	str.WriteString(msg.Flags.ToString())
+	str.WriteString(fmt.Sprintf("Challenge : %x\n", msg.Challenge))
+	str.WriteString(fmt.Sprintf("Context : %d\n", msg.Context))
+	str.WriteString(fmt.Sprintf("TargetInformation      :\n%s\n", msg.TargetInformation.ToString()))
+	str.WriteString(fmt.Sprintf("OS Version : %v.%v - Build %d\n", msg.OSVersionStructure[0], msg.OSVersionStructure[1], binary.LittleEndian.Uint16(msg.OSVersionStructure[2:4])))
+	str.WriteString(fmt.Sprintf("Other Data        : %v\n", msg.OtherData))
+	str.WriteString(fmt.Sprintf("Other Data string : %v\n", string(msg.OtherData)))
+	str.WriteString(fmt.Sprintf("Other Data Offset : %v\n", msg.OtherDataOffset))
+	str.WriteString(fmt.Sprint("\n"))
+
+	return str.String()
+}
+
 func (msg *NTLMSSP_CHALLENGE) SetSecurityBuffer(sbuf *SecurityBuffer, rawData []byte) {
 
 	// Set the security buffer
@@ -99,11 +119,11 @@ func NewNTLMSSP_CHALLENGEShort() NTLMSSP_CHALLENGE {
 	msg := NTLMSSP_CHALLENGE{
 		SSPSignature:      append([]byte("NTLMSSP"), 0x00),
 		MessageType:       uint32(0x2),
-		TargetName:        NewSecurityBuffer(),
+		TargetName:        NewEmptySecurityBuffer(),
 		Flags:             (Flag)(uint32(0x00)),
 		Challenge:         []byte(Challenge),
 		Context:           uint32(0x00),
-		TargetInformation: NewSecurityBuffer(),
+		TargetInformation: NewEmptySecurityBuffer(),
 		OtherData:         []byte{},
 		OtherDataOffset:   48,
 	}
@@ -217,6 +237,21 @@ func (msg *NTLMSSP_CHALLENGE) ToBytes() []byte {
 
 	result = append(result, msg.OtherData...)
 	return result
+}
+
+func (msg *NTLMSSP_CHALLENGE) Read(data []byte) {
+	msg.SSPSignature = data[0:8]
+	msg.MessageType = binary.LittleEndian.Uint32(data[8:12])
+	msg.TargetName = ReadSecurityBuffer(data, 16)
+	msg.Flags = (Flag)(binary.LittleEndian.Uint32(data[20:24]))
+	msg.Challenge = data[24:32]
+	binary.LittleEndian.PutUint32(data[32:40], msg.Context)
+	msg.TargetInformation = ReadSecurityBuffer(data, 40)
+	msg.OSVersionStructure = data[48:52]
+
+	if len(data) > 52 {
+		msg.OtherData = data[52:]
+	}
 }
 
 type NTLMSSP_AUTH struct {
