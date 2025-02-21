@@ -1,8 +1,10 @@
 package ntlm
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/hophouse/gop/utils/logger"
@@ -10,7 +12,7 @@ import (
 
 const (
 	Challenge  string = "HopHouse"
-	domainName string = "smbdomain"
+	domainName string = "WIN-F2TD6LUT0PR"
 )
 
 // const serverName string = "DC"
@@ -18,117 +20,202 @@ const (
 // const dnsServerName string = "dc.smbdomain.local"
 
 type NTLMMessage interface {
-	Read([]byte)
+	Read([]byte) error
 	ToString() string
 	ToBytes() []byte
-	SetSecurityBuffer(sbuf *SecurityBuffer)
 }
 
+// https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-nlmp/b34032e5-3aae-4bc6-84c3-c6d80eadf7f2
 type NTLMSSP_NEGOTIATE struct {
-	SSPSignature        []byte
+	SSPSignature        uint64
 	MessageType         uint32
-	Flags               Flag
+	Flags               uint32
 	SuppliedDomain      SecurityBuffer
 	SuppliedWorkstation SecurityBuffer
-	OSVersionStructure  []byte
-	OtherData           []byte
-	OtherDataOffset     int
+	OSVersionStructure  NTLMSSP_VERSION
 }
 
-func (msg *NTLMSSP_NEGOTIATE) SetSecurityBuffer(sbuf *SecurityBuffer, rawData []byte) {
-	// Set the security buffer
-	sbuf.SetSecurityBuffer(rawData, msg.OtherDataOffset)
+func (msg *NTLMSSP_NEGOTIATE) ToBytes() []byte {
+	var data bytes.Buffer
 
-	// Add data to OtherData
-	msg.OtherData = append(msg.OtherData, []byte(rawData)...)
+	binary.Write(&data, binary.LittleEndian, msg.SSPSignature)
+	binary.Write(&data, binary.LittleEndian, msg.MessageType)
+	binary.Write(&data, binary.LittleEndian, msg.Flags)
 
-	msg.OtherDataOffset = msg.OtherDataOffset + len([]byte(rawData))
+	suppliedDomainSecurityBuffer, suppliedDomainPayload := msg.SuppliedDomain.ToBytes()
+	binary.Write(&data, binary.LittleEndian, suppliedDomainSecurityBuffer)
+
+	suppliedWorkstationSecurityBuffer, suppliedWorkstationPayload := msg.SuppliedWorkstation.ToBytes()
+	binary.Write(&data, binary.LittleEndian, suppliedWorkstationSecurityBuffer)
+
+	binary.Write(&data, binary.LittleEndian, msg.OSVersionStructure)
+
+	binary.Write(&data, binary.LittleEndian, suppliedDomainPayload)
+	binary.Write(&data, binary.LittleEndian, suppliedWorkstationPayload)
+
+	return data.Bytes()
 }
 
-func (msg *NTLMSSP_NEGOTIATE) Read(data []byte) {
-	msg.SSPSignature = data[0:8]
+func (msg *NTLMSSP_NEGOTIATE) Read(data []byte) error {
+	if slices.Compare(data[0:8], []byte{'N', 'T', 'L', 'M', 'S', 'S', 'P', 0x00}) != 0 {
+		err := fmt.Errorf("ntlmssp negotiate signature does not begin with 'N', 'T', 'L', 'M', 'S', 'S', 'P', '\\0' : %x - %s", data[0:8], data[0:8])
+		return err
+	}
+	msg.SSPSignature = binary.LittleEndian.Uint64(data[0:8])
+
 	msg.MessageType = binary.LittleEndian.Uint32(data[8:12])
-	msg.Flags = (Flag)(binary.BigEndian.Uint32(data[12:16]))
-	msg.SuppliedDomain = ReadSecurityBuffer(data, 16)
-	msg.SuppliedWorkstation = ReadSecurityBuffer(data, 24)
-	msg.OSVersionStructure = data[32:41]
-	msg.OtherData = data[40:]
+	if msg.MessageType != 1 {
+		err := fmt.Errorf("ntlmssp negotiate message type is different from 0x00000001 : %x", msg.MessageType)
+		return err
+	}
+
+	msg.Flags = binary.LittleEndian.Uint32(data[12:16])
+
+	if msg.Flags&uint32(NTLMSSP_NEGOTIATE_DOMAIN_SUPPLIED) != 0 {
+		// A domain name is supplied to the buffer
+		msg.SuppliedDomain = ReadSecurityBuffer(data, 16)
+	} else {
+		msg.SuppliedDomain = SecurityBuffer{
+			BufferLength:    0,
+			BufferMaxLength: 0,
+			// DomainNameBufferOffset field SHOULD be set to the offset from the beginning of the NEGOTIATE_MESSAGE to where the DomainName would be in Payload if it were present.
+			//
+			//  NTTLMSSP_NEGOTIATE STRUCT :
+			// 		SSPSignature        	uint64				// 64 bits = 8 bytes
+			// 		MessageType         	uint32				// 32 bits = 4 bytes
+			// 		Flags               	uint32				// 32 bits = 4 bytes
+			// 		SuppliedDomain         	SecurityBuffer  	// 64 byts = 8 bytes
+			//  	SuppliedWorkstation    	SecurityBuffer  	// 64 byts = 8 bytes
+			//  	OSVersionStructure     	uint64          	// 64 byts = 8 bytes
+			//
+			StartOffset: 0,
+			Payload:     []byte{},
+		}
+	}
+
+	if msg.Flags&uint32(NTLMSSP_NEGOTIATE_WORKSTATION_SUPPLIED) != 0 {
+		// A workstation name is supplied to the buffer
+		msg.SuppliedWorkstation = ReadSecurityBuffer(data, 24)
+	} else {
+		msg.SuppliedWorkstation = SecurityBuffer{
+			BufferLength:    0,
+			BufferMaxLength: 0,
+			// DomainNameBufferOffset field SHOULD be set to the offset from the beginning of the NEGOTIATE_MESSAGE to where the DomainName would be in Payload if it were present.
+			//
+			//  NTTLMSSP_NEGOTIATE STRUCT :
+			// 		SSPSignature        	uint64				// 64 bits = 8 bytes
+			// 		MessageType         	uint32				// 32 bits = 4 bytes
+			// 		Flags               	uint32				// 32 bits = 4 bytes
+			// 		SuppliedDomain         	SecurityBuffer  	// 64 byts = 8 bytes
+			//  	SuppliedWorkstation    	SecurityBuffer  	// 64 byts = 8 bytes
+			//  	OSVersionStructure     	uint64          	// 64 byts = 8 bytes
+			//
+			StartOffset: 0,
+			Payload:     []byte{},
+		}
+	}
+
+	msg.OSVersionStructure.Read(data[32:40])
+
+	return nil
 }
 
 func (msg *NTLMSSP_NEGOTIATE) ToString() string {
 	var str strings.Builder
 
-	str.WriteString(fmt.Sprintf("NTLMSSP Signature      : %s\n", string(msg.SSPSignature)))
+	str.WriteString(fmt.Sprintf("NTLMSSP Signature      : %x\n", msg.SSPSignature))
 	str.WriteString(fmt.Sprintf("NTLM Message Type      : %v\n", msg.MessageType))
-	str.WriteString("Flags : \n")
-	str.WriteString(msg.Flags.ToString())
-	str.WriteString(fmt.Sprintf("Supplied Domain : %x\n", msg.SuppliedDomain.RawData))
-	str.WriteString(fmt.Sprintf("Supplied Workstation : %x\n", msg.SuppliedWorkstation.RawData))
-	str.WriteString(fmt.Sprintf("OS Version : %v.%v - Build %d\n", msg.OSVersionStructure[0], msg.OSVersionStructure[1], binary.LittleEndian.Uint16(msg.OSVersionStructure[2:4])))
-	str.WriteString("\n")
+	str.WriteString("Flags 								:\n")
+	str.WriteString((*Flag)(&msg.Flags).ToString())
+	str.WriteString(fmt.Sprintf("Supplied Domain 		: 0x%x\n", msg.SuppliedDomain.Payload))
+	str.WriteString(fmt.Sprintf("Supplied Workstation	: 0x%x\n", msg.SuppliedWorkstation.Payload))
+	str.WriteString(fmt.Sprintf("OS Version 			:\n%s", msg.OSVersionStructure.ToString()))
 
 	return str.String()
 }
 
 type NTLMSSP_CHALLENGE struct {
-	SSPSignature       []byte
+	SSPSignature       uint64
 	MessageType        uint32
 	TargetName         SecurityBuffer
-	Flags              Flag
-	Challenge          []byte
-	Context            uint32
+	Flags              uint32
+	Challenge          uint64
+	Reserved           uint64
 	TargetInformation  SecurityBuffer
-	OSVersionStructure []byte
-	OtherData          []byte
-	OtherDataOffset    int
+	OSVersionStructure NTLMSSP_VERSION
 }
 
 func (msg *NTLMSSP_CHALLENGE) ToString() string {
 	var str strings.Builder
 
-	str.WriteString(fmt.Sprintf("NTLMSSP Signature      : %s\n", string(msg.SSPSignature)))
+	str.WriteString(fmt.Sprintf("NTLMSSP Signature      : %x\n", msg.SSPSignature))
 	str.WriteString(fmt.Sprintf("NTLM Message Type      : %v\n", msg.MessageType))
-	str.WriteString(fmt.Sprintf("TargetName      : %s\n", string(msg.TargetName.RawData)))
-	str.WriteString(fmt.Sprint("Flags :\n"))
-	str.WriteString(msg.Flags.ToString())
-	str.WriteString(fmt.Sprintf("Challenge : %x\n", msg.Challenge))
-	str.WriteString(fmt.Sprintf("Context : %d\n", msg.Context))
+	str.WriteString(fmt.Sprintf("TargetName             :\n%s\n", msg.TargetName.ToString()))
+
+	str.WriteString(fmt.Sprint("Flags 					:\n"))
+	str.WriteString((*Flag)(&msg.Flags).ToString())
+
+	str.WriteString(fmt.Sprintf("Challenge 				: 0x%x\n", msg.Challenge))
+	str.WriteString(fmt.Sprintf("Reserved  				: %d\n", msg.Reserved))
 	str.WriteString(fmt.Sprintf("TargetInformation      :\n%s\n", msg.TargetInformation.ToString()))
-	str.WriteString(fmt.Sprintf("OS Version : %v.%v - Build %d\n", msg.OSVersionStructure[0], msg.OSVersionStructure[1], binary.LittleEndian.Uint16(msg.OSVersionStructure[2:4])))
-	str.WriteString(fmt.Sprintf("Other Data        : %v\n", msg.OtherData))
-	str.WriteString(fmt.Sprintf("Other Data string : %v\n", string(msg.OtherData)))
-	str.WriteString(fmt.Sprintf("Other Data Offset : %v\n", msg.OtherDataOffset))
-	str.WriteString(fmt.Sprint("\n"))
+	str.WriteString(fmt.Sprintf("OS Version 			:\n%s\n", msg.OSVersionStructure.ToString()))
 
 	return str.String()
 }
 
-func (msg *NTLMSSP_CHALLENGE) SetSecurityBuffer(sbuf *SecurityBuffer, rawData []byte) {
-
-	// Set the security buffer
-	sbuf.SetSecurityBuffer(rawData, msg.OtherDataOffset)
-
-	// Add data to OtherData
-	msg.OtherData = append(msg.OtherData, []byte(rawData)...)
-
-	msg.OtherDataOffset = msg.OtherDataOffset + len([]byte(rawData))
-}
-
 // OSVersionStructure is optional and not added into it
 func NewNTLMSSP_CHALLENGEShort() NTLMSSP_CHALLENGE {
-	msg := NTLMSSP_CHALLENGE{
-		SSPSignature:      append([]byte("NTLMSSP"), 0x00),
-		MessageType:       uint32(0x2),
-		TargetName:        NewEmptySecurityBuffer(),
-		Flags:             (Flag)(uint32(0x00)),
-		Challenge:         []byte(Challenge),
-		Context:           uint32(0x00),
-		TargetInformation: NewEmptySecurityBuffer(),
-		OtherData:         []byte{},
-		OtherDataOffset:   48,
+	msg := NTLMSSP_CHALLENGE{}
+
+	msg.SSPSignature = binary.LittleEndian.Uint64([]byte("NTLMSSP\x00"))
+	msg.MessageType = 0x00000002
+	msg.TargetName = NewEmptySecurityBuffer()
+	msg.Flags = 0x00
+	msg.Challenge = 0x00
+	msg.Reserved = 0x00
+	msg.TargetInformation = NewEmptySecurityBuffer()
+	msg.OSVersionStructure = NTLMSSP_VERSION{
+		ProductMajorVersion: 10,
+		ProductMinorVersion: 0,
+		ProductBuild:        26100,
+		NTLMRevisionCurrent: 15,
 	}
 
-	msg.SetSecurityBuffer(&msg.TargetName, []byte(domainName))
+	msg.SetChallenge(Challenge)
+
+	// 	NTLMSSP_CHALLENGE struct :
+	// 		SSPSignature       		uint64 				// 64 bits = 8 bytes
+	// 		MessageType        		uint32				// 32 bits = 4 bytes
+	// 		TargetName         		SecurityBuffer		// 64 bits = 8 bytes
+	// 		Flags              		uint32				// 32 bits = 4 bytes
+	// 		Challenge          		uint64				// 64 bits = 8 bytes
+	// 		Reserved           		uint64				// 64 bits = 8 bytes
+	// 		TargetInformation  		SecurityBuffer 		// 64 bits = 8 bytes
+	// 		OSVersionStructure 		NTLMSSP_VERSION		// 64 bits = 8 bytes
+	// 		OtherData          		[]byte
+	// 		OtherDataOffset    		int
+	//
+	// So the startOffset must be set to 8 + 4 + 8 + 4 + 8 + 8 + 8 + 8 = 56 .
+	payloadOffset := uint32(56)
+	// TODO : Fix it here. The domainNameByte must be in unicode to bytes, so uint16 instead of uint8
+	domainNameByte := []byte(domainName)
+
+	msg.TargetName = NewSecurityBufferForData(domainNameByte, payloadOffset)
+	// Domain name is in unicode, so TargetNameLen and TargetNameBufferOffset must be nultiplies by 2
+
+	// payload become 56 + msg.TargetName.Length
+	payloadOffset += uint32(msg.TargetName.BufferLength)
+
+	msg.TargetInformation = NewSecurityBufferForData([]byte{0x2, 0x0, 0x1e, 0x0, 0x57, 0x0, 0x49, 0x0, 0x4e, 0x0, 0x2d, 0x0, 0x46, 0x0, 0x32, 0x0, 0x54, 0x0, 0x44, 0x0, 0x36, 0x0, 0x4c, 0x0, 0x55, 0x0, 0x54, 0x0, 0x30, 0x0, 0x50, 0x0, 0x52, 0x0, 0x1, 0x0, 0x1e, 0x0, 0x57, 0x0, 0x49, 0x0, 0x4e, 0x0, 0x2d, 0x0, 0x46, 0x0, 0x32, 0x0, 0x54, 0x0, 0x44, 0x0, 0x36, 0x0, 0x4c, 0x0, 0x55, 0x0, 0x54, 0x0, 0x30, 0x0, 0x50, 0x0, 0x52, 0x0, 0x4, 0x0, 0x1e, 0x0, 0x57, 0x0, 0x49, 0x0, 0x4e, 0x0, 0x2d, 0x0, 0x46, 0x0, 0x32, 0x0, 0x54, 0x0, 0x44, 0x0, 0x36, 0x0, 0x4c, 0x0, 0x55, 0x0, 0x54, 0x0, 0x30, 0x0, 0x50, 0x0, 0x52, 0x0, 0x3, 0x0, 0x1e, 0x0, 0x57, 0x0, 0x49, 0x0, 0x4e, 0x0, 0x2d, 0x0, 0x46, 0x0, 0x32, 0x0, 0x54, 0x0, 0x44, 0x0, 0x36, 0x0, 0x4c, 0x0, 0x55, 0x0, 0x54, 0x0, 0x30, 0x0, 0x50, 0x0, 0x52, 0x0, 0x7, 0x0, 0x8, 0x0, 0x99, 0x3b, 0xdf, 0x1, 0x1c, 0x83, 0xdb, 0x1, 0x0, 0x0, 0x0, 0x0}, payloadOffset)
+	//
+	// https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-nlmp/801a4681-8809-4be9-ab0d-61dcfe762786
+	//
+	// TargetInfo (variable): If TargetInfoLen does not equal 0x0000, TargetInfo MUST be a byte array that contains a sequence of AV_PAIR structures. The AV_PAIR structure is defined in section 2.2.2.1. The length of each AV_PAIR is determined by its AvLen field (plus 4 bytes).
+	//
+	// Note An AV_PAIR structure can start on any byte alignment and the sequence of AV_PAIRs has no padding between structures.
+	//
+	// The sequence MUST be terminated by an AV_PAIR structure with an AvId field of MsvAvEOL. The total length of the TargetInfo byte array is the sum of the lengths, in bytes, of the AV_PAIR structures it contains.
+	//
 
 	//targetInformationDomainNameBytes := TargetInformation{
 	//	Type:    uint16(0x0002),
@@ -170,13 +257,13 @@ func NewNTLMSSP_CHALLENGEShort() NTLMSSP_CHALLENGE {
 
 	// msg.SetSecurityBuffer(&msg.TargetInformation, []byte(targetInformationBytes))
 
-	msg.Flags.SetFlag(
-		//"Negotiate Unicode",
+	(*Flag)(&msg.Flags).SetFlag(
+		// "Negotiate Unicode",
 		"Negotiate OEM",
 		"Request Target",
 		"Negotiate NTLM",
 		"Negotiate Local Call",
-		"Negotiate Always Sign",
+		// "Negotiate Always Sign",
 		"Target Type Domain",
 		"Target Type Server",
 		"Target Type Share",
@@ -203,55 +290,55 @@ func (msg *NTLMSSP_CHALLENGE) SetChallenge(challenge string) {
 		challenge = challenge[0:7]
 	}
 
-	msg.Challenge = []byte(challenge)
+	msg.Challenge = binary.LittleEndian.Uint64([]byte(challenge))
 }
 
 func (msg *NTLMSSP_CHALLENGE) ToBytes() []byte {
-	var result []byte
+	var data bytes.Buffer
+	var payload bytes.Buffer
 
-	SSPSignatureBytes := make([]byte, 8)
-	copy(SSPSignatureBytes, msg.SSPSignature)
-	result = append(result, SSPSignatureBytes...)
+	binary.Write(&data, binary.LittleEndian, msg.SSPSignature)
+	binary.Write(&data, binary.LittleEndian, msg.MessageType)
 
-	MessageTypeBytes := make([]byte, 4)
-	binary.LittleEndian.PutUint32(MessageTypeBytes, msg.MessageType)
-	result = append(result, MessageTypeBytes...)
+	targetNameSecurityBuffer, targetNamePayload := msg.TargetName.ToBytes()
+	binary.Write(&data, binary.LittleEndian, targetNameSecurityBuffer)
+	binary.Write(&payload, binary.LittleEndian, targetNamePayload)
 
-	TargetNameBytes := msg.TargetName.ToBytes()
-	result = append(result, TargetNameBytes...)
+	binary.Write(&data, binary.LittleEndian, msg.Flags)
+	binary.Write(&data, binary.LittleEndian, msg.Challenge)
+	binary.Write(&data, binary.LittleEndian, msg.Reserved)
 
-	FlagsBytes := make([]byte, 4)
-	binary.LittleEndian.PutUint32(FlagsBytes, (uint32)(msg.Flags))
-	result = append(result, FlagsBytes...)
+	targetInformationSecurityBuffer, targetInformationPayload := msg.TargetInformation.ToBytes()
+	binary.Write(&data, binary.LittleEndian, targetInformationSecurityBuffer)
+	binary.Write(&payload, binary.LittleEndian, targetInformationPayload)
 
-	ChallengeBytes := make([]byte, 8)
-	copy(ChallengeBytes, Challenge)
-	result = append(result, ChallengeBytes...)
+	binary.Write(&data, binary.LittleEndian, msg.OSVersionStructure.ToBytes())
 
-	ContextBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint32(ContextBytes, msg.Context)
-	result = append(result, ContextBytes...)
+	// Write payload at the end
+	data.Write(targetNamePayload)
+	// for i := 0; i < len(targetNamePayload)%8; i++ {
+	// 	data.WriteByte(0x00)
+	// }
 
-	TargetInformationBytes := msg.TargetInformation.ToBytes()
-	result = append(result, TargetInformationBytes...)
+	data.Write(targetInformationPayload)
+	// for i := 0; i < len(targetInformationPayload)%8; i++ {
+	// 	data.WriteByte(0x00)
+	// }
 
-	result = append(result, msg.OtherData...)
-	return result
+	return data.Bytes()
 }
 
-func (msg *NTLMSSP_CHALLENGE) Read(data []byte) {
-	msg.SSPSignature = data[0:8]
+func (msg *NTLMSSP_CHALLENGE) Read(data []byte) error {
+	msg.SSPSignature = binary.LittleEndian.Uint64(data[0:8])
 	msg.MessageType = binary.LittleEndian.Uint32(data[8:12])
-	msg.TargetName = ReadSecurityBuffer(data, 16)
-	msg.Flags = (Flag)(binary.LittleEndian.Uint32(data[20:24]))
-	msg.Challenge = data[24:32]
-	binary.LittleEndian.PutUint32(data[32:40], msg.Context)
+	msg.TargetName = ReadSecurityBuffer(data, 12)
+	msg.Flags = binary.LittleEndian.Uint32(data[20:24])
+	msg.Challenge = binary.LittleEndian.Uint64(data[24:32])
+	msg.Reserved = binary.LittleEndian.Uint64(data[32:40])
 	msg.TargetInformation = ReadSecurityBuffer(data, 40)
-	msg.OSVersionStructure = data[48:52]
+	msg.OSVersionStructure.Read(data[48:56])
 
-	if len(data) > 52 {
-		msg.OtherData = data[52:]
-	}
+	return nil
 }
 
 type NTLMSSP_AUTH struct {
@@ -276,7 +363,7 @@ type NTLMSSP_AUTH struct {
 	Workstation        SecurityBuffer
 	SessionKey         SecurityBuffer
 	Flags              Flag
-	OSVersionStructure []byte
+	OSVersionStructure NTLMSSP_VERSION
 	OtherData          []byte
 	OtherDataOffset    int
 }
@@ -327,12 +414,13 @@ func (msg *NTLMSSP_AUTH) Read(data []byte) {
 	// Os Version is optional. If LMv2 Security Buffer has an offset equal to 64,
 	// so the session key is present
 	if msg.OtherDataOffset > 64 {
-		msg.OSVersionStructure = data[64:72]
+		msg.OSVersionStructure.Read(data[64:72])
 	}
 	msg.OtherData = data[72:]
 }
 
 func (msg *NTLMSSP_AUTH) ToBytes() []byte {
+	logger.Printf("[!] MTLMSSP_AUTH.ToBytes() Not implemented")
 	return []byte{}
 }
 
@@ -344,16 +432,15 @@ func (msg *NTLMSSP_AUTH) ToString() string {
 
 	str.WriteString(fmt.Sprintf("NTLMSSP Signature      : %s\n", string(msg.SSPSignature)))
 	str.WriteString(fmt.Sprintf("NTLM Message Type      : %v\n", msg.MessageType))
-	str.WriteString(fmt.Sprintf("LMv2Response : %x\n", msg.LMv2Response.RawData))
-	str.WriteString(fmt.Sprintf("NTLMv2Response : %x\n", msg.NTLMv2Response.RawData))
-	str.WriteString(fmt.Sprintf("Targetname : %s\n", msg.TargetName.RawData))
-	str.WriteString(fmt.Sprintf("UserName : %s\n", msg.Username.RawData))
-	str.WriteString(fmt.Sprintf("Workstation : %s\n", msg.Workstation.RawData))
-	str.WriteString(fmt.Sprintf("SessionKey : %x\n", msg.SessionKey.RawData))
+	str.WriteString(fmt.Sprintf("LMv2Response : 0x%x\n", msg.LMv2Response.Payload))
+	str.WriteString(fmt.Sprintf("NTLMv2Response : 0x%x\n", msg.NTLMv2Response.Payload))
+	str.WriteString(fmt.Sprintf("Targetname : %s\n", msg.TargetName.Payload))
+	str.WriteString(fmt.Sprintf("UserName : %s\n", msg.Username.Payload))
+	str.WriteString(fmt.Sprintf("Workstation : %s\n", msg.Workstation.Payload))
+	str.WriteString(fmt.Sprintf("SessionKey : 0x%x\n", msg.SessionKey.Payload))
 	str.WriteString("Flags : \n")
 	str.WriteString(msg.Flags.ToString())
-	str.WriteString(fmt.Sprintf("OS Version : %v.%v - Build %d\n", msg.OSVersionStructure[0], msg.OSVersionStructure[1], binary.LittleEndian.Uint16(msg.OSVersionStructure[2:4])))
-	str.WriteString("\n")
+	str.WriteString(fmt.Sprintf("OS Version :\n%s\n", msg.OSVersionStructure.ToString()))
 
 	return str.String()
 }
@@ -366,4 +453,46 @@ func (msg *NTLMSSP_AUTH) SetSecurityBuffer(sbuf *SecurityBuffer, rawData []byte)
 	msg.OtherData = append(msg.OtherData, []byte(rawData)...)
 
 	msg.OtherDataOffset = msg.OtherDataOffset + len([]byte(rawData))
+}
+
+type NTLMSSP_VERSION struct {
+	ProductMajorVersion uint8
+	ProductMinorVersion uint8
+	ProductBuild        uint16
+	Reserved            [3]byte
+	NTLMRevisionCurrent uint8
+}
+
+func (n *NTLMSSP_VERSION) Read(data []byte) error {
+	n.ProductMajorVersion = data[0]
+	n.ProductMinorVersion = data[1]
+	n.ProductBuild = binary.LittleEndian.Uint16(data[2:4])
+	n.Reserved = [3]byte(data[4:7])
+	n.NTLMRevisionCurrent = data[7]
+
+	return nil
+}
+
+func (n *NTLMSSP_VERSION) ToBytes() []byte {
+	var data bytes.Buffer
+
+	binary.Write(&data, binary.LittleEndian, n.ProductMajorVersion)
+	binary.Write(&data, binary.LittleEndian, n.ProductMinorVersion)
+	binary.Write(&data, binary.LittleEndian, n.ProductBuild)
+	binary.Write(&data, binary.LittleEndian, n.Reserved)
+	binary.Write(&data, binary.LittleEndian, n.NTLMRevisionCurrent)
+
+	return data.Bytes()
+}
+
+func (n *NTLMSSP_VERSION) ToString() string {
+	var str strings.Builder
+
+	str.WriteString(fmt.Sprintf("Product Major Version      : %d\n", n.ProductMajorVersion))
+	str.WriteString(fmt.Sprintf("Product Minor Version      : %d\n", n.ProductMinorVersion))
+	str.WriteString(fmt.Sprintf("Product Build              : %d\n", n.ProductBuild))
+	str.WriteString(fmt.Sprintf("Product Reserved           : %x\n", n.Reserved))
+	str.WriteString(fmt.Sprintf("NTLM Revision Current      : %d\n", n.NTLMRevisionCurrent))
+
+	return str.String()
 }

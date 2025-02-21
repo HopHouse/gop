@@ -48,13 +48,13 @@ func (resp *NTLMv2Response) Read(data []byte) {
 func (resp *NTLMv2Response) ToString() string {
 	var str strings.Builder
 
-	str.WriteString(fmt.Sprintf("NTProofStr      	: %x\n", resp.NTProofStr))
+	str.WriteString(fmt.Sprintf("NTProofStr      	: 0x%x\n", resp.NTProofStr))
 	str.WriteString(fmt.Sprintf("ResponseVersion  	: %d\n", resp.ResponseVersion))
 	str.WriteString(fmt.Sprintf("HiResponseVersion	: %d\n", resp.HiResponseVersion))
 	str.WriteString(fmt.Sprintf("Timestamp     		: %s\n", resp.Timestamp))
-	str.WriteString(fmt.Sprintf("Challenge     		: %x\n", resp.Challenge))
-	str.WriteString(fmt.Sprintf("Restrictions   		: %x\n", resp.Restrictions.Data))
-	str.WriteString(fmt.Sprintf("ChannelBindings 	: %x\n", resp.ChannelBindings.Data))
+	str.WriteString(fmt.Sprintf("Challenge     		: 0x%x\n", resp.Challenge))
+	str.WriteString(fmt.Sprintf("Restrictions   	: 0x%x\n", resp.Restrictions.Data))
+	str.WriteString(fmt.Sprintf("ChannelBindings 	: 0x%x\n", resp.ChannelBindings.Data))
 	str.WriteString(fmt.Sprintf("TargetName		: %v\n", string(resp.TargetName.Data)))
 
 	return str.String()

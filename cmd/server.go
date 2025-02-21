@@ -181,16 +181,16 @@ var serverJSExfilHTTPCmd = &cobra.Command{
 var serverRelayCmd = &cobra.Command{
 	Use: "relay",
 	Run: func(cmd *cobra.Command, args []string) {
-		logger.NewLoggerStdoutDateTimeFile()
-
 		// Run local proxy
 		go goprelay.RunLocalProxy()
 
 		// Run the relay server
 		go goprelay.RunRelayServer(relayTargetUrl)
 
-		// Run the HTTP server
-		go goprelay.RunHTTPServer(relayHTTPServerHostPort, goprelay.ProcessIncomingConnChan)
+		// // Run the HTTP server
+		// go goprelay.RunHTTPServer(relayHTTPServerHostPort, goprelay.ProcessIncomingConnChan)
+
+		goprelay.RunSMBServer("qq", goprelay.ProcessIncomingConnChan)
 
 		// Hang forever
 		select {}

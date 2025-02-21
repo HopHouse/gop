@@ -1,41 +1,16 @@
-package ntlm
+package gopRelay
 
 import (
 	"bytes"
 	"fmt"
-	"strings"
-	"syscall"
 )
-
-// Taken from "golang.org/x/sys/windows"
-// ByteSliceFromString returns a NUL-terminated slice of bytes
-// containing the text of s. If s contains a NUL byte at any
-// location, it returns (nil, syscall.EINVAL).
-func ByteSliceFromString(s string) ([]byte, error) {
-	if strings.IndexByte(s, 0) != -1 {
-		return nil, syscall.EINVAL
-	}
-	a := make([]byte, len(s)+1)
-	copy(a, s)
-	return a, nil
-}
-
-// Taken from "golang.org/x/sys/windows"
-// ByteSliceToString returns a string form of the text represented by the slice s, with a terminating NUL and any
-// bytes after the NUL removed.
-func ByteSliceToString(s []byte) string {
-	if i := bytes.IndexByte(s, 0); i != -1 {
-		s = s[:i]
-	}
-	return string(s)
-}
 
 // Return :
 // - 0 if equals
 // - 1 if len(s1) > len(s2)
 // - -1 if len(s1) < len(s2)
 // - 2 if bitwise comparaison of s1 != s2
-// TODO Mutualise with the one in the relay package
+// TODO Mutualise with the one in the ntlm package
 func CompareBytesSlices(s1, s2 []byte) (int, string) {
 	status := 2
 	str := bytes.NewBuffer([]byte{})

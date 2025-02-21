@@ -55,12 +55,12 @@ func ServerAuthenticate(w http.ResponseWriter, r *http.Request) (NTLMSSP_AUTH, N
 	msg3 := NTLMSSP_AUTH{}
 	msg3.Read(authorization_bytes)
 
-	logger.Printf("[+] NTLM AUTHENTICATE:\nTarget Name: %s\nUsername: %s\nWorkstation: %s\n", msg3.TargetName.RawData, msg3.Username.RawData, msg3.Workstation.RawData)
+	logger.Printf("[+] NTLM AUTHENTICATE:\nTarget Name: %s\nUsername: %s\nWorkstation: %s\n", msg3.TargetName.Payload, msg3.Username.Payload, msg3.Workstation.Payload)
 	fmt.Fprintf(logger.Writer(), "%s\n", msg3.ToString())
 
 	// Prepare final response to the client
 	ntlmv2Response := NTLMv2Response{}
-	ntlmv2Response.Read(msg3.NTLMv2Response.RawData)
+	ntlmv2Response.Read(msg3.NTLMv2Response.Payload)
 
 	fmt.Fprintf(logger.Writer(), "[+] NTLM AUTHENTICATE RESPONSE:\n%s\n", ntlmv2Response.ToString())
 

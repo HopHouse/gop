@@ -243,9 +243,9 @@ func (n *NTLMAuthHTTPRelay) ProcessHTTPServer(target string) error {
 			serverAuthenticate := ntlm.NTLMSSP_AUTH{}
 			serverAuthenticate.Read(authorization_bytes)
 
-			currentRelay.Domain = string(serverAuthenticate.TargetName.RawData)
-			currentRelay.Username = string(serverAuthenticate.Username.RawData)
-			currentRelay.Workstation = string(serverAuthenticate.Workstation.RawData)
+			currentRelay.Domain = string(serverAuthenticate.TargetName.Payload)
+			currentRelay.Username = string(serverAuthenticate.Username.Payload)
+			currentRelay.Workstation = string(serverAuthenticate.Workstation.Payload)
 
 			logger.Fprintf(logger.Writer(), "%s | %s | client :: gop | [+] Server authenticate\n", n.ClientConnUUID, currentRelay.relayUUID)
 			for _, line := range strings.Split(serverAuthenticate.ToString(), "\n") {
@@ -254,7 +254,7 @@ func (n *NTLMAuthHTTPRelay) ProcessHTTPServer(target string) error {
 
 			// Prepare final response to the client
 			ntlmv2Response := ntlm.NTLMv2Response{}
-			ntlmv2Response.Read(serverAuthenticate.NTLMv2Response.RawData)
+			ntlmv2Response.Read(serverAuthenticate.NTLMv2Response.Payload)
 
 			fmt.Fprintf(logger.Writer(), "%s | %s | client :: gop | [+] NTLM AUTHENTICATE RESPONSE:\n", n.ClientConnUUID, currentRelay.relayUUID)
 			for _, line := range strings.Split(string(ntlmv2Response.ToString()), "\n") {
