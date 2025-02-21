@@ -522,46 +522,42 @@ func (s *SMB2_NEGOTIATE_RESPONSE) ToBytes() []byte {
 	data = append(data, s.Buffer...)
 	data = append(data, s.Padding...)
 
-	for i := len(data); i < int(s.StructureSize); i++ {
-		logger.Panicln("Adding padding")
-		data = append(data, 0x00)
-	}
-
 	return data
 }
 
 func (s *SMB2_NEGOTIATE_RESPONSE) GetLength() uint16 {
 	// TODO Verify if 64 by default and +1 if additioanl data
 
-	// Structure Size
-	length := uint16(64)
-	length += s.SecurityBufferLength
+	// // Structure Size
+	// length := uint16(64)
+	// length += s.SecurityBufferLength
 
-	for _, context := range s.NegotiateContextList {
-		length += context.DataLength
-	}
+	// for _, context := range s.NegotiateContextList {
+	// 	length += context.DataLength
+	// }
 
-	return length
+	return uint16(len(s.ToBytes()))
 }
 
 func NewSMB2_NEGOTIATE_RESPONSE() *SMB2_NEGOTIATE_RESPONSE {
 	resp := SMB2_NEGOTIATE_RESPONSE{}
 
 	resp.StructureSize = 65
+	// resp.SecurityMode = 0x0
 	resp.SecurityMode = SMB2_NEGOTIATE_SIGNING_ENABLED
 	resp.DialectRevision = SMB2_DIALECT_202
 	resp.Reserved = 0
 	// TODO : Fix it
 	// serverGuid, _ := ntlm.ByteSliceFromString("a81fbcd2-8dda-4361-80d2-4c852824f572")
 	// resp.ServerGuid = serverGuid
-	resp.ServerGuid = []byte{0xd2, 0xbc, 0x1f, 0xa8, 0xda, 0x8d, 0x61, 0x43, 0x80, 0xd2, 0x4c, 0x85, 0x28, 0x24, 0xf5, 0x72}
-	resp.Capabilities = 0x00000007
-	resp.MaxTransactSize = 8388608
-	resp.MaxReadSize = 8388608
-	resp.MaxWriteSize = 8388608
+	resp.ServerGuid = []byte{0x4e, 0x4e, 0x79, 0x70, 0x48, 0x65, 0x69, 0x56, 0x73, 0x50, 0x63, 0x74, 0x6c, 0x52, 0x64, 0x55}
+	resp.Capabilities = 0x00000000
+	resp.MaxTransactSize = 65536
+	resp.MaxReadSize = 65536
+	resp.MaxWriteSize = 65536
 	// resp.SystemTime = uint64(time.Now().Unix())
-	resp.SystemTime = binary.LittleEndian.Uint64([]byte{0x57, 0x40, 0x7e, 0xff, 0xce, 0x82, 0xdb, 0x1})
-	resp.ServerStartTime = 0
+	resp.SystemTime = binary.LittleEndian.Uint64([]byte{0x80, 0x5f, 0xfe, 0x65, 0x6e, 0x84, 0xdb, 0x1})
+	resp.ServerStartTime = binary.LittleEndian.Uint64([]byte{0x80, 0x5f, 0xfe, 0x65, 0x6e, 0x84, 0xdb, 0x1})
 	resp.SecurityBufferOffset = 0x00000080
 	resp.SecurityBufferLength = 42
 
@@ -684,24 +680,73 @@ func (s *SMB2_COM_SESSION_SETUP_RESPONSE) ToBytes() []byte {
 	binary.Write(&data, binary.LittleEndian, s.SecurityBufferLength)
 	binary.Write(&data, binary.LittleEndian, s.Buffer)
 
+	for i := data.Len() % 8; i > 0; i-- {
+		data.WriteByte(0x00)
+	}
+
 	return data.Bytes()
 }
 
 func (s *SMB2_COM_SESSION_SETUP_RESPONSE) GetLength() uint16 {
-	return s.StructureSize + s.SecurityBufferLength
+	// return s.StructureSize + s.SecurityBufferLength
+	return uint16(len(s.ToBytes()))
 }
 
 func NewSMB2_COM_SESSION_SETUP_RESPONSE(data []byte, offset uint16) *SMB2_COM_SESSION_SETUP_RESPONSE {
 	resp := &SMB2_COM_SESSION_SETUP_RESPONSE{}
 
-	resp.Buffer = []byte{0xa1, 0x82, 0x1, 0xb, 0x30, 0x82, 0x1, 0x7, 0xa0, 0x3, 0xa, 0x1, 0x1, 0xa1, 0xc, 0x6, 0xa, 0x2b, 0x6, 0x1, 0x4, 0x1, 0x82, 0x37, 0x2, 0x2, 0xa, 0xa2, 0x81, 0xf1, 0x4, 0x81, 0xee}
+	resp.Buffer = []byte{0xa1, 0x81, 0xd6, 0x30, 0x81, 0xd3, 0xa0, 0x3, 0xa, 0x1, 0x1, 0xa1, 0xc, 0x6, 0xa, 0x2b, 0x6, 0x1, 0x4, 0x1, 0x82, 0x37, 0x2, 0x2, 0xa, 0xa2, 0x81, 0xbd, 0x4, 0x81, 0xba}
+	// offset += uint16(len(resp.Buffer))
 	resp.Buffer = append(resp.Buffer, data...)
 
 	resp.StructureSize = 9
 	resp.SessionFlags = 0
-	resp.SecurityBufferOffset = 9 + offset - 1
+	resp.SecurityBufferOffset = 9 + 63
 
 	resp.SecurityBufferLength = uint16(len(resp.Buffer))
 
 	return resp
+}
+
+func CreatePacket(inputs ...[]byte) ([]byte, error) {
+	// NETBIOS
+	NetBiosPacket := &NetBiosPacket{
+		MessageType: NETBIOS_SESSION_MESSAGE,
+		Length:      make([]byte, 3),
+	}
+
+	var data bytes.Buffer
+
+	var payload bytes.Buffer
+
+	for _, input := range inputs {
+		err := binary.Write(&payload, binary.LittleEndian, input)
+		if err != nil {
+			return []byte{}, err
+		}
+	}
+
+	// Add padding to NetBIOS packet
+	for i := (payload.Len() + 4) % 8; i > 0; i-- {
+		err := binary.Write(&payload, binary.LittleEndian, byte(0x00))
+		if err != nil {
+			return []byte{}, err
+		}
+	}
+
+	// Compute NetBIOS length
+	NetBiosPacket.SetLength(uint32(payload.Len()))
+
+	// Write Final packet
+	err := binary.Write(&data, binary.LittleEndian, NetBiosPacket.ToBytes())
+	if err != nil {
+		return []byte{}, err
+	}
+
+	err = binary.Write(&data, binary.LittleEndian, payload.Bytes())
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return data.Bytes(), nil
 }

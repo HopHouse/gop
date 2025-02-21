@@ -25,6 +25,7 @@ var (
 	exfilUrlOption          string
 	httpsOption             bool
 	relayTargetUrl          []string
+	relaySMBServerHostPort  string
 	relayHTTPServerHostPort string
 	relayHTTPProxyHostPort  string
 	// customHTMLFile         string
@@ -187,10 +188,10 @@ var serverRelayCmd = &cobra.Command{
 		// Run the relay server
 		go goprelay.RunRelayServer(relayTargetUrl)
 
-		// // Run the HTTP server
-		// go goprelay.RunHTTPServer(relayHTTPServerHostPort, goprelay.ProcessIncomingConnChan)
+		// Run the HTTP server
+		go goprelay.RunHTTPServer(relayHTTPServerHostPort, goprelay.ProcessIncomingConnChan)
 
-		goprelay.RunSMBServer("qq", goprelay.ProcessIncomingConnChan)
+		goprelay.RunSMBServer(relaySMBServerHostPort, goprelay.ProcessIncomingConnChan)
 
 		// Hang forever
 		select {}
@@ -249,6 +250,7 @@ func init() {
 
 	serverRelayCmd.PersistentFlags().StringSliceVarP(&relayTargetUrl, "targets", "t", []string{}, "URLs of the targets.")
 	_ = serverRelayCmd.MarkFlagRequired("targets")
-	serverRelayCmd.PersistentFlags().StringVarP(&relayHTTPProxyHostPort, "http-proxy", "", "127.0.0.1:4000", "HTTP proxy to listen for traffic to impersonate user (Default: 127.0.0.1:4000).")
-	serverRelayCmd.PersistentFlags().StringVarP(&relayHTTPServerHostPort, "http-server", "", "0.0.0.0:80", "HTTP proxy to listen for traffic to impersonate user (Default: 0.0.0.0:80).")
+	serverRelayCmd.PersistentFlags().StringVarP(&relayHTTPProxyHostPort, "http-proxy", "", "127.0.0.1:4000", "HTTP proxy to listen for navigating through the HTTP proxy (Default: 127.0.0.1:4000).")
+	serverRelayCmd.PersistentFlags().StringVarP(&relayHTTPServerHostPort, "http-server", "", "0.0.0.0:80", "HTTP server to listen for traffic to impersonate user (Default: 0.0.0.0:80).")
+	serverRelayCmd.PersistentFlags().StringVarP(&relaySMBServerHostPort, "smb-server", "", "0.0.0.0:445", "SMB server to listen for traffic to impersonate user (Default: 0.0.0.0:445).")
 }

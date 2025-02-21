@@ -38,16 +38,17 @@ type NTLMAuthMiddlewareMux struct {
 	NTLMHandler NTLMAuth
 }
 
+// TODO : Unused at the moment
 func NewNTLMAuthMiddleWare() NTLMAuth {
 	return NTLMAuth{
-		Challenge:              "00000000",
+		Challenge:              "DEADBEEF",
 		DomainName:             "smbdomain",
 		ServerName:             "DC",
 		DnsDomainName:          "smbdomain.local",
 		DnsServerName:          "dc.smbdomain.local",
 		PreliminaryChecksFunc:  NTLMPreliminaryChecks,
 		DispatchFunc:           NTLMDispatch,
-		ServerNegociateFunc:    ServerNegociate,
+		ServerNegociateFunc:    ServerNegotiate,
 		ServerChallengeFunc:    ServerChallege,
 		ServerAuthenticateFunc: ServerAuthenticate,
 	}
@@ -93,9 +94,9 @@ func (n NTLMAuthMiddlewareMux) ServeHTTP(w http.ResponseWriter, r *http.Request,
 	next(w, r)
 }
 
-/* OLD */
+// /* OLD */
 
-/* OLD */
+// /* OLD */
 
 type NTLMAuthMiddleware struct{}
 
@@ -131,17 +132,18 @@ func (n NTLMAuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, ne
 		logger.Printf("Decoded authorization header is less than 12 bytes. Header was : %s\n", authorization)
 		return
 	}
+
 	msgType := binary.LittleEndian.Uint32(authorization_bytes[8:12])
 
 	// Received a type 1 and respond with type 2
 	if msgType == uint32(1) {
 		msg1 := NTLMSSP_NEGOTIATE{}
 		msg1.Read(authorization_bytes)
-		logger.Printf("[NTLM message type 1] %s\n", msg1.ToString())
+		logger.Printf("[NTLM message type 1 - NEGOTIATE]\n%s\n", msg1.ToString())
 
 		msg2 := NewNTLMSSP_CHALLENGEShort()
 		msg2b64 := base64.RawStdEncoding.EncodeToString(msg2.ToBytes())
-		logger.Printf("[NTLM message type 2] %s\n", msg2.ToString())
+		logger.Printf("[NTLM message type 2 - CHALLENGE]\n%s\n", msg2.ToString())
 		logger.Printf("%x\n", msg2)
 		logger.Printf("%v\n", msg2)
 		logger.Printf("%#v\n", msg2)

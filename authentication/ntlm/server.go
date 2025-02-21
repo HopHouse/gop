@@ -12,11 +12,11 @@ import (
 )
 
 // First message received by the server
-func ServerNegociate(w http.ResponseWriter, r *http.Request) error {
+func ServerNegotiate(w http.ResponseWriter, r *http.Request) error {
 	authorization := r.Header.Get("Authorization")
 	authorization_bytes, err := base64.StdEncoding.DecodeString(authorization[5:])
 	if err != nil {
-		errString := fmt.Errorf("ServerNegociate : error while decoding authorization header %s : %s\n", authorization, err)
+		errString := fmt.Errorf("serverNegociate : error while decoding authorization header %s : %s\n", authorization, err)
 		return errString
 	}
 
@@ -100,14 +100,14 @@ func NTLMDispatch(n NTLMAuth, w http.ResponseWriter, r *http.Request) (*NTLMSSP_
 	authorization := r.Header.Get("Authorization")
 	authorization_bytes, err := base64.StdEncoding.DecodeString(authorization[5:])
 	if err != nil {
-		err := fmt.Errorf("Decode error authorization header : %s\n", authorization)
+		err := fmt.Errorf("function NTLMDispatch : decode error authorization header : %s", authorization)
 		return nil, nil, err
 	}
 	msgType := binary.LittleEndian.Uint32(authorization_bytes[8:12])
 
 	// Received Negociate message. Handle it and answer with a Challenge message
 	if msgType == uint32(1) {
-		err := ServerNegociate(w, r)
+		err := ServerNegotiate(w, r)
 		if err != nil {
 			return nil, nil, err
 		}

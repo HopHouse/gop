@@ -48,7 +48,7 @@ func (n *NetBiosPacket) ToBytes() []byte {
 	var data bytes.Buffer
 
 	binary.Write(&data, binary.LittleEndian, n.MessageType)
-	binary.Write(&data, binary.LittleEndian, n.Length)
+	binary.Write(&data, binary.BigEndian, n.Length)
 
 	return data.Bytes()
 }
@@ -56,8 +56,8 @@ func (n *NetBiosPacket) ToBytes() []byte {
 func (n *NetBiosPacket) ToString() string {
 	var str strings.Builder
 
-	str.WriteString(fmt.Sprintf("MessageType                    : %d\n", n.MessageType))
-	str.WriteString(fmt.Sprintf("Length                         : %x\n", n.Length))
+	str.WriteString(fmt.Sprintf("MessageType                    : %x (%d)\n", n.MessageType, n.MessageType))
+	str.WriteString(fmt.Sprintf("Length                         : %x (%d)\n", n.Length, n.Length))
 
 	return str.String()
 }

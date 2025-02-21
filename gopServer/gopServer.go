@@ -54,6 +54,10 @@ func (s Server) CreateMiddleware() *negroni.Negroni {
 		logger.Printf("[+] Add HTTP NTLM auth header\n")
 		ntlmAuth.NtlmCapturedAuth = make(map[string]bool)
 		n.Use(&ntlmAuth.NTLMAuthMiddleware{})
+		// n.Use(&ntlmAuth.NTLMAuthMiddlewareMux{
+		// 	NTLMHandler: ntlmAuth.NewNTLMAuthMiddleWare(),
+		// })
+
 	}
 
 	return n

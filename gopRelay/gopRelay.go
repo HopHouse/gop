@@ -67,11 +67,12 @@ func RunRelayServer(targets []string) {
 					exist = false
 				} else {
 					logger.Printf("[+] Connexion : %s already in the connexion list with UUID %s at step %s\n", remoteIP, client.ClientConnUUID, client.step)
+					DisplayConnexions(connexions)
 					return
 				}
 			}
 
-			if !exist || client.step == "Authentication" {
+			if !exist || client.step != "Authentication" {
 				connexion := NTLMAuthHTTPRelay{
 					ClientConnUUID: strings.Split(uuid.NewString(), "-")[0],
 					clientConn:     item.conn,

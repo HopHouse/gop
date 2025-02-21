@@ -147,18 +147,18 @@ func (n *NTLMAuthHTTPRelay) ProcessHTTPServer(target string) error {
 		logger.Fprintf(logger.Writer(), "%s | %s | [+] Message type : %d\n", n.ClientConnUUID, currentRelay.relayUUID, msgType)
 
 		/*
-		 * Message Type 1
+		 * Message Type 1 - NEGOTIATE
 		 */
 
-		// Received Negociate message. Handle it and answer with a Challenge message
+		// Received NEGOTIATE message. Handle it and answer with a Challenge message
 
 		if msgType == uint32(1) {
 			// Client Negotiate
-			serverNegociateRequest := ntlm.NTLMSSP_NEGOTIATE{}
-			serverNegociateRequest.Read(authorization_bytes)
+			serverNegotiateRequest := ntlm.NTLMSSP_NEGOTIATE{}
+			serverNegotiateRequest.Read(authorization_bytes)
 
-			logger.Fprintf(logger.Writer(), "%s | %s | client :: gop | [+] NTLM NEGOCIATE\n", n.ClientConnUUID, currentRelay.relayUUID)
-			for _, line := range strings.Split(serverNegociateRequest.ToString(), "\n") {
+			logger.Fprintf(logger.Writer(), "%s | %s | client :: gop | [+] NTLM NEGOTIATE\n", n.ClientConnUUID, currentRelay.relayUUID)
+			for _, line := range strings.Split(serverNegotiateRequest.ToString(), "\n") {
 				logger.Fprintf(logger.Writer(), "%s | %s | client :: gop | %s\n", n.ClientConnUUID, currentRelay.relayUUID, line)
 			}
 
@@ -195,7 +195,7 @@ func (n *NTLMAuthHTTPRelay) ProcessHTTPServer(target string) error {
 
 			authorization_bytes, err = base64.StdEncoding.DecodeString(authorization[5:])
 			if err != nil {
-				err := fmt.Errorf("decode error authorization header : %s", authorization)
+				err := fmt.Errorf("clientNegotiateResponse : decode error authorization header : %s", authorization)
 				return err
 			}
 
@@ -212,6 +212,7 @@ func (n *NTLMAuthHTTPRelay) ProcessHTTPServer(target string) error {
 			 * End client part
 			 *
 			 */
+
 			clientNegotiateResponseDump, err := httputil.DumpResponse(clientNegotiateResponse, true)
 			if err != nil {
 				logger.Println(err)

